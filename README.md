@@ -91,3 +91,10 @@ The left button changes the backlight in the 3 steps defined in M5NS.INI file.
 The middle button wakes M5Stack from sleep.
 
 The right button puts M5Stack to the sleep as it is a little bit tricky do double click standard power button.
+
+
+Donations
+
+If you find my project useful, you can donate me few bucks for further development or buy me a glass of wine 😉
+
+https://paypal.me/8bity
