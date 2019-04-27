@@ -4,20 +4,21 @@ M5Stack Nightscout monitor
 
 Revisions:
 
-*** 27 Apr 2019 - 2
+*** 27 Apr 2019 - 2 ***
 Larger JSONDocument size for xDrip and possibly other Nightscout upload application compatibility.
 A little bit better HTTP error handling and error printing to the M5Stack screen.
 When "show_mgdl = 1", then all values in M5NS.INI have to be in mg/dL instead of mmol/L.
 Updated device detection for xDrip.
 
-*** 27 Apr 2019
+*** 27 Apr 2019 ***
 Only one query to Nightscout for minigraph as well as the last value. Faster code execution, less traffic.
 
-*** 20 Apr 2019 - 2
+*** 20 Apr 2019 - 2 ***
 Added the main source code M5_NightscoutMon.ino to GitHub. Sorry I forgot in initital commit ;-)
 
-*** 20 Apr 2019
+*** 20 Apr 2019 ***
 Initial GitHub commit
+
 
 
 M5Stack Nightscout Monitor
