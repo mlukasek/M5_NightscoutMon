@@ -20,9 +20,7 @@ Added the main source code M5_NightscoutMon.ino to GitHub. Sorry I forgot in ini
 Initial GitHub commit
 
 
-
 M5Stack Nightscout Monitor
-
 
 M5Stack is small development kit based on ESP32. It is in a nice plastic box, equipped with color display, micro SD card slot, 3 buttons, speaker and internal battery. It is great to monitor and display something, so I used it to monitor my daughter's glycemia. It is nice, comfortable and cheap solution.
 
