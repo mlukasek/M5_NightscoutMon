@@ -579,98 +579,57 @@ void arrow(int x, int y, int asize, int aangle, int pwidth, int plength, uint16_
   M5.Lcd.drawLine(x, y-2, xx1, yy1-2, color);
 }
 
-void drawMiniGraph(){
-  if((WiFiMulti.run() == WL_CONNECTED)) {
-    HTTPClient http;
-
-    Serial.print("[HTTP] GRAPH begin...\n");
-    char NSurl[128];
-    strcpy(NSurl,"https://");
-    strcat(NSurl,cfg.url);
-    strcat(NSurl,"/api/v1/entries.json");
-    http.begin(NSurl); //HTTP
-    
-    Serial.print("[HTTP] GRAPH GET...\n");
-    // start connection and send HTTP header
-    int httpCode = http.GET();
-  
-    // httpCode will be negative on error
-    if(httpCode > 0) {
-      // HTTP header has been send and Server response header has been handled
-      Serial.printf("[HTTP] GRAPH GET... code: %d\n", httpCode);
-
-      // file found at server
-      if(httpCode == HTTP_CODE_OK) {
-        String json = http.getString();
-        // Serial.println(json);
-        const size_t capacity = JSON_ARRAY_SIZE(11) + 10*JSON_OBJECT_SIZE(10) + 1000;
-        DynamicJsonDocument jdoc(capacity);
-        // String json = payload.substring(1,payload.length()-1);
-        // Serial.print("MSG=");
-        // Serial.println(msg);
-        auto JSONerr = deserializeJson(jdoc, json);
-        if (JSONerr) {   //Check for errors in parsing
-          Serial.println("JSON GRAPH Parsing failed");
-        } else {
-          /*
-          // draw help lines
-          for(int i=0; i<320; i+=40) {
-            M5.Lcd.drawLine(i, 0, i, 240, TFT_DARKGREY);
-          }
-          for(int i=0; i<240; i+=30) {
-            M5.Lcd.drawLine(0, i, 320, i, TFT_DARKGREY);
-          }
-          M5.Lcd.drawLine(0, 120, 320, 120, TFT_LIGHTGREY);
-          M5.Lcd.drawLine(160, 0, 160, 240, TFT_LIGHTGREY);
-          */
-          int i;
-          float sgv[10];
-          float glk;
-          uint16_t sgvColor;
-          for(i=0; i<=9; i++) {
-            sgv[i]=jdoc[i]["sgv"];
-            sgv[i]/=18.0;
-          }
-          Serial.print("Last 10 values: ");
-          /* test values
-          for(i=0; i<=9; i++) {
-            sgv[i]=3+i;
-          }
-          */
-          // M5.Lcd.drawLine(231, 110, 319, 110, TFT_DARKGREY);
-          // M5.Lcd.drawLine(231, 110, 231, 207, TFT_DARKGREY);
-          // M5.Lcd.drawLine(231, 207, 319, 207, TFT_DARKGREY);
-          // M5.Lcd.drawLine(319, 110, 319, 207, TFT_DARKGREY);
-          M5.Lcd.drawLine(231, 113, 319, 113, TFT_LIGHTGREY);
-          M5.Lcd.drawLine(231, 203, 319, 203, TFT_LIGHTGREY);
-          M5.Lcd.drawLine(231, 200-(4-3)*10+3, 319, 200-(4-3)*10+3, TFT_LIGHTGREY);
-          M5.Lcd.drawLine(231, 200-(9-3)*10+3, 319, 200-(9-3)*10+3, TFT_LIGHTGREY);
-          for(i=9; i>=0; i--) {
-            sgvColor = TFT_GREEN;
-            glk = sgv[9-i];
-            if(glk>12) {
-              glk = 12;
-            } else {
-              if(glk<3) {
-                glk = 3;
-              }
-            }
-            if(glk<cfg.red_low || glk>cfg.red_high) {
-              sgvColor = TFT_RED;
-            } else {
-              if(glk<cfg.yellow_low || glk>cfg.yellow_high) {
-                sgvColor = TFT_YELLOW;
-              }
-            }
-            Serial.print(sgv[i]); Serial.print(" ");
-            // M5.Lcd.fillRect(231+i*9, 200.0-(glk-3.0)*10.0, 7, 7, sgvColor); 
-            M5.Lcd.fillCircle(234+i*9, 203-(glk-3.0)*10.0, 3, sgvColor);
-          }
-          Serial.println();
-        }
+void drawMiniGraph(float *last10sgv){
+  /*
+  // draw help lines
+  for(int i=0; i<320; i+=40) {
+    M5.Lcd.drawLine(i, 0, i, 240, TFT_DARKGREY);
+  }
+  for(int i=0; i<240; i+=30) {
+    M5.Lcd.drawLine(0, i, 320, i, TFT_DARKGREY);
+  }
+  M5.Lcd.drawLine(0, 120, 320, 120, TFT_LIGHTGREY);
+  M5.Lcd.drawLine(160, 0, 160, 240, TFT_LIGHTGREY);
+  */
+  int i;
+  float glk;
+  uint16_t sgvColor;
+  Serial.print("Last 10 values: ");
+  /* test values
+  for(i=0; i<=9; i++) {
+    sgv[i]=3+i;
+  }
+  */
+  // M5.Lcd.drawLine(231, 110, 319, 110, TFT_DARKGREY);
+  // M5.Lcd.drawLine(231, 110, 231, 207, TFT_DARKGREY);
+  // M5.Lcd.drawLine(231, 207, 319, 207, TFT_DARKGREY);
+  // M5.Lcd.drawLine(319, 110, 319, 207, TFT_DARKGREY);
+  M5.Lcd.drawLine(231, 113, 319, 113, TFT_LIGHTGREY);
+  M5.Lcd.drawLine(231, 203, 319, 203, TFT_LIGHTGREY);
+  M5.Lcd.drawLine(231, 200-(4-3)*10+3, 319, 200-(4-3)*10+3, TFT_LIGHTGREY);
+  M5.Lcd.drawLine(231, 200-(9-3)*10+3, 319, 200-(9-3)*10+3, TFT_LIGHTGREY);
+  for(i=9; i>=0; i--) {
+    sgvColor = TFT_GREEN;
+    glk = *(last10sgv+9-i);
+    if(glk>12) {
+      glk = 12;
+    } else {
+      if(glk<3) {
+        glk = 3;
       }
     }
+    if(glk<cfg.red_low || glk>cfg.red_high) {
+      sgvColor = TFT_RED;
+    } else {
+      if(glk<cfg.yellow_low || glk>cfg.yellow_high) {
+        sgvColor = TFT_YELLOW;
+      }
+    }
+    Serial.print(*(last10sgv+i)); Serial.print(" ");
+    // M5.Lcd.fillRect(231+i*9, 200.0-(glk-3.0)*10.0, 7, 7, sgvColor); 
+    M5.Lcd.fillCircle(234+i*9, 203-(glk-3.0)*10.0, 3, sgvColor);
   }
+  Serial.println();
 }
 void update_glycemia() {
   M5.Lcd.setTextDatum(TL_DATUM);
@@ -689,7 +648,8 @@ void update_glycemia() {
     char NSurl[128];
     strcpy(NSurl,"https://");
     strcat(NSurl,cfg.url);
-    strcat(NSurl,"/api/v1/entries/current.json");
+    // strcat(NSurl,"/api/v1/entries/current.json");
+    strcat(NSurl,"/api/v1/entries.json");
     http.begin(NSurl); //HTTP
     
     Serial.print("[HTTP] GET...\n");
@@ -703,55 +663,44 @@ void update_glycemia() {
 
       // file found at server
       if(httpCode == HTTP_CODE_OK) {
-        String payload = http.getString();
+        // String payload = http.getString();
+        String json = http.getString();
         // Serial.println(payload);
-        StaticJsonDocument<500> JSONDoc;
+        const size_t capacity = JSON_ARRAY_SIZE(11) + 10*JSON_OBJECT_SIZE(10) + 1000;
+        DynamicJsonDocument JSONdoc(capacity);
+        // StaticJsonDocument<500> JSONDoc;
         // "{\"_id\":\"5b05d6ed06e36a2642219b50\",\"dateString\":\"2018-05-23T21:02:29.000+0000\",\"device\":\"MIAOMIAO\",\"direction\":\"SingleDown\",\"noise\":1,\"date\":1527109349536,\"rssi\":100,\"sgv\":113,\"sysTime\":\"2018-05-23T21:02:29.000+0000\",\"unfiltered\":150941,\"type\":\"sgv\",\"filtered\":150941}";
-        String msg = payload.substring(1,payload.length()-1);
+        // String msg = payload.substring(1,payload.length()-1);
         // Serial.print("MSG=");
         // Serial.println(msg);
-        auto JSONerr = deserializeJson(JSONDoc, msg);
+        // auto JSONerr = deserializeJson(JSONDoc, msg);
+        auto JSONerr = deserializeJson(JSONdoc, json);
         if (JSONerr) {   //Check for errors in parsing
           Serial.println("Parsing failed");
         } else {
           char sensDev[64];
-          strlcpy(sensDev, JSONDoc["device"] | "N/A", 64);
+          strlcpy(sensDev, JSONdoc[0]["device"] | "N/A", 64);
           // char sensDT[64];
-          // strlcpy(sensDT, JSONDoc["dateString"] | "N/A", 64);
+          // strlcpy(sensDT, JSONdoc[0]["dateString"] | "N/A", 64);
           uint64_t rawtime = 0;
-          rawtime = JSONDoc["date"].as<long long>(); // sensTime is time in milliseconds since 1970, something like 1555229938118
+          rawtime = JSONdoc[0]["date"].as<long long>(); // sensTime is time in milliseconds since 1970, something like 1555229938118
           time_t sensTime = rawtime / 1000; // no milliseconds, since 2000 would be - 946684800, but ok
-          /*
-          // the JSONDoc["date"] seems to returning slightly different number due to some error
-          // so let's try to parse it manually, otherwise keep the 'wrong' date
-          int datepos = msg.indexOf("\"date\":");
-          // Serial.print("msg.indexOf(\"date\":) = ");
-          // Serial.println(datepos);
-          if(datepos != -1) {
-            datepos += 7;
-            int enddatepos = msg.indexOf(',',datepos);
-            if(enddatepos != -1) {
-              String datestr = msg.substring(datepos, enddatepos-3); // omit millis
-              // Serial.print("Date string = ");
-              // Serial.println(datestr);
-              sensTime = datestr.toInt();
-              // Serial.print("Date value = ");
-              // Serial.println(sensTime);
-            }
-          }
-          */
+          float last10sgv[10];
           char sensDir[32];
-          strlcpy(sensDir, JSONDoc["direction"] | "N/A", 32);
-          float sensSgv = JSONDoc["sgv"]; //Get value of sensor measurement
+          strlcpy(sensDir, JSONdoc[0]["direction"] | "N/A", 32);
+          for(int i=0; i<=9; i++) {
+            last10sgv[i]=JSONdoc[i]["sgv"];
+            last10sgv[i]/=18.0;
+          }
+          float sensSgv = JSONdoc[0]["sgv"]; //Get value of sensor measurement
           float sensSgvMgDl = sensSgv;
+          // internally we work in mmol/L
+          sensSgv/=18.0;
           
           char tmpstr[255];
           struct tm sensTm;
           localtime_r(&sensTime, &sensTm);
           
-          // conversion to mmol - must be correct for international use
-          sensSgv/=18.0;
-
           Serial.print("sensDev = ");
           Serial.println(sensDev);
           Serial.print("sensTime = ");
@@ -930,6 +879,8 @@ void update_glycemia() {
               if((sensSgv<=cfg.snd_warning) && (sensSgv>=0.1))
                 sndWarning();
           }
+
+          drawMiniGraph(last10sgv);
         }
       }
     } else {
@@ -938,8 +889,6 @@ void update_glycemia() {
   
     http.end();
   }
-
-  drawMiniGraph();
 }
 
 // the loop routine runs over and over again forever
