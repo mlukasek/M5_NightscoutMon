@@ -68,6 +68,9 @@ unsigned long msCount;
 static uint8_t lcdBrightness = 10;
 static char *iniFilename = "/M5NS.INI";
 
+DynamicJsonDocument JSONdoc(16384);
+float last10sgv[10];
+
 void startupLogo() {
     static uint8_t brightness, pre_brightness;
     uint32_t length = strlen((char*)m5stack_startup_music);
@@ -135,52 +138,52 @@ void sndAlarm() {
 }
 
 void sndWarning() {
-        M5.Speaker.setVolume(4);
-        M5.Speaker.update();
-        M5.Speaker.tone(3000, 100);
-        for(int i=0; i<400; i++) {
-          delay(1);
-          M5.update();
-        }
-        M5.Speaker.tone(3000, 100);
-        for(int i=0; i<400; i++) {
-          delay(1);
-          M5.update();
-        }
-        M5.Speaker.tone(3000, 100);
-        for(int i=0; i<400; i++) {
-          delay(1);
-          M5.update();
-        }
-        M5.Speaker.mute();
-        M5.Speaker.update();
+  M5.Speaker.setVolume(4);
+  M5.Speaker.update();
+  M5.Speaker.tone(3000, 100);
+  for(int i=0; i<400; i++) {
+    delay(1);
+    M5.update();
+  }
+  M5.Speaker.tone(3000, 100);
+  for(int i=0; i<400; i++) {
+    delay(1);
+    M5.update();
+  }
+  M5.Speaker.tone(3000, 100);
+  for(int i=0; i<400; i++) {
+    delay(1);
+    M5.update();
+  }
+  M5.Speaker.mute();
+  M5.Speaker.update();
 }
 
 void buttons_test() {
-    if(M5.BtnA.wasPressed()) {
-        // M5.Lcd.printf("A");
-        Serial.printf("A");
-        // sndAlarm();
-        if(lcdBrightness==cfg.brightness1) 
-          lcdBrightness = cfg.brightness2;
+  if(M5.BtnA.wasPressed()) {
+      // M5.Lcd.printf("A");
+      Serial.printf("A");
+      // sndAlarm();
+      if(lcdBrightness==cfg.brightness1) 
+        lcdBrightness = cfg.brightness2;
+      else
+        if(lcdBrightness==cfg.brightness2) 
+          lcdBrightness = cfg.brightness3;
         else
-          if(lcdBrightness==cfg.brightness2) 
-            lcdBrightness = cfg.brightness3;
-          else
-            lcdBrightness = cfg.brightness1;
-        M5.Lcd.setBrightness(lcdBrightness);
-    }
-    if(M5.BtnB.wasPressed()) {
-        // M5.Lcd.printf("B");
-        Serial.printf("B");
-        // sndWarning();
-    } 
-    if(M5.BtnC.wasPressed()) {
-        // M5.Lcd.printf("C");
-        Serial.printf("C");
-        M5.setWakeupButton(BUTTON_B_PIN);
-        M5.powerOFF();
-    } 
+          lcdBrightness = cfg.brightness1;
+      M5.Lcd.setBrightness(lcdBrightness);
+  }
+  if(M5.BtnB.wasPressed()) {
+      // M5.Lcd.printf("B");
+      Serial.printf("B");
+      // sndWarning();
+  } 
+  if(M5.BtnC.wasPressed()) {
+      // M5.Lcd.printf("C");
+      Serial.printf("C");
+      M5.setWakeupButton(BUTTON_B_PIN);
+      M5.powerOFF();
+  } 
 }
 
 void wifi_connect() {
@@ -363,6 +366,8 @@ void readConfiguration() {
   if (ini.getValue("config", "yellow_low", buffer, bufferLen)) {
     Serial.print("yellow_low = ");
     cfg.yellow_low = atof(buffer);
+    if( cfg.show_mgdl )
+      cfg.yellow_low /= 18.0;
     Serial.println(cfg.yellow_low);
   }
   else {
@@ -373,6 +378,8 @@ void readConfiguration() {
   if (ini.getValue("config", "yellow_high", buffer, bufferLen)) {
     Serial.print("yellow_high = ");
     cfg.yellow_high = atof(buffer);
+    if( cfg.show_mgdl )
+      cfg.yellow_high /= 18.0;
     Serial.println(cfg.yellow_high);
   }
   else {
@@ -383,6 +390,8 @@ void readConfiguration() {
   if (ini.getValue("config", "red_low", buffer, bufferLen)) {
     Serial.print("red_low = ");
     cfg.red_low = atof(buffer);
+    if( cfg.show_mgdl )
+      cfg.red_low /= 18.0;
     Serial.println(cfg.red_low);
   }
   else {
@@ -393,6 +402,8 @@ void readConfiguration() {
   if (ini.getValue("config", "red_high", buffer, bufferLen)) {
     Serial.print("red_high = ");
     cfg.red_high = atof(buffer);
+    if( cfg.show_mgdl )
+      cfg.red_high /= 18.0;
     Serial.println(cfg.red_high);
   }
   else {
@@ -403,6 +414,8 @@ void readConfiguration() {
   if (ini.getValue("config", "snd_warning", buffer, bufferLen)) {
     Serial.print("snd_warning = ");
     cfg.snd_warning = atof(buffer);
+    if( cfg.show_mgdl )
+      cfg.snd_warning /= 18.0;
     Serial.println(cfg.snd_warning);
   }
   else {
@@ -413,6 +426,8 @@ void readConfiguration() {
   if (ini.getValue("config", "snd_alarm", buffer, bufferLen)) {
     Serial.print("snd_alarm = ");
     cfg.snd_alarm = atof(buffer);
+    if( cfg.show_mgdl )
+      cfg.snd_alarm /= 18.0;
     Serial.println(cfg.snd_alarm);
   }
   else {
@@ -579,7 +594,7 @@ void arrow(int x, int y, int asize, int aangle, int pwidth, int plength, uint16_
   M5.Lcd.drawLine(x, y-2, xx1, yy1-2, color);
 }
 
-void drawMiniGraph(float *last10sgv){
+void drawMiniGraph(){
   /*
   // draw help lines
   for(int i=0; i<320; i+=40) {
@@ -594,12 +609,6 @@ void drawMiniGraph(float *last10sgv){
   int i;
   float glk;
   uint16_t sgvColor;
-  Serial.print("Last 10 values: ");
-  /* test values
-  for(i=0; i<=9; i++) {
-    sgv[i]=3+i;
-  }
-  */
   // M5.Lcd.drawLine(231, 110, 319, 110, TFT_DARKGREY);
   // M5.Lcd.drawLine(231, 110, 231, 207, TFT_DARKGREY);
   // M5.Lcd.drawLine(231, 207, 319, 207, TFT_DARKGREY);
@@ -608,6 +617,7 @@ void drawMiniGraph(float *last10sgv){
   M5.Lcd.drawLine(231, 203, 319, 203, TFT_LIGHTGREY);
   M5.Lcd.drawLine(231, 200-(4-3)*10+3, 319, 200-(4-3)*10+3, TFT_LIGHTGREY);
   M5.Lcd.drawLine(231, 200-(9-3)*10+3, 319, 200-(9-3)*10+3, TFT_LIGHTGREY);
+  Serial.print("Last 10 values: ");
   for(i=9; i>=0; i--) {
     sgvColor = TFT_GREEN;
     glk = *(last10sgv+9-i);
@@ -626,7 +636,6 @@ void drawMiniGraph(float *last10sgv){
       }
     }
     Serial.print(*(last10sgv+i)); Serial.print(" ");
-    // M5.Lcd.fillRect(231+i*9, 200.0-(glk-3.0)*10.0, 7, 7, sgvColor); 
     M5.Lcd.fillCircle(234+i*9, 203-(glk-3.0)*10.0, 3, sgvColor);
   }
   Serial.println();
@@ -648,7 +657,6 @@ void update_glycemia() {
     char NSurl[128];
     strcpy(NSurl,"https://");
     strcat(NSurl,cfg.url);
-    // strcat(NSurl,"/api/v1/entries/current.json");
     strcat(NSurl,"/api/v1/entries.json");
     http.begin(NSurl); //HTTP
     
@@ -663,20 +671,17 @@ void update_glycemia() {
 
       // file found at server
       if(httpCode == HTTP_CODE_OK) {
-        // String payload = http.getString();
         String json = http.getString();
-        // Serial.println(payload);
-        const size_t capacity = JSON_ARRAY_SIZE(11) + 10*JSON_OBJECT_SIZE(10) + 1000;
-        DynamicJsonDocument JSONdoc(capacity);
-        // StaticJsonDocument<500> JSONDoc;
-        // "{\"_id\":\"5b05d6ed06e36a2642219b50\",\"dateString\":\"2018-05-23T21:02:29.000+0000\",\"device\":\"MIAOMIAO\",\"direction\":\"SingleDown\",\"noise\":1,\"date\":1527109349536,\"rssi\":100,\"sgv\":113,\"sysTime\":\"2018-05-23T21:02:29.000+0000\",\"unfiltered\":150941,\"type\":\"sgv\",\"filtered\":150941}";
-        // String msg = payload.substring(1,payload.length()-1);
-        // Serial.print("MSG=");
-        // Serial.println(msg);
-        // auto JSONerr = deserializeJson(JSONDoc, msg);
+        // Serial.println(json);
+        // const size_t capacity = JSON_ARRAY_SIZE(10) + 10*JSON_OBJECT_SIZE(19) + 3840;
+        // Serial.print("JSON size needed= "); Serial.print(capacity); 
+        Serial.print("Free Heap = "); Serial.println(ESP.getFreeHeap());
         auto JSONerr = deserializeJson(JSONdoc, json);
         if (JSONerr) {   //Check for errors in parsing
-          Serial.println("Parsing failed");
+          Serial.println("JSON parsing failed");
+          M5.Lcd.setFreeFont(FSSB12);
+          M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+          M5.Lcd.drawString("JSON parsing failed", 0, 0, GFXFF);
         } else {
           char sensDev[64];
           strlcpy(sensDev, JSONdoc[0]["device"] | "N/A", 64);
@@ -685,7 +690,6 @@ void update_glycemia() {
           uint64_t rawtime = 0;
           rawtime = JSONdoc[0]["date"].as<long long>(); // sensTime is time in milliseconds since 1970, something like 1555229938118
           time_t sensTime = rawtime / 1000; // no milliseconds, since 2000 would be - 946684800, but ok
-          float last10sgv[10];
           char sensDir[32];
           strlcpy(sensDir, JSONdoc[0]["direction"] | "N/A", 32);
           for(int i=0; i<=9; i++) {
@@ -854,8 +858,14 @@ void update_glycemia() {
           M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
           char devStr[64];
           strcpy(devStr, sensDev);
-          if(strcmp(devStr,"MIAOMIAO")==0)
-            strcpy(devStr,"Spike MiaoMiao + Libre");
+          if(strcmp(devStr,"MIAOMIAO")==0) {
+            JsonObject obj=JSONdoc[0].as<JsonObject>();
+            if(obj.containsKey("xDrip_raw")) {
+              strcpy(devStr,"xDrip MiaoMiao + Libre");
+            } else {
+              strcpy(devStr,"Spike MiaoMiao + Libre");
+            }
+          }
           if(strcmp(devStr,"Tomato")==0)
             strcat(devStr," MiaoMiao + Libre");
           M5.Lcd.drawString(devStr, 0, 220, GFXFF);
@@ -880,11 +890,19 @@ void update_glycemia() {
                 sndWarning();
           }
 
-          drawMiniGraph(last10sgv);
+          drawMiniGraph();
         }
+      } else {
+        String errstr = String("[HTTP] GET not ok, error: " + String(httpCode));
+        Serial.println(errstr);
+        M5.Lcd.setTextSize(2);
+        M5.Lcd.println(errstr);
       }
     } else {
-      Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+      String errstr = String("[HTTP] GET failed, error: " + String(http.errorToString(httpCode).c_str()));
+      Serial.println(errstr);
+      M5.Lcd.setTextSize(2);
+      M5.Lcd.println(errstr);
     }
   
     http.end();

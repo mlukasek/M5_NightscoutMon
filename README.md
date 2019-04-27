@@ -1,5 +1,19 @@
-# M5_NightscoutMon
+﻿# M5_NightscoutMon
 M5Stack Nightscout monitor
+
+
+Revisions:
+*** 27 Apr 2019 - 2
+Larger JSONDocument size for xDrip and possibly other Nightscout upload application compatibility.
+A little bit better HTTP error handling and error printing to the M5Stack screen. 
+When “show_mgdl = 1”, then all values in M5NS.INI have to me in mg/dL instead of mmol/L.
+Updated device detection for xDrip.
+*** 27 Apr 2019
+Only one query to Nightscout for minigraph as well as the last value. Faster code execution, less traffic.
+*** 20 Apr 2019 - 2
+Added the main source code M5_NightscoutMon.ino to GitHub. Sorry I forgot in initital commit ;-)
+*** 20 Apr 2019
+Initial GitHub commit
 
 
 M5Stack is small development kit based on ESP32. It is in a nice plastic box, equipped with color display, micro SD card slot, 3 buttons, speaker and internal battery. It is great to monitor and display something, so I used it to monitor my daughter's glycemia. It is nice, comfortable and cheap solution.
@@ -32,7 +46,7 @@ dst = 3600 – your daylight saving time offset (3600s is +1 hour)
 show_mgdl = 0 – use 0 to display values in mmol/L or 1 for mg/dl
 
 
--	following values are always in mmol/L, please divide by 18 your mg/dl values
+- following values are in mmol/L or mg/dl depending on th previous show_mgdl value
 
 yellow_low = 4.5 – glycemia values under this value will be displayed in yellow color
 
