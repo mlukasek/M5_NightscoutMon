@@ -54,7 +54,7 @@ dst = 3600 – your daylight saving time offset (3600s is +1 hour)
 show_mgdl = 0 – use 0 to display values in mmol/L or 1 for mg/dl
 
 
-- following values are in mmol/L or mg/dl depending on th previous show_mgdl value
+- following values are in mmol/L or mg/dl depending on the previous "show_mgdl" key value
 
 yellow_low = 4.5 – glycemia values under this value will be displayed in yellow color
 
