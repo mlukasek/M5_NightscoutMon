@@ -70,6 +70,7 @@ static char *iniFilename = "/M5NS.INI";
 
 DynamicJsonDocument JSONdoc(16384);
 float last10sgv[10];
+int wasError = 0;
 
 void startupLogo() {
     static uint8_t brightness, pre_brightness;
@@ -569,7 +570,7 @@ void setup() {
     msCount = millis()-16000;
 }
 
-void arrow(int x, int y, int asize, int aangle, int pwidth, int plength, uint16_t color){
+void drawArrow(int x, int y, int asize, int aangle, int pwidth, int plength, uint16_t color){
   float dx = (asize-10)*cos(aangle-90)*PI/180+x; // calculate X position  
   float dy = (asize-10)*sin(aangle-90)*PI/180+y; // calculate Y position  
   float x1 = 0;         float y1 = plength;
@@ -645,7 +646,12 @@ void update_glycemia() {
   M5.Lcd.setTextColor(WHITE, BLACK);
   M5.Lcd.setTextSize(1);
   M5.Lcd.setCursor(0, 0);
-  M5.Lcd.fillRect(230, 110, 90, 100, TFT_BLACK);
+  // if there was an error, then clear whole screen, otherwise only graphic updated part
+  if( wasError ) {
+    M5.Lcd.fillScreen(BLACK);
+  } else {
+    M5.Lcd.fillRect(230, 110, 90, 100, TFT_BLACK);
+  }
   M5.Lcd.drawJpgFile(SD, "/WiFi_symbol.jpg", 242, 130);
   // uint16_t maxWidth, uint16_t maxHeight, uint16_t offX, uint16_t offY, jpeg_div_t scale);
   if((WiFiMulti.run() == WL_CONNECTED)) {
@@ -682,6 +688,7 @@ void update_glycemia() {
           M5.Lcd.setFreeFont(FSSB12);
           M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
           M5.Lcd.drawString("JSON parsing failed", 0, 0, GFXFF);
+          wasError = 1;
         } else {
           char sensDev[64];
           strlcpy(sensDev, JSONdoc[0]["device"] | "N/A", 64);
@@ -725,6 +732,9 @@ void update_glycemia() {
           M5.Lcd.setTextSize(1);
           M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
           M5.Lcd.drawString("Nightscout", 0, 0, GFXFF);
+          // char heapstr[20];
+          // sprintf(heapstr, "%i B free", ESP.getFreeHeap());
+          // M5.Lcd.drawString(heapstr, 0, 0, GFXFF);
           M5.Lcd.drawString(cfg.userName, 0, 24, GFXFF);
  
           M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
@@ -846,13 +856,8 @@ void update_glycemia() {
                                         if(strcmp(sensDir,"NOT COMPUTABLE")==0)
                                           arrowAngle = 180;
           if(arrowAngle!=180)
-            arrow(0+tw+25, 120+40, 10, arrowAngle+85, 40, 40, glColor);
+            drawArrow(0+tw+25, 120+40, 10, arrowAngle+85, 40, 40, glColor);
           
-          //arrow(0+tw+40, 120+40, 10, 45+85, 40, 40, TFT_RED);
-          //arrow(0+tw+40, 120+40, 10, -45+85, 40, 40, TFT_BLUE);
-          //arrow(0+tw+40, 120+40, 10, 135+85, 40, 40, TFT_MAGENTA);
-          //arrow(0+tw+40, 120+40, 10, -135+85, 40, 40, TFT_CYAN);
-
           M5.Lcd.setTextSize(1);
           M5.Lcd.setFreeFont(FSSB12);
           M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
@@ -895,14 +900,20 @@ void update_glycemia() {
       } else {
         String errstr = String("[HTTP] GET not ok, error: " + String(httpCode));
         Serial.println(errstr);
-        M5.Lcd.setTextSize(2);
+        M5.Lcd.setCursor(0, 23);
+        M5.Lcd.setTextSize(1);
+        M5.Lcd.setFreeFont(FSSB12);
         M5.Lcd.println(errstr);
+        wasError = 1;
       }
     } else {
       String errstr = String("[HTTP] GET failed, error: " + String(http.errorToString(httpCode).c_str()));
       Serial.println(errstr);
-      M5.Lcd.setTextSize(2);
+      M5.Lcd.setCursor(0, 23);
+      M5.Lcd.setTextSize(1);
+      M5.Lcd.setFreeFont(FSSB12);
       M5.Lcd.println(errstr);
+      wasError = 1;
     }
   
     http.end();
