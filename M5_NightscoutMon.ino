@@ -303,7 +303,7 @@ void readConfiguration() {
   if (ini.getValue("config", "nightscout", buffer, bufferLen)) {
     Serial.print("section 'config' has an entry 'nightscout' with value ");
     Serial.println(buffer);
-    strcpy(cfg.url, buffer);
+    strlcpy(cfg.url, buffer, 64);
   }
   else {
     Serial.print("Could not read 'nightscout' from section 'config', error was ");
@@ -316,7 +316,7 @@ void readConfiguration() {
   if (ini.getValue("config", "bootpic", buffer, bufferLen)) {
     Serial.print("bootpic = ");
     Serial.println(buffer);
-    strcpy(cfg.bootPic, buffer);
+    strlcpy(cfg.bootPic, buffer, 64);
   }
   else {
     Serial.println("NO bootpic");
@@ -326,7 +326,7 @@ void readConfiguration() {
   if (ini.getValue("config", "name", buffer, bufferLen)) {
     Serial.print("name = ");
     Serial.println(buffer);
-    strcpy(cfg.userName, buffer);
+    strlcpy(cfg.userName, buffer, 32);
   }
   else {
     Serial.println("NO user name");
@@ -473,7 +473,7 @@ void readConfiguration() {
   if (ini.getValue("wlan1", "ssid", buffer, bufferLen)) {
     Serial.print("wlan1ssid = ");
     Serial.println(buffer);
-    strcpy(cfg.wlan1ssid, buffer);
+    strlcpy(cfg.wlan1ssid, buffer,32);
   }
   else {
     Serial.println("NO wlan1 ssid");
@@ -483,7 +483,7 @@ void readConfiguration() {
   if (ini.getValue("wlan1", "pass", buffer, bufferLen)) {
     Serial.print("wlan1pass = ");
     Serial.println(buffer);
-    strcpy(cfg.wlan1pass, buffer);
+    strlcpy(cfg.wlan1pass, buffer, 32);
   }
   else {
     Serial.println("NO wlan1 pass");
@@ -493,7 +493,7 @@ void readConfiguration() {
   if (ini.getValue("wlan2", "ssid", buffer, bufferLen)) {
     Serial.print("wlan2ssid = ");
     Serial.println(buffer);
-    strcpy(cfg.wlan2ssid, buffer);
+    strlcpy(cfg.wlan2ssid, buffer, 32);
   }
   else {
     Serial.println("NO wlan2 ssid");
@@ -503,7 +503,7 @@ void readConfiguration() {
   if (ini.getValue("wlan2", "pass", buffer, bufferLen)) {
     Serial.print("wlan2pass = ");
     Serial.println(buffer);
-    strcpy(cfg.wlan2pass, buffer);
+    strlcpy(cfg.wlan2pass, buffer, 32);
   }
   else {
     Serial.println("NO wlan2 pass");
@@ -513,7 +513,7 @@ void readConfiguration() {
   if (ini.getValue("wlan3", "ssid", buffer, bufferLen)) {
     Serial.print("wlan3ssid = ");
     Serial.println(buffer);
-    strcpy(cfg.wlan3ssid, buffer);
+    strlcpy(cfg.wlan3ssid, buffer, 32);
   }
   else {
     Serial.println("NO wlan3 ssid");
@@ -523,7 +523,7 @@ void readConfiguration() {
   if (ini.getValue("wlan3", "pass", buffer, bufferLen)) {
     Serial.print("wlan3pass = ");
     Serial.println(buffer);
-    strcpy(cfg.wlan3pass, buffer);
+    strlcpy(cfg.wlan3pass, buffer, 32);
   }
   else {
     Serial.println("NO wlan3 pass");
@@ -742,6 +742,7 @@ void update_glycemia() {
           } else {
               sprintf(diffstr, "%+4.1f", last10sgv[0]-last10sgv[1] );
           }
+          M5.Lcd.fillRect(130,24,69,23,TFT_BLACK);
           M5.Lcd.drawString(diffstr, 130, 24, GFXFF);
           
           M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
