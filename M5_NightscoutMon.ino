@@ -31,7 +31,7 @@
 #include "IniFile.h"
 
 struct tConfig {
-  char url[32];
+  char url[64];
   char bootPic[64];
   char userName[32];
   int timeZone = 3600; // time zone offset in hours, must be corrected for internatinal use and DST
@@ -362,7 +362,6 @@ void readConfiguration() {
     Serial.println("NO show_mgdl defined -> 0 = show mmol/L");
     cfg.show_mgdl = 0;
   }
-
 
   if (ini.getValue("config", "yellow_low", buffer, bufferLen)) {
     Serial.print("yellow_low = ");
@@ -732,11 +731,19 @@ void update_glycemia() {
           M5.Lcd.setTextSize(1);
           M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
           M5.Lcd.drawString("Nightscout", 0, 0, GFXFF);
-          // char heapstr[20];
-          // sprintf(heapstr, "%i B free", ESP.getFreeHeap());
-          // M5.Lcd.drawString(heapstr, 0, 0, GFXFF);
+          //char heapstr[20];
+          //sprintf(heapstr, "%i B free", ESP.getFreeHeap());
+          //M5.Lcd.drawString(heapstr, 0, 0, GFXFF);
           M5.Lcd.drawString(cfg.userName, 0, 24, GFXFF);
- 
+
+          char diffstr[10];
+          if( cfg.show_mgdl ) {
+              sprintf(diffstr, "%+3.0f", (last10sgv[0]-last10sgv[1])*18 );
+          } else {
+              sprintf(diffstr, "%+4.1f", last10sgv[0]-last10sgv[1] );
+          }
+          M5.Lcd.drawString(diffstr, 130, 24, GFXFF);
+          
           M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
           char dateStr[30];
           sprintf(dateStr, "%d.%d.%04d", sensTm.tm_mday, sensTm.tm_mon+1, sensTm.tm_year+1900);
