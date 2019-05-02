@@ -29,33 +29,13 @@
 #include <ArduinoJson.h>
 #include "Free_Fonts.h"
 #include "IniFile.h"
-
-struct tConfig {
-  char url[64];
-  char bootPic[64];
-  char userName[32];
-  int timeZone = 3600; // time zone offset in hours, must be corrected for internatinal use and DST
-  int dst = 0; // DST time offset in hours, must be corrected for internatinal use and DST
-  int show_mgdl = 0; 
-  float yellow_low = 4.5;
-  float yellow_high = 9;
-  float red_low = 3.9;
-  float red_high = 11;
-  float snd_warning = 3.7;
-  float snd_alarm = 3.0;
-  uint8_t brightness1, brightness2, brightness3;
-  char wlan1ssid[32];
-  char wlan1pass[32];
-  char wlan2ssid[32];
-  char wlan2pass[32];
-  char wlan3ssid[32];
-  char wlan3pass[32];
-} ;
+#include "M5NSconfig.h"
 
 tConfig cfg;
 
 extern const unsigned char gImage_logoM5[];
 extern const unsigned char m5stack_startup_music[];
+extern const unsigned char WiFi_symbol[];
 
 const char* ntpServer = "pool.ntp.org";
 
@@ -65,12 +45,15 @@ const char* ntpServer = "pool.ntp.org";
 
 WiFiMulti WiFiMulti;
 unsigned long msCount;
+unsigned long msCountLog;
 static uint8_t lcdBrightness = 10;
 static char *iniFilename = "/M5NS.INI";
 
 DynamicJsonDocument JSONdoc(16384);
 float last10sgv[10];
 int wasError = 0;
+time_t lastAlarmTime = 0;
+time_t lastSnoozeTime = 0;
 
 void startupLogo() {
     static uint8_t brightness, pre_brightness;
@@ -84,25 +67,6 @@ void startupLogo() {
     M5.update();
     M5.Speaker.playMusic(m5stack_startup_music,25000);
     delay(1000);
-    /*
-    for(int i=0; i<length; i++) {
-        dacWrite(SPEAKER_PIN, m5stack_startup_music[i]>>2);
-        delayMicroseconds(40);
-        brightness = (i/157);
-        if(pre_brightness != brightness) {
-            pre_brightness = brightness;
-            M5.Lcd.setBrightness(brightness);
-        }
-    }
-
-    for(int i=255; i>=0; i--) {
-        M5.Lcd.setBrightness(i);
-        if(i<=32) {
-            // dacWrite(SPEAKER_PIN, i);
-        }
-        delay(2);
-    }
-    */ 
     M5.Lcd.fillScreen(BLACK);
     delay(800);
     for(int i=0; i>=100; i++) {
@@ -124,10 +88,12 @@ void printLocalTime() {
 
 void sndAlarm() {
     M5.Speaker.setVolume(8);
-    // M5.Speaker.beep(); //beep
     M5.Speaker.update();
     for(int j=0; j<6; j++) {
-      M5.Speaker.tone(660, 400);
+      if( cfg.dev_mode )
+        M5.Speaker.tone(660, 20);
+      else
+        M5.Speaker.tone(660, 400);
       for(int i=0; i<600; i++) {
         delay(1);
         M5.update();
@@ -141,20 +107,15 @@ void sndAlarm() {
 void sndWarning() {
   M5.Speaker.setVolume(4);
   M5.Speaker.update();
-  M5.Speaker.tone(3000, 100);
-  for(int i=0; i<400; i++) {
-    delay(1);
-    M5.update();
-  }
-  M5.Speaker.tone(3000, 100);
-  for(int i=0; i<400; i++) {
-    delay(1);
-    M5.update();
-  }
-  M5.Speaker.tone(3000, 100);
-  for(int i=0; i<400; i++) {
-    delay(1);
-    M5.update();
+  for(int j=0; j<3; j++) {
+    if( cfg.dev_mode )
+      M5.Speaker.tone(3000, 20);
+    else
+      M5.Speaker.tone(3000, 100);
+    for(int i=0; i<400; i++) {
+      delay(1);
+      M5.update();
+    }
   }
   M5.Speaker.mute();
   M5.Speaker.update();
@@ -177,7 +138,22 @@ void buttons_test() {
   if(M5.BtnB.wasPressed()) {
       // M5.Lcd.printf("B");
       Serial.printf("B");
-      // sndWarning();
+
+      struct tm timeinfo;
+      if(!getLocalTime(&timeinfo)){
+        lastSnoozeTime=0;
+      } else {
+        lastSnoozeTime=mktime(&timeinfo);
+      }
+      M5.Lcd.setTextSize(1);
+      M5.Lcd.setFreeFont(FSSB12);
+      M5.Lcd.fillRect(110, 220, 100, 20, TFT_WHITE);
+      M5.Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
+      char tmpStr[10];
+      sprintf(tmpStr, "%i", cfg.snooze_timeout);
+      int txw=M5.Lcd.textWidth(tmpStr);
+      Serial.print("Set SNOOZE: "); Serial.println(tmpStr);
+      M5.Lcd.drawString(tmpStr, 159-txw/2, 220, GFXFF);
   } 
   if(M5.BtnC.wasPressed()) {
       // M5.Lcd.printf("C");
@@ -231,313 +207,14 @@ void wifi_connect() {
     M5.Lcd.println("Connection done");
 }
 
-void printErrorMessage(uint8_t e, bool eol = true)
-{
-  switch (e) {
-  case IniFile::errorNoError:
-    Serial.print("no error");
-    break;
-  case IniFile::errorFileNotFound:
-    Serial.print("file not found");
-    break;
-  case IniFile::errorFileNotOpen:
-    Serial.print("file not open");
-    break;
-  case IniFile::errorBufferTooSmall:
-    Serial.print("buffer too small");
-    break;
-  case IniFile::errorSeekError:
-    Serial.print("seek error");
-    break;
-  case IniFile::errorSectionNotFound:
-    Serial.print("section not found");
-    break;
-  case IniFile::errorKeyNotFound:
-    Serial.print("key not found");
-    break;
-  case IniFile::errorEndOfFile:
-    Serial.print("end of file");
-    break;
-  case IniFile::errorUnknownError:
-    Serial.print("unknown error");
-    break;
-  default:
-    Serial.print("unknown error value");
-    break;
-  }
-  if (eol)
-    Serial.println();
-}
-
-void readConfiguration() {
-  const size_t bufferLen = 80;
-  char buffer[bufferLen];
-    
-  IniFile ini(iniFilename); //(uint8_t)"/M5NS.INI"
-  
-  if (!ini.open()) {
-    Serial.print("Ini file ");
-    Serial.print(iniFilename);
-    Serial.println(" does not exist");
-    M5.Lcd.println("No INI file");
-    // Cannot do anything else
-    while (1)
-      ;
-  }
-  Serial.println("Ini file exists");
-
-  // Check the file is valid. This can be used to warn if any lines
-  // are longer than the buffer.
-  if (!ini.validate(buffer, bufferLen)) {
-    Serial.print("ini file ");
-    Serial.print(ini.getFilename());
-    Serial.print(" not valid: ");
-    printErrorMessage(ini.getError());
-    // Cannot do anything else
-    M5.Lcd.println("Bad INI file");
-    while (1)
-      ;
-  }
-  
-  // Fetch a value from a key which is present
-  if (ini.getValue("config", "nightscout", buffer, bufferLen)) {
-    Serial.print("section 'config' has an entry 'nightscout' with value ");
-    Serial.println(buffer);
-    strlcpy(cfg.url, buffer, 64);
-  }
-  else {
-    Serial.print("Could not read 'nightscout' from section 'config', error was ");
-    printErrorMessage(ini.getError());
-    M5.Lcd.println("No URL in INI file");
-    while (1)
-      ;
-  }
-
-  if (ini.getValue("config", "bootpic", buffer, bufferLen)) {
-    Serial.print("bootpic = ");
-    Serial.println(buffer);
-    strlcpy(cfg.bootPic, buffer, 64);
-  }
-  else {
-    Serial.println("NO bootpic");
-    cfg.bootPic[0]=0;
-  }
-  
-  if (ini.getValue("config", "name", buffer, bufferLen)) {
-    Serial.print("name = ");
-    Serial.println(buffer);
-    strlcpy(cfg.userName, buffer, 32);
-  }
-  else {
-    Serial.println("NO user name");
-    strcpy(cfg.userName, " ");
-  }
-  
-  if (ini.getValue("config", "time_zone", buffer, bufferLen)) {
-    Serial.print("time_zone = ");
-    cfg.timeZone = atoi(buffer);
-    Serial.println(cfg.timeZone);
-  }
-  else {
-    Serial.println("NO time zone defined -> Central Europe");
-    cfg.timeZone = 3600;
-  }
-
-  if (ini.getValue("config", "dst", buffer, bufferLen)) {
-    Serial.print("dst = ");
-    cfg.dst = atoi(buffer);
-    Serial.println(cfg.dst);
-  }
-  else {
-    Serial.println("NO DST defined -> summer time");
-    cfg.dst = 3600;
-  }
-
-  if (ini.getValue("config", "show_mgdl", buffer, bufferLen)) {
-    Serial.print("show_mgdl = ");
-    cfg.show_mgdl = atoi(buffer);
-    Serial.println(cfg.show_mgdl);
-  }
-  else {
-    Serial.println("NO show_mgdl defined -> 0 = show mmol/L");
-    cfg.show_mgdl = 0;
-  }
-
-  if (ini.getValue("config", "yellow_low", buffer, bufferLen)) {
-    Serial.print("yellow_low = ");
-    cfg.yellow_low = atof(buffer);
-    if( cfg.show_mgdl )
-      cfg.yellow_low /= 18.0;
-    Serial.println(cfg.yellow_low);
-  }
-  else {
-    Serial.println("NO yellow_low defined");
-    cfg.yellow_low = 4.5;
-  }
-
-  if (ini.getValue("config", "yellow_high", buffer, bufferLen)) {
-    Serial.print("yellow_high = ");
-    cfg.yellow_high = atof(buffer);
-    if( cfg.show_mgdl )
-      cfg.yellow_high /= 18.0;
-    Serial.println(cfg.yellow_high);
-  }
-  else {
-    Serial.println("NO yellow_high defined");
-    cfg.yellow_high = 9.0;
-  }
-
-  if (ini.getValue("config", "red_low", buffer, bufferLen)) {
-    Serial.print("red_low = ");
-    cfg.red_low = atof(buffer);
-    if( cfg.show_mgdl )
-      cfg.red_low /= 18.0;
-    Serial.println(cfg.red_low);
-  }
-  else {
-    Serial.println("NO red_low defined");
-    cfg.red_low = 3.9;
-  }
-
-  if (ini.getValue("config", "red_high", buffer, bufferLen)) {
-    Serial.print("red_high = ");
-    cfg.red_high = atof(buffer);
-    if( cfg.show_mgdl )
-      cfg.red_high /= 18.0;
-    Serial.println(cfg.red_high);
-  }
-  else {
-    Serial.println("NO red_high defined");
-    cfg.red_high = 9.0;
-  }
-
-  if (ini.getValue("config", "snd_warning", buffer, bufferLen)) {
-    Serial.print("snd_warning = ");
-    cfg.snd_warning = atof(buffer);
-    if( cfg.show_mgdl )
-      cfg.snd_warning /= 18.0;
-    Serial.println(cfg.snd_warning);
-  }
-  else {
-    Serial.println("NO snd_warning defined");
-    cfg.snd_warning = 3.7;
-  }
-
-  if (ini.getValue("config", "snd_alarm", buffer, bufferLen)) {
-    Serial.print("snd_alarm = ");
-    cfg.snd_alarm = atof(buffer);
-    if( cfg.show_mgdl )
-      cfg.snd_alarm /= 18.0;
-    Serial.println(cfg.snd_alarm);
-  }
-  else {
-    Serial.println("NO snd_alarm defined");
-    cfg.snd_alarm = 3.0;
-  }
-
-  if (ini.getValue("config", "brightness1", buffer, bufferLen)) {
-    Serial.print("brightness1 = ");
-    Serial.println(buffer);
-    cfg.brightness1 = atoi(buffer);
-    if(cfg.brightness1<1 || cfg.brightness1>100)
-      cfg.brightness1 = 50;
-  }
-  else {
-    Serial.println("NO brightness1");
-    cfg.brightness1 = 50;
-  }
-  
-  if (ini.getValue("config", "brightness2", buffer, bufferLen)) {
-    Serial.print("brightness2 = ");
-    Serial.println(buffer);
-    cfg.brightness2 = atoi(buffer);
-    if(cfg.brightness2<1 || cfg.brightness2>100)
-      cfg.brightness2 = 100;
-  }
-  else {
-    Serial.println("NO brightness2");
-    cfg.brightness2 = 100;
-  }
-  if (ini.getValue("config", "brightness3", buffer, bufferLen)) {
-    Serial.print("brightness3 = ");
-    Serial.println(buffer);
-    cfg.brightness3 = atoi(buffer);
-    if(cfg.brightness3<1 || cfg.brightness3>100)
-      cfg.brightness3 = 10;
-  }
-  else {
-    Serial.println("NO brightness3");
-    cfg.brightness3 = 10;
-  }
-
-  if (ini.getValue("wlan1", "ssid", buffer, bufferLen)) {
-    Serial.print("wlan1ssid = ");
-    Serial.println(buffer);
-    strlcpy(cfg.wlan1ssid, buffer,32);
-  }
-  else {
-    Serial.println("NO wlan1 ssid");
-    cfg.wlan1ssid[0] = 0;
-  }
-
-  if (ini.getValue("wlan1", "pass", buffer, bufferLen)) {
-    Serial.print("wlan1pass = ");
-    Serial.println(buffer);
-    strlcpy(cfg.wlan1pass, buffer, 32);
-  }
-  else {
-    Serial.println("NO wlan1 pass");
-    cfg.wlan1pass[0] = 0;
-  }
-
-  if (ini.getValue("wlan2", "ssid", buffer, bufferLen)) {
-    Serial.print("wlan2ssid = ");
-    Serial.println(buffer);
-    strlcpy(cfg.wlan2ssid, buffer, 32);
-  }
-  else {
-    Serial.println("NO wlan2 ssid");
-    cfg.wlan2ssid[0] = 0;
-  }
-
-  if (ini.getValue("wlan2", "pass", buffer, bufferLen)) {
-    Serial.print("wlan2pass = ");
-    Serial.println(buffer);
-    strlcpy(cfg.wlan2pass, buffer, 32);
-  }
-  else {
-    Serial.println("NO wlan2 pass");
-    cfg.wlan2pass[0] = 0;
-  }
-
-  if (ini.getValue("wlan3", "ssid", buffer, bufferLen)) {
-    Serial.print("wlan3ssid = ");
-    Serial.println(buffer);
-    strlcpy(cfg.wlan3ssid, buffer, 32);
-  }
-  else {
-    Serial.println("NO wlan3 ssid");
-    cfg.wlan3ssid[0] = 0;
-  }
-
-  if (ini.getValue("wlan3", "pass", buffer, bufferLen)) {
-    Serial.print("wlan3pass = ");
-    Serial.println(buffer);
-    strlcpy(cfg.wlan3pass, buffer, 32);
-  }
-  else {
-    Serial.println("NO wlan3 pass");
-    cfg.wlan3pass[0] = 0;
-  }
-}
-
 // the setup routine runs once when M5Stack starts up
 void setup() {
     // initialize the M5Stack object
     M5.begin();
     // prevent button A "ghost" random presses
     Wire.begin();
-
+    SD.begin();
+    
     // M5.Speaker.mute();
 
     // Lcd display
@@ -550,7 +227,12 @@ void setup() {
 
     Serial.println(ESP.getFreeHeap());
 
-    readConfiguration();
+    readConfiguration(iniFilename, &cfg);
+    // cfg.snd_warning = 5.5;
+    // cfg.snd_alarm = 4.5;
+    // cfg.alarm_repeat = 1;
+    // cfg.snooze_timeout = 2;
+    
     lcdBrightness = cfg.brightness1;
     M5.Lcd.setBrightness(lcdBrightness);
     
@@ -565,8 +247,12 @@ void setup() {
     M5.Lcd.setBrightness(lcdBrightness);
     M5.Lcd.fillScreen(BLACK);
 
+    // test file with time stamps
+    msCountLog = millis()-6000;
+     
     // update glycemia now
     msCount = millis()-16000;
+    
 }
 
 void drawArrow(int x, int y, int asize, int aangle, int pwidth, int plength, uint16_t color){
@@ -651,7 +337,8 @@ void update_glycemia() {
   } else {
     M5.Lcd.fillRect(230, 110, 90, 100, TFT_BLACK);
   }
-  M5.Lcd.drawJpgFile(SD, "/WiFi_symbol.jpg", 242, 130);
+  // M5.Lcd.drawJpgFile(SD, "/WiFi_symbol.jpg", 242, 130);
+  M5.Lcd.drawBitmap(242, 130, 64, 48, (uint16_t *)WiFi_symbol);
   // uint16_t maxWidth, uint16_t maxHeight, uint16_t offX, uint16_t offY, jpeg_div_t scale);
   if((WiFiMulti.run() == WL_CONNECTED)) {
 
@@ -663,6 +350,7 @@ void update_glycemia() {
     strcpy(NSurl,"https://");
     strcat(NSurl,cfg.url);
     strcat(NSurl,"/api/v1/entries.json");
+    // more info at /api/v2/properties
     http.begin(NSurl); //HTTP
     
     Serial.print("[HTTP] GET...\n");
@@ -730,10 +418,13 @@ void update_glycemia() {
           M5.Lcd.setFreeFont(FSSB12);
           M5.Lcd.setTextSize(1);
           M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-          M5.Lcd.drawString("Nightscout", 0, 0, GFXFF);
-          //char heapstr[20];
-          //sprintf(heapstr, "%i B free", ESP.getFreeHeap());
-          //M5.Lcd.drawString(heapstr, 0, 0, GFXFF);
+          if( !cfg.dev_mode ) {
+            M5.Lcd.drawString("Nightscout", 0, 0, GFXFF);
+          } else {
+            char heapstr[20];
+            sprintf(heapstr, "%i free", ESP.getFreeHeap());
+            M5.Lcd.drawString(heapstr, 0, 0, GFXFF);
+          }
           M5.Lcd.drawString(cfg.userName, 0, 24, GFXFF);
 
           char diffstr[10];
@@ -828,14 +519,6 @@ void update_glycemia() {
           // Serial.print("textWidth="); Serial.println(tw);
           // Serial.print("textHeight="); Serial.println(th);
 
-          /*
-          M5.Lcd.setTextSize(1);
-          M5.Lcd.setFreeFont(FSSB24);
-          M5.Lcd.setTextColor(glColor, TFT_BLACK);
-          M5.Lcd.setCursor(0, 160+2*24);
-          M5.Lcd.println(sensDir);
-          */
-
           int arrowAngle = 180;
           if(strcmp(sensDir,"DoubleDown")==0)
             arrowAngle = 90;
@@ -865,23 +548,6 @@ void update_glycemia() {
                                           arrowAngle = 180;
           if(arrowAngle!=180)
             drawArrow(0+tw+25, 120+40, 10, arrowAngle+85, 40, 40, glColor);
-          
-          M5.Lcd.setTextSize(1);
-          M5.Lcd.setFreeFont(FSSB12);
-          M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-          char devStr[64];
-          strcpy(devStr, sensDev);
-          if(strcmp(devStr,"MIAOMIAO")==0) {
-            JsonObject obj=JSONdoc[0].as<JsonObject>();
-            if(obj.containsKey("xDrip_raw")) {
-              strcpy(devStr,"xDrip MiaoMiao + Libre");
-            } else {
-              strcpy(devStr,"Spike MiaoMiao + Libre");
-            }
-          }
-          if(strcmp(devStr,"Tomato")==0)
-            strcat(devStr," MiaoMiao + Libre");
-          M5.Lcd.drawString(devStr, 0, 220, GFXFF);
 
           /*
           // draw help lines
@@ -895,6 +561,74 @@ void update_glycemia() {
           M5.Lcd.drawLine(160, 0, 160, 240, TFT_LIGHTGREY);
           */
 
+          drawMiniGraph();
+
+          // calculate last alarm time difference
+          int alarmDifSec=1000000;
+          int snoozeDifSec=1000000;
+          if(!getLocalTime(&timeinfo)){
+            alarmDifSec=24*60*60; // too much
+            snoozeDifSec=cfg.snooze_timeout*60; // timeout
+          } else {
+            alarmDifSec=difftime(mktime(&timeinfo), lastAlarmTime);
+            snoozeDifSec=difftime(mktime(&timeinfo), lastSnoozeTime);
+            if( snoozeDifSec>cfg.snooze_timeout*60 )
+              snoozeDifSec=cfg.snooze_timeout*60; // timeout
+          }
+          Serial.print("Alarm time difference = "); Serial.print(alarmDifSec); Serial.println(" sec");
+          Serial.print("Snooze time difference = "); Serial.print(snoozeDifSec); Serial.println(" sec");
+          char tmpStr[10];
+          if( snoozeDifSec<cfg.snooze_timeout*60 ) {
+            sprintf(tmpStr, "%i", (cfg.snooze_timeout*60-snoozeDifSec+59)/60);
+          } else {
+            strcpy(tmpStr, "Snooze");
+          }
+          M5.Lcd.setTextSize(1);
+          M5.Lcd.setFreeFont(FSSB12);
+          if((sensSgv<=cfg.snd_alarm) && (sensSgv>=0.1)) {
+            // yellow warning state
+            // M5.Lcd.fillRect(110, 220, 100, 20, TFT_RED);
+            M5.Lcd.fillRect(0, 220, 320, 20, TFT_RED);
+            M5.Lcd.setTextColor(TFT_BLACK, TFT_RED);
+            int stw=M5.Lcd.textWidth(tmpStr);
+            M5.Lcd.drawString(tmpStr, 159-stw/2, 220, GFXFF);
+            if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
+                sndAlarm();
+                lastAlarmTime = mktime(&timeinfo);
+            }
+          } else {
+            if((sensSgv<=cfg.snd_warning) && (sensSgv>=0.1)) {
+              // red alarm state
+              // M5.Lcd.fillRect(110, 220, 100, 20, TFT_YELLOW);
+              M5.Lcd.fillRect(0, 220, 320, 20, TFT_YELLOW);
+              M5.Lcd.setTextColor(TFT_BLACK, TFT_YELLOW);
+              int stw=M5.Lcd.textWidth(tmpStr);
+              M5.Lcd.drawString(tmpStr, 159-stw/2, 220, GFXFF);
+              if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
+                sndWarning();
+                lastAlarmTime = mktime(&timeinfo);
+              }
+            } else {
+              // normal glycemia state
+              M5.Lcd.fillRect(0, 220, 320, 20, TFT_BLACK);
+              M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+              char devStr[64];
+              strcpy(devStr, sensDev);
+              if(strcmp(devStr,"MIAOMIAO")==0) {
+                JsonObject obj=JSONdoc[0].as<JsonObject>();
+                if(obj.containsKey("xDrip_raw")) {
+                  strcpy(devStr,"xDrip MiaoMiao + Libre");
+                } else {
+                  strcpy(devStr,"Spike MiaoMiao + Libre");
+                }
+              }
+              if(strcmp(devStr,"Tomato")==0)
+                strcat(devStr," MiaoMiao + Libre");
+              M5.Lcd.drawString(devStr, 0, 220, GFXFF);
+            }
+          }
+          
+          /*
           if(sensorDifSec<23) {
             if((sensSgv<=cfg.snd_alarm) && (sensSgv>=0.1))
               sndAlarm();
@@ -902,8 +636,7 @@ void update_glycemia() {
               if((sensSgv<=cfg.snd_warning) && (sensSgv>=0.1))
                 sndWarning();
           }
-
-          drawMiniGraph();
+          */
         }
       } else {
         String errstr = String("[HTTP] GET not ok, error: " + String(httpCode));
@@ -930,12 +663,31 @@ void update_glycemia() {
 
 // the loop routine runs over and over again forever
 void loop(){
-    delay(10);
+    delay(20);
     buttons_test();
-    // update glycemia every 10s
+
+    // update glycemia every 15s
     if(millis()-msCount>15000) {
       update_glycemia();
       msCount = millis();  
     }
+
+    /*
+    if(millis()-msCountLog>5000) {
+      File fileLog = SD.open("/logfile.txt", FILE_WRITE);    
+      if(!fileLog) {
+        Serial.println("Cannot write to logfile.txt");
+      } else {
+        int pos = fileLog.seek(fileLog.size());
+        struct tm timeinfo;
+        getLocalTime(&timeinfo);
+        fileLog.println(asctime(&timeinfo));
+        fileLog.close();
+        Serial.print("Log file written: "); Serial.print(asctime(&timeinfo));
+      }
+      msCountLog = millis();  
+    }  
+    */
+    
     M5.update();
 }
