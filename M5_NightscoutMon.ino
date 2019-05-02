@@ -365,6 +365,7 @@ void update_glycemia() {
       // file found at server
       if(httpCode == HTTP_CODE_OK) {
         String json = http.getString();
+        wasError = 0;
         // Serial.println(json);
         // const size_t capacity = JSON_ARRAY_SIZE(10) + 10*JSON_OBJECT_SIZE(19) + 3840;
         // Serial.print("JSON size needed= "); Serial.print(capacity); 
