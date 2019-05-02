@@ -4,6 +4,14 @@ M5Stack Nightscout monitor
 
 Revisions:
 
+*** 2 May 2019 ***
+Snooze alarm function introduced and placed on the middle button.
+New M5NS.INI key snooze_timeout (default 30 min) to specify time for how long should be sound alarm silent after press of the middle button.
+New M5NS.INI key alarm_repeat to specify time (default 5 min) when sound alarm shoud repeat if its reason remains.
+Corrected bug with alarm sometimes repeating twice.
+WiFi symbol moved to the source code. External SD file is no more needed.
+Configuration file M5NS.INI handling moved to separate source files.
+
 *** 27 Apr 2019 - 2 ***
 Larger JSONDocument size for xDrip and possibly other Nightscout upload application compatibility.
 A little bit better HTTP error handling and error printing to the M5Stack screen.
