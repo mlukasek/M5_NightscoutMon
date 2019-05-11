@@ -31,6 +31,16 @@
 #include "IniFile.h"
 #include "M5NSconfig.h"
 
+#include "AudioFileSourceSD.h"
+#include "AudioFileSourceID3.h"
+#include "AudioGeneratorMP3.h"
+#include "AudioOutputI2S.h"
+
+AudioGeneratorMP3 *mp3;
+AudioFileSourceSD *file;
+AudioOutputI2S *out;
+AudioFileSourceID3 *id3;
+
 tConfig cfg;
 
 extern const unsigned char gImage_logoM5[];
@@ -87,38 +97,25 @@ void printLocalTime() {
 }
 
 void sndAlarm() {
-    M5.Speaker.setVolume(8);
-    M5.Speaker.update();
-    for(int j=0; j<6; j++) {
-      if( cfg.dev_mode )
-        M5.Speaker.tone(660, 20);
-      else
-        M5.Speaker.tone(660, 400);
-      for(int i=0; i<600; i++) {
-        delay(1);
-        M5.update();
-      }
-    }
-    //M5.Speaker.playMusic(m5stack_startup_music, 25000);        
-    M5.Speaker.mute();
-    M5.Speaker.update();
+  M5.Speaker.setVolume(5);
+  M5.Speaker.update();
+  file = new AudioFileSourceSD("/AlarmL.mp3");
+  id3 = new AudioFileSourceID3(file);
+  out = new AudioOutputI2S(0, 1); // Output to builtInDAC
+  out->SetOutputModeMono(true);
+  mp3 = new AudioGeneratorMP3();
+  mp3->begin(id3, out);
 }
 
 void sndWarning() {
-  M5.Speaker.setVolume(4);
+  M5.Speaker.setVolume(1);
   M5.Speaker.update();
-  for(int j=0; j<3; j++) {
-    if( cfg.dev_mode )
-      M5.Speaker.tone(3000, 20);
-    else
-      M5.Speaker.tone(3000, 100);
-    for(int i=0; i<400; i++) {
-      delay(1);
-      M5.update();
-    }
-  }
-  M5.Speaker.mute();
-  M5.Speaker.update();
+  file = new AudioFileSourceSD("/AlarmH.mp3");
+  id3 = new AudioFileSourceID3(file);
+  out = new AudioOutputI2S(0, 1); // Output to builtInDAC
+  out->SetOutputModeMono(true);
+  mp3 = new AudioGeneratorMP3();
+  mp3->begin(id3, out);
 }
 
 void buttons_test() {
@@ -587,7 +584,7 @@ void update_glycemia() {
           M5.Lcd.setTextSize(1);
           M5.Lcd.setFreeFont(FSSB12);
           if((sensSgv<=cfg.snd_alarm) && (sensSgv>=0.1)) {
-            // yellow warning state
+            // red warning state
             // M5.Lcd.fillRect(110, 220, 100, 20, TFT_RED);
             M5.Lcd.fillRect(0, 220, 320, 20, TFT_RED);
             M5.Lcd.setTextColor(TFT_BLACK, TFT_RED);
@@ -598,8 +595,8 @@ void update_glycemia() {
                 lastAlarmTime = mktime(&timeinfo);
             }
           } else {
-            if((sensSgv<=cfg.snd_warning) && (sensSgv>=0.1)) {
-              // red alarm state
+            if((sensSgv>=cfg.snd_warning) && (sensSgv>=0.1)) {
+              // yellow alarm state
               // M5.Lcd.fillRect(110, 220, 100, 20, TFT_YELLOW);
               M5.Lcd.fillRect(0, 220, 320, 20, TFT_YELLOW);
               M5.Lcd.setTextColor(TFT_BLACK, TFT_YELLOW);
