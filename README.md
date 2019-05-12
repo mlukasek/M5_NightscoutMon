@@ -1,10 +1,10 @@
 ﻿# M5_NightscoutMon
-M5Stack Nightscout monitor
+## M5Stack Nightscout monitor
 
 
-Revisions:
+### Revisions:
 
-*** 12 May 2019 ***
+#### *** 12 May 2019 ***
 BG/calibration/unknown entries are now filtered.
 Missed reading sound alert added. You can adjust it by snd_no_readings key in M5NS.INI (default 20 minutes).
 Added possibility to change warning sound volume byt warning_volume key in M5NS.INI (0-100, default=20, 0=silent).
@@ -14,7 +14,7 @@ Added show_COB_IOB key to M5NS.INI. If show_COB_IOB = 1 then carbs and insulin o
 COB and IOB are grey if 0 and white if any carbs or IU on board.
 Added key show_current_time to M5NS.INI. If show_current_time = 1 (default now) then current clock is displayed instead of last sensor reding time.
 
-*** 2 May 2019 ***
+#### *** 2 May 2019 ***
 Snooze alarm function introduced and placed on the middle button.
 New M5NS.INI key snooze_timeout (default 30 min) to specify time for how long should be sound alarm silent after press of the middle button.
 New M5NS.INI key alarm_repeat to specify time (default 5 min) when sound alarm shoud repeat if its reason remains.
@@ -22,23 +22,23 @@ Corrected bug with alarm sometimes repeating twice.
 WiFi symbol moved to the source code. External SD file is no more needed.
 Configuration file M5NS.INI handling moved to separate source files.
 
-*** 27 Apr 2019 - 2 ***
+#### *** 27 Apr 2019 - 2 ***
 Larger JSONDocument size for xDrip and possibly other Nightscout upload application compatibility.
 A little bit better HTTP error handling and error printing to the M5Stack screen.
 When "show_mgdl = 1", then all values in M5NS.INI have to be in mg/dL instead of mmol/L.
 Updated device detection for xDrip.
 
-*** 27 Apr 2019 ***
+#### *** 27 Apr 2019 ***
 Only one query to Nightscout for minigraph as well as the last value. Faster code execution, less traffic.
 
-*** 20 Apr 2019 - 2 ***
+#### *** 20 Apr 2019 - 2 ***
 Added the main source code M5_NightscoutMon.ino to GitHub. Sorry I forgot in initital commit ;-)
 
-*** 20 Apr 2019 ***
+#### *** 20 Apr 2019 ***
 Initial GitHub commit
 
 
-M5Stack Nightscout Monitor
+### M5Stack Nightscout Monitor
 
 M5Stack is small development kit based on ESP32. It is in a nice plastic box, equipped with color display, micro SD card slot, 3 buttons, speaker and internal battery. It is great to monitor and display something, so I used it to monitor my daughter's glycemia. It is nice, comfortable and cheap solution.
 
@@ -52,7 +52,7 @@ You will need an microSD card too. It has to be formatted to FAT32 format and yo
 
 You have to update M5NS.INI file to your requirements. As a minimum you will need to update your Nightscout URL and you’re your WiFi SSID and password. 
 
-The syntax of M5NS.INI is following:
+### The syntax of M5NS.INI is following:
 
 [config]
 
@@ -135,7 +135,7 @@ ssid = ssid3
 pass = pass3
 
 
-Display
+### Display
 
 You will see “Nightscout” and user name from config file in upper left corner. You will see date when last valid date were uploaded and read from Nightscout bellow the name. Right from this is box with time difference from last valid data. 5 mins is OK, 5-15 mins is warning and the box will have white background, more then 15 mins is error and the box background will be red.
 
@@ -144,7 +144,7 @@ Glycemia value and its direction is bellow the date. There is a mini graph form 
 Last line contains data source.
 
 
-Buttons
+### Buttons
 
 The left button changes the backlight in the 3 steps defined in M5NS.INI file.
 
@@ -154,7 +154,7 @@ The right button puts M5Stack to the sleep as it is a little bit tricky do doubl
 
 
 
-Donations
+### Donations
 
 If you find my project useful, you can donate me few bucks for further development or buy me a glass of wine 😉
 
