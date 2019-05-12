@@ -1,42 +1,47 @@
-﻿# M5_NightscoutMon
+# M5_NightscoutMon
 ## M5Stack Nightscout monitor
 
+###### M5Stack Nightscout monitor<br/>Copyright (C) 2018, 2019 Martin Lukasek <martin@lukasek.cz>
+###### This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+###### This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+###### You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>. 
+###### This software uses some 3rd party libraries:<br/>IniFile by Steve Marple <stevemarple@googlemail.com> (GNU LGPL v2.1)<br/>ArduinoJson by Benoit BLANCHON (MIT License)
+<br/>
 
 ### Revisions:
 
 #### *** 12 May 2019 ***
-BG/calibration/unknown entries are now filtered.
-Missed reading sound alert added. You can adjust it by snd_no_readings key in M5NS.INI (default 20 minutes).
-Added possibility to change warning sound volume byt warning_volume key in M5NS.INI (0-100, default=20, 0=silent).
-Added possibility to change alarm sound volume byt alarm_volume key in M5NS.INI (0-100, default=100, 0=silent).
-Reorganized left upper part of display to get space for COB and IOB display.
-Added show_COB_IOB key to M5NS.INI. If show_COB_IOB = 1 then carbs and insulin on board are displayed. Set 1 (ON) by default.
-COB and IOB are grey if 0 and white if any carbs or IU on board.
-Added key show_current_time to M5NS.INI. If show_current_time = 1 (default now) then current clock is displayed instead of last sensor reding time.
+BG/calibration/unknown entries are now filtered.<br/>
+Missed reading sound alert added. You can adjust it by snd_no_readings key in M5NS.INI (default 20 minutes).<br/>
+Added possibility to change warning sound volume byt warning_volume key in M5NS.INI (0-100, default=20, 0=silent).<br/>
+Added possibility to change alarm sound volume byt alarm_volume key in M5NS.INI (0-100, default=100, 0=silent).<br/>
+Reorganized left upper part of display to get space for COB and IOB display.<br/>
+Added show_COB_IOB key to M5NS.INI. If show_COB_IOB = 1 then carbs and insulin on board are displayed. Set 1 (ON) by default.<br/>
+COB and IOB are grey if 0 and white if any carbs or IU on board.<br/>
+Added key show_current_time to M5NS.INI. If show_current_time = 1 (default now) then current clock is displayed instead of last sensor reding time.<br/>
 
 #### *** 2 May 2019 ***
-Snooze alarm function introduced and placed on the middle button.
-New M5NS.INI key snooze_timeout (default 30 min) to specify time for how long should be sound alarm silent after press of the middle button.
-New M5NS.INI key alarm_repeat to specify time (default 5 min) when sound alarm shoud repeat if its reason remains.
-Corrected bug with alarm sometimes repeating twice.
-WiFi symbol moved to the source code. External SD file is no more needed.
-Configuration file M5NS.INI handling moved to separate source files.
+Snooze alarm function introduced and placed on the middle button.<br/>
+New M5NS.INI key snooze_timeout (default 30 min) to specify time for how long should be sound alarm silent after press of the middle button.<br/>
+New M5NS.INI key alarm_repeat to specify time (default 5 min) when sound alarm shoud repeat if its reason remains.<br/>
+Corrected bug with alarm sometimes repeating twice.<br/>
+WiFi symbol moved to the source code. External SD file is no more needed.<br/>
+Configuration file M5NS.INI handling moved to separate source files.<br/>
 
 #### *** 27 Apr 2019 - 2 ***
-Larger JSONDocument size for xDrip and possibly other Nightscout upload application compatibility.
-A little bit better HTTP error handling and error printing to the M5Stack screen.
-When "show_mgdl = 1", then all values in M5NS.INI have to be in mg/dL instead of mmol/L.
-Updated device detection for xDrip.
+Larger JSONDocument size for xDrip and possibly other Nightscout upload application compatibility.<br/>
+A little bit better HTTP error handling and error printing to the M5Stack screen.<br/>
+When "show_mgdl = 1", then all values in M5NS.INI have to be in mg/dL instead of mmol/L.<br/>
+Updated device detection for xDrip.<br/>
 
 #### *** 27 Apr 2019 ***
-Only one query to Nightscout for minigraph as well as the last value. Faster code execution, less traffic.
+Only one query to Nightscout for minigraph as well as the last value. Faster code execution, less traffic.<br/>
 
 #### *** 20 Apr 2019 - 2 ***
-Added the main source code M5_NightscoutMon.ino to GitHub. Sorry I forgot in initital commit ;-)
+Added the main source code M5_NightscoutMon.ino to GitHub. Sorry I forgot in initital commit ;-)<br/>
 
 #### *** 20 Apr 2019 ***
-Initial GitHub commit
-
+Initial GitHub commit<br/><br/>
 
 ### M5Stack Nightscout Monitor
 
@@ -50,9 +55,10 @@ If you know what to do with it, just download the code, modify it any way it sui
 
 You will need an microSD card too. It has to be formatted to FAT32 format and you have to put at least M5NS.INI file with configuration to the root of SD card. It is a good ideal to put WiFi_symbol.jpg and M5_NightscoutMon.jpg files to the SD card root too. You can replace M5_NightscoutMon.jpg with any picture you want to customize your experience.
 
-You have to update M5NS.INI file to your requirements. As a minimum you will need to update your Nightscout URL and you’re your WiFi SSID and password. 
+You have to update M5NS.INI file to your requirements. As a minimum you will need to update your Nightscout URL and you’re your WiFi SSID and password.<br/>
+<br/>
 
-### The syntax of M5NS.INI is following:
+### The syntax of M5NS.INI configuration file
 
 [config]
 
@@ -132,8 +138,8 @@ pass = pass2
 
 ssid = ssid3
 
-pass = pass3
-
+pass = pass3<br/>
+<br/>
 
 ### Display
 
@@ -141,8 +147,8 @@ You will see “Nightscout” and user name from config file in upper left corne
 
 Glycemia value and its direction is bellow the date. There is a mini graph form 10 last values right of the glycemia value.
 
-Last line contains data source.
-
+Last line contains data source.<br/>
+<br/>
 
 ### Buttons
 
@@ -150,9 +156,8 @@ The left button changes the backlight in the 3 steps defined in M5NS.INI file.
 
 The middle button wakes M5Stack from sleep.
 
-The right button puts M5Stack to the sleep as it is a little bit tricky do double click standard power button.
-
-
+The right button puts M5Stack to the sleep as it is a little bit tricky do double click standard power button.<br/>
+<br/>
 
 ### Donations
 
