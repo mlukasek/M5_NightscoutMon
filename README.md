@@ -4,6 +4,16 @@ M5Stack Nightscout monitor
 
 Revisions:
 
+*** 12 May 2019 ***
+BG/calibration/unknown entries are now filtered.
+Missed reading sound allert added. You can adjust it by snd_no_readings key in M5NS.INI (default 20 minutes).
+Added possibility to change warning sound volume byt warning_volume key in M5NS.INI (0-100, default=20, 0=silent).
+Added possibility to change alarm sound volume byt alarm_volume key in M5NS.INI (0-100, default=100, 0=silent).
+Reorganized left upper part of display to get space for COB and IOB display.
+Added show_COB_IOB key to M5NS.INI. If show_COB_IOB = 1 then carbs and inslulin on board are displayed. Set 1 (ON) by default.
+COB and IOB are grey if 0 and white if any carbs or IU on board.
+Added key show_current_time to M5NS.INI. If show_current_time = 1 (default now) then current clock is displeyed insted of last sensor reding time.
+
 *** 2 May 2019 ***
 Snooze alarm function introduced and placed on the middle button.
 New M5NS.INI key snooze_timeout (default 30 min) to specify time for how long should be sound alarm silent after press of the middle button.
@@ -56,8 +66,18 @@ time_zone = 3600 – the time zone where you live in seconds (3600 is GMT+1, Pra
 
 dst = 3600 – your daylight saving time offset (3600s is +1 hour)
 
-
 show_mgdl = 0 – use 0 to display values in mmol/L or 1 for mg/dl
+
+show_current_time = 1 - show currnet time instead of last valid data time
+
+show_COB_IOB = 1 - show COB and IOB, values are grayed out if COB/IOB value is 0
+
+
+
+snooze_timeout = 30 - sound snooze time in minutes after press of the middle button
+
+alarm_repeat = 5 - sound repeat interval in minutes (alarm repeats only if alarm/warnign conditions are met)
+
 
 
 - following values are in mmol/L or mg/dl depending on the previous "show_mgdl" key value
@@ -70,9 +90,20 @@ red_low = 3.9 – glycemia values under this value will be displayed in red colo
 
 red_high = 11 – glycemia values over this value will be displayed in red color
 
-snd_warning = 3.7 – high beep sound will beep every 5 mins when under this value
+snd_warning = 3.7 – softer high beep sound will beep every 5 mins when under this value
 
 snd_alarm = 3.0 – strong alarm will sound every 5 min when under this value
+
+snd_warning_high = 14.0 – softer high beep sound will beep every 5 mins when over this value
+
+snd_alarm_high = 20.0 – strong alarm will sound every 5 min when over this value
+
+snd_no_readings = 20 – softer high beep sound will beep every 5 mins when time in minutes when last data was read is over this value
+
+warning_volume = 20 - volume of warning sound in range 0-100 (0=no sound, 1=silent, 100=max volume)
+
+alarm_volume = 100 - volume of alarm sound in range 0-100 (0=no sound, 1=silent, 100=max volume)
+
 
 
 brightness1 = 50 – the first (default) brightness value
@@ -80,6 +111,7 @@ brightness1 = 50 – the first (default) brightness value
 brightness2 = 100 – the second brightness value
 
 brightness3 = 10 – the third brightness value
+
 
 
 [wlan1] – you can connect up to 3 WiFi access point, no need to setup all, one is enough
@@ -119,6 +151,7 @@ The left button changes the backlight in the 3 steps defined in M5NS.INI file.
 The middle button wakes M5Stack from sleep.
 
 The right button puts M5Stack to the sleep as it is a little bit tricky do double click standard power button.
+
 
 
 Donations
