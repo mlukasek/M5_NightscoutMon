@@ -530,12 +530,12 @@ void update_glycemia() {
                 M5.Lcd.drawString("???", 130, 24, GFXFF);
               } else {
                 JsonObject iob = propdoc["iob"];
-                int iob_iob = iob["iob"]; // 0
+                float iob_iob = iob["iob"]; // 0
                 const char* iob_display = iob["display"]; // "0"
                 const char* iob_displayLine = iob["displayLine"]; // "IOB: 0U"
                 
                 JsonObject cob = propdoc["cob"];
-                int cob_cob = cob["cob"]; // 0
+                float cob_cob = cob["cob"]; // 0
                 int cob_display = cob["display"]; // 0
                 const char* cob_displayLine = cob["displayLine"]; // "COB: 0g"
                 
@@ -552,12 +552,12 @@ void update_glycemia() {
       
                 if(cfg.show_COB_IOB) {
                   M5.Lcd.fillRect(0,48,199,47,TFT_BLACK);
-                  if(strcmp(iob_displayLine, "IOB: 0U"))
+                  if(iob_iob>0)
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                   else
                     M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
                   M5.Lcd.drawString(iob_displayLine, 0, 48, GFXFF);
-                  if(cob_cob)
+                  if(cob_cob>0)
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                   else
                     M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
