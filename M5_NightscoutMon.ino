@@ -552,7 +552,7 @@ void update_glycemia() {
       
                 if(cfg.show_COB_IOB) {
                   M5.Lcd.fillRect(0,48,199,47,TFT_BLACK);
-                  if(iob_iob)
+                  if(strcmp(iob_displayLine, "IOB: 0U"))
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                   else
                     M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
