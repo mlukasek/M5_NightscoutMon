@@ -6,13 +6,13 @@ Revisions:
 
 *** 12 May 2019 ***
 BG/calibration/unknown entries are now filtered.
-Missed reading sound allert added. You can adjust it by snd_no_readings key in M5NS.INI (default 20 minutes).
+Missed reading sound alert added. You can adjust it by snd_no_readings key in M5NS.INI (default 20 minutes).
 Added possibility to change warning sound volume byt warning_volume key in M5NS.INI (0-100, default=20, 0=silent).
 Added possibility to change alarm sound volume byt alarm_volume key in M5NS.INI (0-100, default=100, 0=silent).
 Reorganized left upper part of display to get space for COB and IOB display.
-Added show_COB_IOB key to M5NS.INI. If show_COB_IOB = 1 then carbs and inslulin on board are displayed. Set 1 (ON) by default.
+Added show_COB_IOB key to M5NS.INI. If show_COB_IOB = 1 then carbs and insulin on board are displayed. Set 1 (ON) by default.
 COB and IOB are grey if 0 and white if any carbs or IU on board.
-Added key show_current_time to M5NS.INI. If show_current_time = 1 (default now) then current clock is displeyed insted of last sensor reding time.
+Added key show_current_time to M5NS.INI. If show_current_time = 1 (default now) then current clock is displayed instead of last sensor reding time.
 
 *** 2 May 2019 ***
 Snooze alarm function introduced and placed on the middle button.
