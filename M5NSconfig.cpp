@@ -77,7 +77,7 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
   else {
     Serial.print("Could not read 'nightscout' from section 'config', error was ");
     printErrorMessage(ini.getError());
-    M5.Lcd.println("No URL in INI file");
+    M5.Lcd.println("No Nightscout URL in INI file");
     while (1)
       ;
   }
@@ -130,6 +130,26 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
   else {
     Serial.println("NO show_mgdl defined -> 0 = show mmol/L");
     cfg->show_mgdl = 0;
+  }
+
+  if (ini.getValue("config", "show_current_time", buffer, bufferLen)) {
+    Serial.print("show_current_time = ");
+    cfg->show_current_time = atoi(buffer);
+    Serial.println(cfg->show_current_time);
+  }
+  else {
+    Serial.println("NO show_current_time defined");
+    cfg->show_current_time = 0;
+  }
+
+  if (ini.getValue("config", "show_COB_IOB", buffer, bufferLen)) {
+    Serial.print("show_COB_IOB = ");
+    cfg->show_COB_IOB = atoi(buffer);
+    Serial.println(cfg->show_COB_IOB);
+  }
+  else {
+    Serial.println("NO show_COB_IOB defined");
+    cfg->show_COB_IOB = 0;
   }
 
   if (ini.getValue("config", "snooze_timeout", buffer, bufferLen)) {
@@ -232,6 +252,80 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
   else {
     Serial.println("NO snd_alarm defined");
     cfg->snd_alarm = 3.0;
+  }
+
+  if (ini.getValue("config", "snd_warning_high", buffer, bufferLen)) {
+    Serial.print("snd_warning_high = ");
+    cfg->snd_warning_high = atof(buffer);
+    if( cfg->show_mgdl )
+      cfg->snd_warning_high /= 18.0;
+    Serial.println(cfg->snd_warning_high);
+  }
+  else {
+    Serial.println("NO snd_warning_high defined");
+    cfg->snd_warning_high = 14.0;
+  }
+
+  if (ini.getValue("config", "snd_alarm_high", buffer, bufferLen)) {
+    Serial.print("snd_alarm_high = ");
+    cfg->snd_alarm_high = atof(buffer);
+    if( cfg->show_mgdl )
+      cfg->snd_alarm_high /= 18.0;
+    Serial.println(cfg->snd_alarm_high);
+  }
+  else {
+    Serial.println("NO snd_alarm_high defined");
+    cfg->snd_alarm_high = 20.0;
+  }
+
+  if (ini.getValue("config", "snd_no_readings", buffer, bufferLen)) {
+    Serial.print("snd_no_readings = ");
+    cfg->snd_no_readings = atoi(buffer);
+    Serial.println(cfg->snd_no_readings);
+  }
+  else {
+    Serial.println("NO snd_no_readings defined");
+    cfg->snd_no_readings = 20;
+  }
+
+  if (ini.getValue("config", "warning_music", buffer, bufferLen)) {
+    Serial.print("warning_music = ");
+    Serial.println(buffer);
+    strlcpy(cfg->warning_music, buffer, 64);
+  }
+  else {
+    Serial.println("NO warning_music");
+    cfg->warning_music[0]=0;
+  }
+  
+  if (ini.getValue("config", "warning_volume", buffer, bufferLen)) {
+    Serial.print("warning_volume = ");
+    cfg->warning_volume = atoi(buffer);
+    Serial.println(cfg->warning_volume);
+  }
+  else {
+    Serial.println("NO warning_volume defined");
+    cfg->warning_volume = 30;
+  }
+
+  if (ini.getValue("config", "alarm_music", buffer, bufferLen)) {
+    Serial.print("alarm_music = ");
+    Serial.println(buffer);
+    strlcpy(cfg->alarm_music, buffer, 64);
+  }
+  else {
+    Serial.println("NO alarm_music");
+    cfg->alarm_music[0]=0;
+  }
+
+  if (ini.getValue("config", "alarm_volume", buffer, bufferLen)) {
+    Serial.print("alarm_volume = ");
+    cfg->alarm_volume = atoi(buffer);
+    Serial.println(cfg->alarm_volume);
+  }
+  else {
+    Serial.println("NO alarm_volume defined");
+    cfg->alarm_volume = 100;
   }
 
   if (ini.getValue("config", "brightness1", buffer, bufferLen)) {
