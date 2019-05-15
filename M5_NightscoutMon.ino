@@ -191,8 +191,8 @@ void buttons_test() {
   if(M5.BtnC.wasPressed()) {
       // M5.Lcd.printf("C");
       Serial.printf("C");
-      // M5.setWakeupButton(BUTTON_B_PIN);
-      // M5.powerOFF();
+      M5.setWakeupButton(BUTTON_B_PIN);
+      M5.powerOFF();
 
       /*
       for (int i=0;i<25000;i++) {
@@ -271,6 +271,7 @@ void setup() {
     // cfg.snd_alarm = 4.5;
     // cfg.alarm_repeat = 1;
     // cfg.snooze_timeout = 2;
+    // cfg.brightness1 = 0;
     
     lcdBrightness = cfg.brightness1;
     M5.Lcd.setBrightness(lcdBrightness);
