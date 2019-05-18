@@ -118,6 +118,10 @@ alarm_volume = 100 - volume of alarm sound in range 0-100 (0=no sound, 1=silent,
 
 
 
+info_line = 1 - 0 = sensor info, 1 = button function icons, 2 = loop info + basal
+
+
+
 brightness1 = 50 – the first (default) brightness value
 
 brightness2 = 100 – the second brightness value
