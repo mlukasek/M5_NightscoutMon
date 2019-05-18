@@ -1,4 +1,4 @@
-# M5_NightscoutMon
+﻿# M5_NightscoutMon
 ## M5Stack Nightscout monitor
 
 ###### M5Stack Nightscout monitor<br/>Copyright (C) 2018, 2019 Martin Lukasek <martin@lukasek.cz>
@@ -9,6 +9,12 @@
 <br/>
 
 ### Revisions:
+
+#### *** 18 May 2019 ***
+Added button function icons (set M5NS.INI key info_line = 1). This is now default option.
+Added loop and basal info (set M5NS.INI key info_line = 2)
+Original sensor information available when M5NS.INI key info_line = 0
+Small changes to silence background hiss as much as possible.<br/>
 
 #### *** 12 May 2019 ***
 BG/calibration/unknown entries are now filtered.<br/>

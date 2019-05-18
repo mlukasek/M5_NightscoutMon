@@ -328,6 +328,16 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
     cfg->alarm_volume = 100;
   }
 
+  if (ini.getValue("config", "info_line", buffer, bufferLen)) {
+    Serial.print("info_line = ");
+    cfg->info_line = atoi(buffer);
+    Serial.println(cfg->info_line);
+  }
+  else {
+    Serial.println("NO info_line defined = button function icons");
+    cfg->info_line = 1;
+  }
+
   if (ini.getValue("config", "brightness1", buffer, bufferLen)) {
     Serial.print("brightness1 = ");
     Serial.println(buffer);

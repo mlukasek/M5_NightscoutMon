@@ -28,6 +28,7 @@ struct tConfig {
   int warning_volume = 30;
   char alarm_music[64];
   int alarm_volume = 100;
+  int info_line = 1; // 0 = sensor info, 1 = button function icons, 2 = loop info + basal
   uint8_t brightness1, brightness2, brightness3;
   int dev_mode = 0; // developer mode, do not use, does strange things and changes often ;-)
   char wlan1ssid[32];
