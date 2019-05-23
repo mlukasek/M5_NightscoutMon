@@ -279,6 +279,8 @@ void setup() {
 
     readConfiguration(iniFilename, &cfg);
     // strcpy(cfg.url, "user.herokuapp.com");
+    // cfg.show_mgdl = 1;
+    // cfg.show_COB_IOB = 0;
     // cfg.snd_warning = 5.5;
     // cfg.snd_alarm = 4.5;
     // cfg.snd_warning_high = 9;
@@ -552,9 +554,9 @@ void update_glycemia() {
             if(httpCode == HTTP_CODE_OK) {
               // const char* propjson = "{\"iob\":{\"iob\":0,\"activity\":0,\"source\":\"OpenAPS\",\"device\":\"openaps://Spike iPhone 8 Plus\",\"mills\":1557613521000,\"display\":\"0\",\"displayLine\":\"IOB: 0U\"},\"cob\":{\"cob\":0,\"source\":\"OpenAPS\",\"device\":\"openaps://Spike iPhone 8 Plus\",\"mills\":1557613521000,\"treatmentCOB\":{\"decayedBy\":\"2019-05-11T23:05:00.000Z\",\"isDecaying\":0,\"carbs_hr\":20,\"rawCarbImpact\":0,\"cob\":7,\"lastCarbs\":{\"_id\":\"5cd74c26156712edb4b32455\",\"enteredBy\":\"Martin\",\"eventType\":\"Carb Correction\",\"reason\":\"\",\"carbs\":7,\"duration\":0,\"created_at\":\"2019-05-11T22:24:00.000Z\",\"mills\":1557613440000,\"mgdl\":67}},\"display\":0,\"displayLine\":\"COB: 0g\"},\"delta\":{\"absolute\":-4,\"elapsedMins\":4.999483333333333,\"interpolated\":false,\"mean5MinsAgo\":69,\"mgdl\":-4,\"scaled\":-0.2,\"display\":\"-0.2\",\"previous\":{\"mean\":69,\"last\":69,\"mills\":1557613221946,\"sgvs\":[{\"mgdl\":69,\"mills\":1557613221946,\"device\":\"MIAOMIAO\",\"direction\":\"Flat\",\"filtered\":92588,\"unfiltered\":92588,\"noise\":1,\"rssi\":100}]}}}";
               String propjson = http.getString();
-              const size_t propcapacity = 16500;
+              const size_t propcapacity = 16300;
               DynamicJsonDocument propdoc(propcapacity);
-              Serial.println("Zalozen druhy JSON");
+              Serial.println("Created the second JSON document");
               auto propJSONerr = deserializeJson(propdoc, propjson);
               if(propJSONerr) {
                 Serial.println("Properties JSON parsing failed");
@@ -562,15 +564,18 @@ void update_glycemia() {
                 M5.Lcd.setTextColor(TFT_YELLOW, TFT_BLACK);
                 M5.Lcd.drawString("???", 130, 24, GFXFF);
               } else {
+                Serial.println("Deserialized the second JSON and OK");
                 JsonObject iob = propdoc["iob"];
                 float iob_iob = iob["iob"]; // 0
-                const char* iob_display = iob["display"]; // "0"
-                const char* iob_displayLine = iob["displayLine"]; // "IOB: 0U"
+                const char* iob_display = iob["display"] | "N/A"; // "0"
+                const char* iob_displayLine = iob["displayLine"] | "IOB: N/A"; // "IOB: 0U"
+                Serial.println("IOB OK");
                 
                 JsonObject cob = propdoc["cob"];
                 float cob_cob = cob["cob"]; // 0
-                int cob_display = cob["display"]; // 0
-                const char* cob_displayLine = cob["displayLine"]; // "COB: 0g"
+                const char* cob_display = cob["display"] | "N/A"; // 0
+                const char* cob_displayLine = cob["displayLine"] | "COB: N/A"; // "COB: 0g"
+                Serial.println("COB OK");
                 
                 JsonObject delta = propdoc["delta"];
                 int delta_absolute = delta["absolute"]; // -4
@@ -579,21 +584,25 @@ void update_glycemia() {
                 int delta_mean5MinsAgo = delta["mean5MinsAgo"]; // 69
                 int delta_mgdl = delta["mgdl"]; // -4
                 float delta_scaled = delta["scaled"]; // -0.2
-                const char* delta_display = delta["display"]; // "-0.2"
+                const char* delta_display = delta["display"] | ""; // "-0.2"
                 M5.Lcd.fillRect(130,24,69,23,TFT_BLACK);
                 M5.Lcd.drawString(delta_display, 130, 24, GFXFF);
+                Serial.println("DELTA OK");
                 
                 JsonObject loop_obj = propdoc["loop"];
                 JsonObject loop_display = loop_obj["display"];
-                const char* loop_display_symbol = loop_display["symbol"]; // "⌁"
-                const char* loop_display_code = loop_display["code"]; // "enacted"
+                const char* loop_display_symbol = loop_display["symbol"] | "?"; // "⌁"
+                const char* loop_display_code = loop_display["code"] | "N/A"; // "enacted"
                 const char* loop_display_label = loop_display["label"] | "N/A"; // "Enacted"
+                Serial.println("LOOP OK");
 
                 JsonObject basal = propdoc["basal"];
                 const char* basal_display = basal["display"] | "N/A"; // "T: 0.950U"      
+                Serial.println("BASAL OK");
 
                 strlcpy(loopInfoStr, loop_display_label, 64);
                 strlcpy(basalInfoStr, basal_display, 64);
+                Serial.println("LOOP copy string OK");
                 
                 if(cfg.show_COB_IOB) {
                   M5.Lcd.fillRect(0,48,199,47,TFT_BLACK);
@@ -601,12 +610,16 @@ void update_glycemia() {
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                   else
                     M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+                  Serial.print("iob_displayLine=\""); Serial.print(iob_displayLine); Serial.println("\"");
                   M5.Lcd.drawString(iob_displayLine, 0, 48, GFXFF);
+                  Serial.println("drawString IOB OK");
                   if(cob_cob>0)
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                   else
                     M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+                  Serial.print("cob_displayLine=\""); Serial.print(cob_displayLine); Serial.println("\"");
                   M5.Lcd.drawString(cob_displayLine, 0, 72, GFXFF);
+                  Serial.println("drawString COB OK");
                 }
               }
             }
