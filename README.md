@@ -11,9 +11,9 @@
 ### Revisions:
 
 #### *** 18 May 2019 ***
-Added button function icons (set M5NS.INI key info_line = 1). This is now default option.
-Added loop and basal info (set M5NS.INI key info_line = 2)
-Original sensor information available when M5NS.INI key info_line = 0
+Added button function icons (set M5NS.INI key info_line = 1). This is now default option.<br/>
+Added loop and basal info (set M5NS.INI key info_line = 2)<br/>
+Original sensor information available when M5NS.INI key info_line = 0<br/>
 Small changes to silence background hiss as much as possible.<br/>
 
 #### *** 12 May 2019 ***
