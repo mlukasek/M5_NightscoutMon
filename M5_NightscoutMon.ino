@@ -44,9 +44,17 @@ extern const unsigned char clock_icon16x16[];
 extern const unsigned char timer_icon16x16[];
 extern const unsigned char powerbutton_icon16x16[];
 
+extern const unsigned char bat0_icon16x16[];
+extern const unsigned char bat1_icon16x16[];
+extern const unsigned char bat2_icon16x16[];
+extern const unsigned char bat3_icon16x16[];
+extern const unsigned char bat4_icon16x16[];
+extern const unsigned char plug_icon16x16[];
+
 const char* ntpServer = "pool.ntp.org";
 struct tm localTimeInfo;
 int lastSec = 61;
+int lastMin = 61;
 char localTimeStr[30];
 
 #ifndef min
@@ -214,47 +222,80 @@ void buttons_test() {
 }
 
 void wifi_connect() {
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
-    delay(100);
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
 
-    Serial.println("WiFi connect start");
-    M5.Lcd.println("WiFi connect start");
+  Serial.println("WiFi connect start");
+  M5.Lcd.println("WiFi connect start");
 
-    // We start by connecting to a WiFi network
-    if(cfg.wlan1ssid[0]!=0)
-      WiFiMulti.addAP(cfg.wlan1ssid, cfg.wlan1pass);
-    if(cfg.wlan2ssid[0]!=0)
-      WiFiMulti.addAP(cfg.wlan2ssid, cfg.wlan2pass);
-    if(cfg.wlan3ssid[0]!=0)
-      WiFiMulti.addAP(cfg.wlan3ssid, cfg.wlan3pass);
+  // We start by connecting to a WiFi network
+  if(cfg.wlan1ssid[0]!=0)
+    WiFiMulti.addAP(cfg.wlan1ssid, cfg.wlan1pass);
+  if(cfg.wlan2ssid[0]!=0)
+    WiFiMulti.addAP(cfg.wlan2ssid, cfg.wlan2pass);
+  if(cfg.wlan3ssid[0]!=0)
+    WiFiMulti.addAP(cfg.wlan3ssid, cfg.wlan3pass);
 
-    Serial.println();
-    M5.Lcd.println("");
-    Serial.print("Wait for WiFi... ");
-    M5.Lcd.print("Wait for WiFi... ");
+  Serial.println();
+  M5.Lcd.println("");
+  Serial.print("Wait for WiFi... ");
+  M5.Lcd.print("Wait for WiFi... ");
 
-    while(WiFiMulti.run() != WL_CONNECTED) {
-        Serial.print(".");
-        M5.Lcd.print(".");
-        delay(500);
+  while(WiFiMulti.run() != WL_CONNECTED) {
+      Serial.print(".");
+      M5.Lcd.print(".");
+      delay(500);
+  }
+
+  Serial.println("");
+  M5.Lcd.println("");
+  Serial.println("WiFi connected");
+  M5.Lcd.println("WiFi connected");
+  Serial.println("IP address: ");
+  M5.Lcd.println("IP address: ");
+  Serial.println(WiFi.localIP());
+  M5.Lcd.println(WiFi.localIP());
+
+  configTime(cfg.timeZone, cfg.dst, ntpServer);
+  delay(1000);
+  printLocalTime();
+
+  Serial.println("Connection done");
+  M5.Lcd.println("Connection done");
+}
+
+int8_t getBatteryLevel()
+{
+  Wire.beginTransmission(0x75);
+  Wire.write(0x78);
+  if (Wire.endTransmission(false) == 0
+   && Wire.requestFrom(0x75, 1)) {
+    int8_t bdata=Wire.read();
+    /* 
+    // write battery info to logfile.txt
+    File fileLog = SD.open("/logfile.txt", FILE_WRITE);    
+    if(!fileLog) {
+      Serial.println("Cannot write to logfile.txt");
+    } else {
+      int pos = fileLog.seek(fileLog.size());
+      struct tm timeinfo;
+      getLocalTime(&timeinfo);
+      fileLog.print(asctime(&timeinfo));
+      fileLog.print("   Battery level: "); fileLog.println(bdata, HEX);
+      fileLog.close();
+      Serial.print("Log file written: "); Serial.print(asctime(&timeinfo));
     }
-
-    Serial.println("");
-    M5.Lcd.println("");
-    Serial.println("WiFi connected");
-    M5.Lcd.println("WiFi connected");
-    Serial.println("IP address: ");
-    M5.Lcd.println("IP address: ");
-    Serial.println(WiFi.localIP());
-    M5.Lcd.println(WiFi.localIP());
-
-    configTime(cfg.timeZone, cfg.dst, ntpServer);
-    delay(1000);
-    printLocalTime();
-
-    Serial.println("Connection done");
-    M5.Lcd.println("Connection done");
+    */
+    switch (bdata & 0xF0) {
+      case 0xE0: return 25;
+      case 0xC0: return 50;
+      case 0x80: return 75;
+      case 0x00: return 100;
+      default: return 0;
+    }
+  }
+  return -1;
 }
 
 // the setup routine runs once when M5Stack starts up
@@ -510,14 +551,43 @@ void update_glycemia() {
           struct tm timeinfo;
           if(cfg.show_current_time) {
             if(getLocalTime(&timeinfo)) {
-              sprintf(datetimeStr, "%02d:%02d:%02d  %d.%d.  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, timeinfo.tm_mday, timeinfo.tm_mon+1);  
+              // sprintf(datetimeStr, "%02d:%02d:%02d  %d.%d.  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, timeinfo.tm_mday, timeinfo.tm_mon+1);  
+              sprintf(datetimeStr, "%02d:%02d  %d.%d.  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_mday, timeinfo.tm_mon+1);  
             } else {
-              strcpy(datetimeStr, "??:??:??");
+              // strcpy(datetimeStr, "??:??:??");
+              strcpy(datetimeStr, "??:??");
             }
           } else {
-            sprintf(datetimeStr, "%02d:%02d:%02d  %d.%d.  ", sensTm.tm_hour, sensTm.tm_min, sensTm.tm_sec, sensTm.tm_mday, sensTm.tm_mon+1);
+            // sprintf(datetimeStr, "%02d:%02d:%02d  %d.%d.  ", sensTm.tm_hour, sensTm.tm_min, sensTm.tm_sec, sensTm.tm_mday, sensTm.tm_mon+1);
+            sprintf(datetimeStr, "%02d:%02d  %d.%d.  ", sensTm.tm_hour, sensTm.tm_min, sensTm.tm_mday, sensTm.tm_mon+1);
           }
           M5.Lcd.drawString(datetimeStr, 0, 0, GFXFF);
+
+          // draw battery status
+          int8_t battLevel = getBatteryLevel();
+          Serial.print("Battery level: "); Serial.println(battLevel);
+          // sprintf(tmpstr, "%d", battLevel);
+          // M5.Lcd.drawString(tmpstr, 0, 220, GFXFF);
+          M5.Lcd.fillRect(168, 0, 16, 17, TFT_BLACK);
+          if(battLevel!=-1) {
+            switch(battLevel) {
+              case 0:
+                drawIcon(168, 1, (uint8_t*)bat0_icon16x16, TFT_RED);
+                break;
+              case 25:
+                drawIcon(168, 1, (uint8_t*)bat1_icon16x16, TFT_YELLOW);
+                break;
+              case 50:
+                drawIcon(168, 1, (uint8_t*)bat2_icon16x16, TFT_WHITE);
+                break;
+              case 75:
+                drawIcon(168, 1, (uint8_t*)bat3_icon16x16, TFT_LIGHTGREY);
+                break;
+              case 100:
+                drawIcon(168, 0, (uint8_t*)plug_icon16x16, TFT_LIGHTGREY);
+                break;
+            }
+          }
 
           M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
           M5.Lcd.drawString(cfg.userName, 0, 24, GFXFF);
@@ -922,18 +992,19 @@ void loop(){
       M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
       if(!getLocalTime(&localTimeInfo)) {
         // unknown time
-        strcpy(localTimeStr,"??:??:??");
-        lastSec = 61;
+        strcpy(localTimeStr,"??:??");
+        lastMin = 61;
       } else {
         if(getLocalTime(&localTimeInfo)) {
-          sprintf(localTimeStr, "%02d:%02d:%02d  %d.%d.  ", localTimeInfo.tm_hour, localTimeInfo.tm_min, localTimeInfo.tm_sec, localTimeInfo.tm_mday, localTimeInfo.tm_mon+1);  
+          sprintf(localTimeStr, "%02d:%02d  %d.%d.  ", localTimeInfo.tm_hour, localTimeInfo.tm_min, localTimeInfo.tm_mday, localTimeInfo.tm_mon+1);  
         } else {
-          strcpy(localTimeStr, "??:??:??");
-          lastSec = 61;
+          strcpy(localTimeStr, "??:??");
+          lastMin = 61;
         }
       }
-      if(lastSec!=localTimeInfo.tm_sec) {
+      if(lastMin!=localTimeInfo.tm_min) {
         lastSec=localTimeInfo.tm_sec;
+        lastMin=localTimeInfo.tm_min;
         M5.Lcd.drawString(localTimeStr, 0, 0, GFXFF);
       }
     }
