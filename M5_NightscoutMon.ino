@@ -34,7 +34,6 @@
 
 tConfig cfg;
 
-// extern const unsigned char gImage_logoM5[];
 extern const unsigned char m5stack_startup_music[];
 extern const unsigned char WiFi_symbol[];
 extern const unsigned char alarmSndData[];
