@@ -151,7 +151,7 @@ void sndAlarm() {
       if( cfg.dev_mode )
         play_tone(660, 400, 1);
       else
-        play_tone(660, 400, 20);
+        play_tone(660, 400, cfg.alarm_volume);
       delay(200);
     }
     M5.Speaker.mute();
@@ -164,7 +164,7 @@ void sndWarning() {
     if( cfg.dev_mode )
       play_tone(3000, 100, 1);
     else
-      play_tone(3000, 100, 100);
+      play_tone(3000, 100, cfg.warning_volume);
     delay(300);
   }
   M5.Speaker.mute();
@@ -325,7 +325,10 @@ void setup() {
     // cfg.snd_warning = 5.5;
     // cfg.snd_alarm = 4.5;
     // cfg.snd_warning_high = 9;
-    // cfg.snd_alarm_high = 10;
+    // cfg.snd_alarm_high = 14;
+    // cfg.alarm_volume = 0;
+    // cfg.warning_volume = 0;
+    
     // cfg.alarm_repeat = 1;
     // cfg.snooze_timeout = 2;
     // cfg.brightness1 = 0;
