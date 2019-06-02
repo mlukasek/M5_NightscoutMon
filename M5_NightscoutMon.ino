@@ -669,7 +669,7 @@ void update_glycemia() {
                 } else {
                   // show BIG delta bellow the name
                   M5.Lcd.setFreeFont(FSSB24);
-                  M5.Lcd.setTextColor(WHITE, BLACK);
+                  M5.Lcd.setTextColor(TFT_LIGHTGREY, BLACK);
                   M5.Lcd.setTextSize(1);
                   M5.Lcd.fillRect(0,48+10,199,47,TFT_BLACK);
                   M5.Lcd.drawString(delta_display, 0, 48+10, GFXFF);
