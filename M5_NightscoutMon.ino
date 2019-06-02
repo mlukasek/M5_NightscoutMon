@@ -320,6 +320,7 @@ void setup() {
 
     readConfiguration(iniFilename, &cfg);
     // strcpy(cfg.url, "user.herokuapp.com");
+    // cfg.dev_mode = 0;
     // cfg.show_mgdl = 1;
     // cfg.show_COB_IOB = 0;
     // cfg.snd_warning = 5.5;
@@ -658,8 +659,22 @@ void update_glycemia() {
                 int delta_mgdl = delta["mgdl"]; // -4
                 float delta_scaled = delta["scaled"]; // -0.2
                 const char* delta_display = delta["display"] | ""; // "-0.2"
-                M5.Lcd.fillRect(130,24,69,23,TFT_BLACK);
-                M5.Lcd.drawString(delta_display, 130, 24, GFXFF);
+                if(cfg.show_COB_IOB) {
+                  // show small delta right from name
+                  M5.Lcd.setFreeFont(FSSB12);
+                  M5.Lcd.setTextColor(WHITE, BLACK);
+                  M5.Lcd.setTextSize(1);
+                  M5.Lcd.fillRect(130,24,69,23,TFT_BLACK);
+                  M5.Lcd.drawString(delta_display, 130, 24, GFXFF);
+                } else {
+                  // show BIG delta bellow the name
+                  M5.Lcd.setFreeFont(FSSB24);
+                  M5.Lcd.setTextColor(WHITE, BLACK);
+                  M5.Lcd.setTextSize(1);
+                  M5.Lcd.fillRect(0,48+10,199,47,TFT_BLACK);
+                  M5.Lcd.drawString(delta_display, 0, 48+10, GFXFF);
+                  M5.Lcd.setFreeFont(FSSB12);
+                }
                 Serial.println("DELTA OK");
                 
                 JsonObject loop_obj = propdoc["loop"];
