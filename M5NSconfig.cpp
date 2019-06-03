@@ -82,6 +82,19 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
       ;
   }
 
+  // begin Peter Leimbach
+  // Read the value of the token parameter from the config file
+  if (ini.getValue("config", "token", buffer, bufferLen)) {
+    Serial.print("section 'config' has an entry 'token' with value ");
+    Serial.println(buffer);
+    strlcpy(cfg->token, buffer, 32);
+  }
+  else {
+    // no token parameter set in INI file - no error just set cfg->token[0] to 0
+    cfg->token[0] = '\0';
+  }
+  // end Peter Leimbach
+
   if (ini.getValue("config", "bootpic", buffer, bufferLen)) {
     Serial.print("bootpic = ");
     Serial.println(buffer);

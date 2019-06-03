@@ -467,6 +467,14 @@ void update_glycemia() {
     strcpy(NSurl,"https://");
     strcat(NSurl,cfg.url);
     strcat(NSurl,"/api/v1/entries.json");
+    
+    // begin Peter Leimbach
+    if (strlen(cfg.token) > 0){
+      strcat(NSurl,"?token=");
+      strcat(NSurl,cfg.token);
+    }
+    // end Peter Leimbach
+    
     // more info at /api/v2/properties
     http.begin(NSurl); //HTTP
     
@@ -619,6 +627,14 @@ void update_glycemia() {
           strcpy(NSurl,"https://");
           strcat(NSurl,cfg.url);
           strcat(NSurl,"/api/v2/properties/iob,cob,delta,loop,basal");
+          
+          // begin Peter Leimbach
+          if (strlen(cfg.token) > 0){
+            strcat(NSurl,"&token=");
+            strcat(NSurl,cfg.token);
+          }
+          // end Peter Leimbach
+          
           http.begin(NSurl); //HTTP
           Serial.print("[HTTP] GET properties...\n");
           int httpCode = http.GET();

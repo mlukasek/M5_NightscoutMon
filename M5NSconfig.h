@@ -6,6 +6,9 @@
 
 struct tConfig {
   char url[64];
+  // begin Peter Leimbach
+  char token[32];
+  // end Peter Leimbach
   char bootPic[64];
   char userName[32];
   int timeZone = 3600; // time zone offset in hours, must be corrected for internatinal use and DST
