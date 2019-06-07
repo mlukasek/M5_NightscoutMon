@@ -464,10 +464,13 @@ void update_glycemia() {
     Serial.print("[HTTP] begin...\n");
     // configure target server and url
     char NSurl[128];
-    strcpy(NSurl,"https://");
+    if(strncmp(cfg.url, "http", 4))
+      strcpy(NSurl,"https://");
+    else
+      strcpy(NSurl,"");
     strcat(NSurl,cfg.url);
     strcat(NSurl,"/api/v1/entries.json");
-    // more info at /api/v2/properties
+    Serial.print("JSON query NSurl = \'");Serial.print(NSurl);Serial.print("\'\n");
     http.begin(NSurl); //HTTP
     
     Serial.print("[HTTP] GET...\n");
@@ -616,9 +619,13 @@ void update_glycemia() {
           }
           */
           
-          strcpy(NSurl,"https://");
+          if(strncmp(cfg.url, "http", 4))
+            strcpy(NSurl,"https://");
+          else
+            strcpy(NSurl,"");
           strcat(NSurl,cfg.url);
           strcat(NSurl,"/api/v2/properties/iob,cob,delta,loop,basal");
+          Serial.print("Properties query NSurl = \'");Serial.print(NSurl);Serial.print("\'\n");
           http.begin(NSurl); //HTTP
           Serial.print("[HTTP] GET properties...\n");
           int httpCode = http.GET();
