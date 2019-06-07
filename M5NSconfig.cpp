@@ -305,7 +305,7 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
   }
   else {
     Serial.println("NO warning_volume defined");
-    cfg->warning_volume = 30;
+    cfg->warning_volume = 50;
   }
 
   if (ini.getValue("config", "alarm_music", buffer, bufferLen)) {
