@@ -5,10 +5,29 @@
 ###### This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 ###### This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 ###### You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>. 
-###### This software uses some 3rd party libraries:<br/>IniFile by Steve Marple <stevemarple@googlemail.com> (GNU LGPL v2.1)<br/>ArduinoJson by Benoit BLANCHON (MIT License)
+###### This software uses some 3rd party libraries:<br/>
+IniFile by Steve Marple <stevemarple@googlemail.com> (GNU LGPL v2.1)<br/>
+ArduinoJson by Benoit BLANCHON (MIT License)<br/>
+IoT Icon Set by Artur Funk (GPL v3)<br/>
 <br/>
 
 ### Revisions:
+
+#### *** 07 June 2019 ***
+Added check for http/https in nightscout URL in M5NS.INI<br/>
+Increased deafult warning volume to 50.<br/>
+Added last 2 weeks revisions to README.<br/>
+
+#### *** 02 June 2019 ***
+Large DELTA value displayed if no COB/IOB on display.<br/>
+Sample M5NS.INI dile now has default values in mg/dL.<br/>
+Corrected volume bug, it did not work at all. Now accepts values from M5NI.INI correctly.<br/>
+
+#### *** 30 May 2019 ***
+Added battery icon. This feature works only on newer M5Stack units. Removed seconds from time to make more place for possibly more icons.<br/>
+
+#### *** 23 May 2019 ***
+Fixed restart bug if some properties were not defined on Nightscout.<br/>
 
 #### *** 18 May 2019 ***
 Added button function icons (set M5NS.INI key info_line = 1). This is now default option.<br/>
