@@ -315,7 +315,35 @@ void setup() {
     M5.Lcd.setTextSize(2);
     yield();
 
-    Serial.println(ESP.getFreeHeap());
+    Serial.print("Free Heap: "); Serial.println(ESP.getFreeHeap());
+
+    uint8_t cardType = SD.cardType();
+
+    if(cardType == CARD_NONE){
+        Serial.println("No SD card attached");
+        M5.Lcd.println("No SD card attached");
+        while(1);
+    }
+
+    Serial.print("SD Card Type: ");
+    M5.Lcd.print("SD Card Type: ");
+    if(cardType == CARD_MMC){
+        Serial.println("MMC");
+        M5.Lcd.println("MMC");
+    } else if(cardType == CARD_SD){
+        Serial.println("SDSC");
+        M5.Lcd.println("SDSC");
+    } else if(cardType == CARD_SDHC){
+        Serial.println("SDHC");
+        M5.Lcd.println("SDHC");
+    } else {
+        Serial.println("UNKNOWN");
+        M5.Lcd.println("UNKNOWN");
+    }
+
+    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+    Serial.printf("SD Card Size: %llu MB\n", cardSize);
+    M5.Lcd.printf("SD Card Size: %llu MB\n", cardSize);
 
     readConfiguration(iniFilename, &cfg);
     // strcpy(cfg.url, "user.herokuapp.com");
@@ -443,6 +471,7 @@ void drawIcon(int16_t x, int16_t y, const uint8_t *bitmap, uint16_t color) {
 void update_glycemia() {
   char loopInfoStr[64];
   char basalInfoStr[64];
+  char tmpstr[255];
   
   M5.Lcd.setTextDatum(TL_DATUM);
   M5.Lcd.setTextColor(WHITE, BLACK);
@@ -491,11 +520,18 @@ void update_glycemia() {
         // Serial.print("JSON size needed= "); Serial.print(capacity); 
         Serial.print("Free Heap = "); Serial.println(ESP.getFreeHeap());
         auto JSONerr = deserializeJson(JSONdoc, json);
-        if (JSONerr) {   //Check for errors in parsing
-          Serial.println("JSON parsing failed");
+        Serial.println("JSON deserialized OK");
+        JsonArray arr=JSONdoc.as<JsonArray>();
+        Serial.print("JSON array size = "); Serial.println(arr.size());
+        if (JSONerr || arr.size()==0) {   //Check for errors in parsing
+          if(JSONerr)
+            strcpy(tmpstr, "JSON parsing failed");
+          else
+            strcpy(tmpstr, "No data from Nightscout");
+          Serial.println(tmpstr);
           M5.Lcd.setFreeFont(FSSB12);
           M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-          M5.Lcd.drawString("JSON parsing failed", 0, 0, GFXFF);
+          M5.Lcd.drawString(tmpstr, 0, 24, GFXFF);
           wasError = 1;
         } else {
           char sensDev[64];
@@ -507,9 +543,9 @@ void update_glycemia() {
           do {
             obj=JSONdoc[sgvindex].as<JsonObject>();
             sgvindex++;
-          } while ((!obj.containsKey("sgv")) && (sgvindex<9));
+          } while ((!obj.containsKey("sgv")) && (sgvindex<(arr.size()-1)));
           sgvindex--;
-          if(sgvindex<0 || sgvindex>8)
+          if(sgvindex<0 || sgvindex>(arr.size()-1))
             sgvindex=0;
           strlcpy(sensDev, JSONdoc[sgvindex]["device"] | "N/A", 64);
           rawtime = JSONdoc[sgvindex]["date"].as<long long>(); // sensTime is time in milliseconds since 1970, something like 1555229938118
@@ -524,7 +560,6 @@ void update_glycemia() {
           // internally we work in mmol/L
           sensSgv/=18.0;
           
-          char tmpstr[255];
           struct tm sensTm;
           localtime_r(&sensTime, &sensTm);
           
@@ -649,13 +684,13 @@ void update_glycemia() {
                 float iob_iob = iob["iob"]; // 0
                 const char* iob_display = iob["display"] | "N/A"; // "0"
                 const char* iob_displayLine = iob["displayLine"] | "IOB: N/A"; // "IOB: 0U"
-                Serial.println("IOB OK");
+                // Serial.println("IOB OK");
                 
                 JsonObject cob = propdoc["cob"];
                 float cob_cob = cob["cob"]; // 0
                 const char* cob_display = cob["display"] | "N/A"; // 0
                 const char* cob_displayLine = cob["displayLine"] | "COB: N/A"; // "COB: 0g"
-                Serial.println("COB OK");
+                // Serial.println("COB OK");
                 
                 JsonObject delta = propdoc["delta"];
                 int delta_absolute = delta["absolute"]; // -4
@@ -681,22 +716,22 @@ void update_glycemia() {
                   M5.Lcd.drawString(delta_display, 0, 48+10, GFXFF);
                   M5.Lcd.setFreeFont(FSSB12);
                 }
-                Serial.println("DELTA OK");
+                // Serial.println("DELTA OK");
                 
                 JsonObject loop_obj = propdoc["loop"];
                 JsonObject loop_display = loop_obj["display"];
                 const char* loop_display_symbol = loop_display["symbol"] | "?"; // "⌁"
                 const char* loop_display_code = loop_display["code"] | "N/A"; // "enacted"
                 const char* loop_display_label = loop_display["label"] | "N/A"; // "Enacted"
-                Serial.println("LOOP OK");
+                // Serial.println("LOOP OK");
 
                 JsonObject basal = propdoc["basal"];
                 const char* basal_display = basal["display"] | "N/A"; // "T: 0.950U"      
-                Serial.println("BASAL OK");
+                // Serial.println("BASAL OK");
 
                 strlcpy(loopInfoStr, loop_display_label, 64);
                 strlcpy(basalInfoStr, basal_display, 64);
-                Serial.println("LOOP copy string OK");
+                // Serial.println("LOOP copy string OK");
                 
                 if(cfg.show_COB_IOB) {
                   M5.Lcd.fillRect(0,48,199,47,TFT_BLACK);
@@ -706,14 +741,14 @@ void update_glycemia() {
                     M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
                   Serial.print("iob_displayLine=\""); Serial.print(iob_displayLine); Serial.println("\"");
                   M5.Lcd.drawString(iob_displayLine, 0, 48, GFXFF);
-                  Serial.println("drawString IOB OK");
+                  // Serial.println("drawString IOB OK");
                   if(cob_cob>0)
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                   else
                     M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
                   Serial.print("cob_displayLine=\""); Serial.print(cob_displayLine); Serial.println("\"");
                   M5.Lcd.drawString(cob_displayLine, 0, 72, GFXFF);
-                  Serial.println("drawString COB OK");
+                  // Serial.println("drawString COB OK");
                 }
               }
             }
