@@ -373,63 +373,25 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
     cfg->brightness3 = 10;
   }
 
-  if (ini.getValue("wlan1", "ssid", buffer, bufferLen)) {
-    Serial.print("wlan1ssid = ");
-    Serial.println(buffer);
-    strlcpy(cfg->wlan1ssid, buffer,32);
-  }
-  else {
-    Serial.println("NO wlan1 ssid");
-    cfg->wlan1ssid[0] = 0;
+  for(int i=0; i<=9; i++) {
+    char wlansection[10];
+    sprintf(wlansection, "wlan%1d", i);
+
+    if (ini.getValue(wlansection, "ssid", buffer, bufferLen)) {
+      Serial.printf("[wlan%1d] ssid = %s\n", i, buffer);
+      strlcpy(cfg->wlanssid[i], buffer,32);
+    } else {
+      Serial.printf("NO [wlan%1d] ssid\n", i);
+      cfg->wlanssid[i][0] = 0;
+    }
+  
+    if (ini.getValue(wlansection, "pass", buffer, bufferLen)) {
+      Serial.printf("[wlan%1d] pass = %s\n", i, buffer);
+      strlcpy(cfg->wlanpass[i], buffer, 32);
+    } else {
+      Serial.printf("NO [wlan%1d] pass\n", i);
+      cfg->wlanpass[i][0] = 0;
+    }
   }
 
-  if (ini.getValue("wlan1", "pass", buffer, bufferLen)) {
-    Serial.print("wlan1pass = ");
-    Serial.println(buffer);
-    strlcpy(cfg->wlan1pass, buffer, 32);
-  }
-  else {
-    Serial.println("NO wlan1 pass");
-    cfg->wlan1pass[0] = 0;
-  }
-
-  if (ini.getValue("wlan2", "ssid", buffer, bufferLen)) {
-    Serial.print("wlan2ssid = ");
-    Serial.println(buffer);
-    strlcpy(cfg->wlan2ssid, buffer, 32);
-  }
-  else {
-    Serial.println("NO wlan2 ssid");
-    cfg->wlan2ssid[0] = 0;
-  }
-
-  if (ini.getValue("wlan2", "pass", buffer, bufferLen)) {
-    Serial.print("wlan2pass = ");
-    Serial.println(buffer);
-    strlcpy(cfg->wlan2pass, buffer, 32);
-  }
-  else {
-    Serial.println("NO wlan2 pass");
-    cfg->wlan2pass[0] = 0;
-  }
-
-  if (ini.getValue("wlan3", "ssid", buffer, bufferLen)) {
-    Serial.print("wlan3ssid = ");
-    Serial.println(buffer);
-    strlcpy(cfg->wlan3ssid, buffer, 32);
-  }
-  else {
-    Serial.println("NO wlan3 ssid");
-    cfg->wlan3ssid[0] = 0;
-  }
-
-  if (ini.getValue("wlan3", "pass", buffer, bufferLen)) {
-    Serial.print("wlan3pass = ");
-    Serial.println(buffer);
-    strlcpy(cfg->wlan3pass, buffer, 32);
-  }
-  else {
-    Serial.println("NO wlan3 pass");
-    cfg->wlan3pass[0] = 0;
-  }
 }
