@@ -50,8 +50,9 @@ extern const unsigned char bat3_icon16x16[];
 extern const unsigned char bat4_icon16x16[];
 extern const unsigned char plug_icon16x16[];
 
-const char* ntpServer = "pool.ntp.org";
+const char* ntpServer = "pool.ntp.org"; // "time.nist.gov", "time.google.com"
 struct tm localTimeInfo;
+int MAX_TIME_RETRY = 30;
 int lastSec = 61;
 int lastMin = 61;
 char localTimeStr[30];
@@ -88,11 +89,13 @@ void startupLogo() {
     M5.Speaker.playMusic(m5stack_startup_music,25000);
     delay(1000);
     M5.Lcd.fillScreen(BLACK);
+    /*
     delay(800);
     for(int i=0; i>=100; i++) {
         M5.Lcd.setBrightness(i);
         delay(2);
     }
+    */
 }
 
 void printLocalTime() {
@@ -229,12 +232,10 @@ void wifi_connect() {
   M5.Lcd.println("WiFi connect start");
 
   // We start by connecting to a WiFi network
-  if(cfg.wlan1ssid[0]!=0)
-    WiFiMulti.addAP(cfg.wlan1ssid, cfg.wlan1pass);
-  if(cfg.wlan2ssid[0]!=0)
-    WiFiMulti.addAP(cfg.wlan2ssid, cfg.wlan2pass);
-  if(cfg.wlan3ssid[0]!=0)
-    WiFiMulti.addAP(cfg.wlan3ssid, cfg.wlan3pass);
+  for(int i=0; i<=9; i++) {
+    if((cfg.wlanssid[i][0]!=0) && (cfg.wlanpass[i][0]!=0))
+      WiFiMulti.addAP(cfg.wlanssid[i], cfg.wlanpass[i]);
+  }
 
   Serial.println();
   M5.Lcd.println("");
@@ -249,15 +250,27 @@ void wifi_connect() {
 
   Serial.println("");
   M5.Lcd.println("");
-  Serial.println("WiFi connected");
-  M5.Lcd.println("WiFi connected");
+  Serial.print("WiFi connected to SSID "); Serial.println(WiFi.SSID());
+  M5.Lcd.print("WiFi SSID "); M5.Lcd.println(WiFi.SSID());
   Serial.println("IP address: ");
   M5.Lcd.println("IP address: ");
   Serial.println(WiFi.localIP());
   M5.Lcd.println(WiFi.localIP());
 
-  configTime(cfg.timeZone, cfg.dst, ntpServer);
+  configTime(cfg.timeZone, cfg.dst, ntpServer, "time.nist.gov", "time.google.com");
   delay(1000);
+  Serial.print("Waiting for time.");
+  int i = 0;
+  while(!getLocalTime(&localTimeInfo)) {
+    Serial.print(".");
+    delay(1000);
+    i++;
+    if (i > MAX_TIME_RETRY) {
+      Serial.print("Gave up waiting for time to have a valid value.");
+      break;
+    }
+  }
+  Serial.println();
   printLocalTime();
 
   Serial.println("Connection done");
