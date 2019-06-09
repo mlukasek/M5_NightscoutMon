@@ -13,6 +13,12 @@ IoT Icon Set by Artur Funk (GPL v3)<br/>
 
 ### Revisions:
 
+#### *** 09 June 2019 ***
+More WiFi APs possible. Now you can create section [wlan0], [wlan1], up to [wlan9] in M5NS.INI.<br/>
+Added SD card info for better error handling.<br/>
+Added empty Nightscout check. No restarts repeat if Nightscout is empty.<br/>
+Wait for NTP time synchronization.<br/>
+
 #### *** 07 June 2019 ***
 Added check for http/https in nightscout URL in M5NS.INI<br/>
 Increased deafult warning volume to 50.<br/>
