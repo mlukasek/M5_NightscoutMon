@@ -6,6 +6,9 @@
 
 struct tConfig {
   char url[64];
+  // begin Peter Leimbach
+  char token[32]; // security token
+  // end Peter Leimbach
   char bootPic[64];
   char userName[32];
   int timeZone = 3600; // time zone offset in hours, must be corrected for internatinal use and DST
@@ -24,6 +27,8 @@ struct tConfig {
   float snd_warning_high = 14;
   float snd_alarm_high = 20;
   int snd_no_readings = 20;
+  int snd_warning_at_startup = 1;
+  int snd_alarm_at_startup = 1;
   char warning_music[64];
   int warning_volume = 30;
   char alarm_music[64];

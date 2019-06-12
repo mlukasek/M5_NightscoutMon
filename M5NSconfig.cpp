@@ -82,6 +82,19 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
       ;
   }
 
+  // begin Peter Leimbach
+  // Read the value of the token parameter from the config file
+  if (ini.getValue("config", "token", buffer, bufferLen)) {
+    Serial.print("section 'config' has an entry 'token' with value ");
+    Serial.println(buffer);
+    strlcpy(cfg->token, buffer, 32);
+  }
+  else {
+    // no token parameter set in INI file - no error just set cfg->token[0] to 0
+    cfg->token[0] = '\0';
+  }
+  // end Peter Leimbach
+
   if (ini.getValue("config", "bootpic", buffer, bufferLen)) {
     Serial.print("bootpic = ");
     Serial.println(buffer);
@@ -288,6 +301,26 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
     cfg->snd_no_readings = 20;
   }
 
+  if (ini.getValue("config", "snd_warning_at_startup", buffer, bufferLen)) {
+    Serial.print("snd_warning_at_startup = ");
+    cfg->snd_warning_at_startup = atoi(buffer);
+    Serial.println(cfg->snd_warning_at_startup);
+  }
+  else {
+    Serial.println("NO snd_warning_at_startup defined -> enable warning sound at startup");
+    cfg->snd_warning_at_startup = 1;
+  }
+  
+  if (ini.getValue("config", "snd_alarm_at_startup", buffer, bufferLen)) {
+    Serial.print("snd_alarm_at_startup = ");
+    cfg->snd_alarm_at_startup = atoi(buffer);
+    Serial.println(cfg->snd_alarm_at_startup);
+  }
+  else {
+    Serial.println("NO snd_alarm_at_startup defined -> enable alarm sound at startup");
+    cfg->snd_alarm_at_startup = 1;
+  }
+  
   if (ini.getValue("config", "warning_music", buffer, bufferLen)) {
     Serial.print("warning_music = ");
     Serial.println(buffer);
