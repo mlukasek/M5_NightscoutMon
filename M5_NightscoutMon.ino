@@ -72,6 +72,7 @@ float last10sgv[10];
 int wasError = 0;
 time_t lastAlarmTime = 0;
 time_t lastSnoozeTime = 0;
+static uint8_t music_data[25000]; // 5s in sample rate 5000 samp/s
 
 void startupLogo() {
     static uint8_t brightness, pre_brightness;
@@ -86,11 +87,18 @@ void startupLogo() {
     }
     M5.Lcd.setBrightness(100);
     M5.update();
-    M5.Speaker.playMusic(m5stack_startup_music,25000);
-    delay(1000);
-    M5.Lcd.fillScreen(BLACK);
+    // M5.Speaker.playMusic(m5stack_startup_music,25000);
     /*
-    delay(800);
+    int avg=0;
+    for(uint16_t i=0; i<40000; i++) {
+      avg+=m5stack_startup_music[i];
+      if(i%4 == 3) {
+        music_data[i/4]=avg/4;
+        avg=0;
+      }
+    }
+    play_music_data(10000, 100);
+
     for(int i=0; i>=100; i++) {
         M5.Lcd.setBrightness(i);
         delay(2);
@@ -108,8 +116,6 @@ void printLocalTime() {
   M5.Lcd.println(&localTimeInfo, "%A, %B %d %Y %H:%M:%S");
 }
 
-static uint8_t music_data[25000]; // 5s in sample rate 5000 samp/s
-
 void play_music_data(uint32_t data_length, uint8_t volume) {
   uint8_t vol;
   if( volume>100 )
@@ -117,11 +123,12 @@ void play_music_data(uint32_t data_length, uint8_t volume) {
   else
     vol=101-volume;
   if(vol != 101) {
+    ledcSetup(TONE_PIN_CHANNEL, 0, 13);
     ledcAttachPin(SPEAKER_PIN, TONE_PIN_CHANNEL);
     delay(10);
     for(int i=0; i<data_length; i++) {
       dacWrite(SPEAKER_PIN, music_data[i]/vol);
-      delayMicroseconds(200); // 1 000 000 microseconds / sample rate 5000
+      delayMicroseconds(194); // 200 = 1 000 000 microseconds / sample rate 5000
     }
     /* takes too long
     // slowly set DAC to zero from the last value
@@ -129,9 +136,15 @@ void play_music_data(uint32_t data_length, uint8_t volume) {
       dacWrite(SPEAKER_PIN, t);
       delay(2);
     } */
-    dacWrite(SPEAKER_PIN, 0);
-    delay(10);
-    ledcDetachPin(SPEAKER_PIN);
+    for(int t = music_data[data_length - 1] / vol; t >= 0; t--) {
+      dacWrite(SPEAKER_PIN, t);
+      delay(2);
+    }
+    // dacWrite(SPEAKER_PIN, 0);
+    // delay(10);
+    ledcAttachPin(SPEAKER_PIN, TONE_PIN_CHANNEL);
+    ledcWriteTone(TONE_PIN_CHANNEL, 0);
+    CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
   }
 }
 
@@ -156,9 +169,6 @@ void sndAlarm() {
         play_tone(660, 400, cfg.alarm_volume);
       delay(200);
     }
-    M5.Speaker.mute();
-    // M5.Speaker.playMusic(m5stack_startup_music, 25000);        
-    // M5.Speaker.update();
 }
 
 void sndWarning() {
@@ -169,7 +179,6 @@ void sndWarning() {
       play_tone(3000, 100, cfg.warning_volume);
     delay(300);
   }
-  M5.Speaker.mute();
 }
 
 int tmpvol = 1;
@@ -191,7 +200,13 @@ void buttons_test() {
   if(M5.BtnB.wasPressed()) {
       // M5.Lcd.printf("B");
       Serial.printf("B");
-      // play_tone(1000, 10, 1);
+      /*
+      play_tone(440, 100, 1);
+      delay(10);
+      play_tone(880, 100, 1);
+      delay(10);
+      play_tone(1760, 100, 1);
+      */
       struct tm timeinfo;
       if(!getLocalTime(&timeinfo)){
         lastSnoozeTime=0;
@@ -211,7 +226,7 @@ void buttons_test() {
   if(M5.BtnC.wasPressed()) {
       // M5.Lcd.printf("C");
       Serial.printf("C");
-      // play_tone(1000, 10, 1);
+      // play_tone(1000, 100, 1);
       M5.setWakeupButton(BUTTON_B_PIN);
       M5.powerOFF();
 
@@ -318,7 +333,7 @@ void setup() {
     Wire.begin();
     SD.begin();
     
-    M5.Speaker.mute();
+    // M5.Speaker.mute();
 
     // Lcd display
     M5.Lcd.setBrightness(100);
@@ -369,7 +384,9 @@ void setup() {
     // cfg.snd_alarm_high = 14;
     // cfg.alarm_volume = 0;
     // cfg.warning_volume = 0;
-    
+    // cfg.snd_warning_at_startup = 1;
+    // cfg.snd_alarm_at_startup = 1;
+  
     // cfg.alarm_repeat = 1;
     // cfg.snooze_timeout = 2;
     // cfg.brightness1 = 0;
@@ -379,8 +396,17 @@ void setup() {
     M5.Lcd.setBrightness(lcdBrightness);
     
     startupLogo();
-    //M5.Speaker.mute();
     yield();
+
+    if(cfg.snd_warning_at_startup) {
+      play_tone(3000, 100, cfg.warning_volume);
+      delay(500);
+    }
+    if(cfg.snd_alarm_at_startup) {
+      play_tone(660, 400, cfg.alarm_volume);
+      delay(500);
+    }
+    M5.Lcd.fillScreen(BLACK);
 
     M5.Lcd.setBrightness(lcdBrightness);
     wifi_connect();
@@ -390,7 +416,7 @@ void setup() {
     M5.Lcd.fillScreen(BLACK);
 
     // test file with time stamps
-    msCountLog = millis()-6000;
+    // msCountLog = millis()-6000;
      
     // update glycemia now
     msCount = millis()-16000;
@@ -512,6 +538,14 @@ void update_glycemia() {
       strcpy(NSurl,"");
     strcat(NSurl,cfg.url);
     strcat(NSurl,"/api/v1/entries.json");
+
+    // begin Peter Leimbach
+    if (strlen(cfg.token) > 0){
+      strcat(NSurl,"?token=");
+      strcat(NSurl,cfg.token);
+    }
+    // end Peter Leimbach
+    
     Serial.print("JSON query NSurl = \'");Serial.print(NSurl);Serial.print("\'\n");
     http.begin(NSurl); //HTTP
     
@@ -673,6 +707,15 @@ void update_glycemia() {
             strcpy(NSurl,"");
           strcat(NSurl,cfg.url);
           strcat(NSurl,"/api/v2/properties/iob,cob,delta,loop,basal");
+
+          // begin Peter Leimbach
+          if (strlen(cfg.token) > 0){
+            strcat(NSurl,"&token=");
+            strcat(NSurl,cfg.token);
+          }
+          // end Peter Leimbach
+          // more info at /api/v2/properties
+          
           Serial.print("Properties query NSurl = \'");Serial.print(NSurl);Serial.print("\'\n");
           http.begin(NSurl); //HTTP
           Serial.print("[HTTP] GET properties...\n");

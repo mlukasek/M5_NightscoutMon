@@ -13,6 +13,11 @@ IoT Icon Set by Artur Funk (GPL v3)<br/>
 
 ### Revisions:
 
+#### *** 12 June 2019 ***
+More silent speaker. Found the way how to switch off adc1 after sound play.<br/>
+Added token key in M5NS.INI to allow connection to secured Nightscout sites (thanks to Peter Leimbach).<br/>
+Added keys snd_warning_at_startup and snd_alarm_at_startup to play warning/alarm sound test during startup (1 = play, 0 = do not play).<br/>
+
 #### *** 09 June 2019 ***
 More WiFi APs possible. Now you can create section [wlan0], [wlan1], up to [wlan9] in M5NS.INI.<br/>
 Added SD card info for better error handling.<br/>
@@ -95,6 +100,8 @@ You have to update M5NS.INI file to your requirements. As a minimum you will nee
 
 nightscout = yoursite.herokuapp.com – use your Nightscout site URL
 
+token = security token - token for acces secured Nightscout site, if public Nightscout site is used, delete token line and do not use it
+
 bootpic = /M5_NightscoutMon.jpg – boot picture
 
 name = YourName – display name
@@ -136,6 +143,10 @@ snd_warning_high = 14.0 – softer high beep sound will beep every 5 mins when o
 snd_alarm_high = 20.0 – strong alarm will sound every 5 min when over this value
 
 snd_no_readings = 20 – softer high beep sound will beep every 5 mins when time in minutes when last data was read is over this value
+
+snd_warning_at_startup = 1 - play test warning sound with its volume during startup (1 = play, 0 =  do not play)
+
+snd_alarm_at_startup = 0  - play test alarm sound with its volume during startup (1 = play, 0 =  do not play)
 
 warning_volume = 20 - volume of warning sound in range 0-100 (0=no sound, 1=silent, 100=max volume)
 
