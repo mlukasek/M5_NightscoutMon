@@ -145,6 +145,36 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
     cfg->show_mgdl = 0;
   }
 
+  if (ini.getValue("config", "default_page", buffer, bufferLen)) {
+    Serial.print("default_page = ");
+    cfg->default_page = atoi(buffer);
+    Serial.println(cfg->default_page);
+  }
+  else {
+    Serial.println("NO default page defined -> page 0 is default");
+    cfg->default_page = 0;
+  }
+
+  if (ini.getValue("config", "restart_at_time", buffer, bufferLen)) {
+    Serial.print("restart_at_time = ");
+    strlcpy(cfg->restart_at_time, buffer, 10);
+    Serial.println(cfg->restart_at_time);
+  }
+  else {
+    Serial.println("NO restart_at_time defined -> no restarts");
+    strcpy(cfg->restart_at_time, "NORES");
+  }
+
+  if (ini.getValue("config", "restart_at_logged_errors", buffer, bufferLen)) {
+    Serial.print("restart_at_logged_errors = ");
+    cfg->restart_at_logged_errors = atoi(buffer);
+    Serial.println(cfg->restart_at_logged_errors);
+  }
+  else {
+    Serial.println("NO restart_at_logged_errors defined -> no restarts");
+    cfg->restart_at_logged_errors = 0;
+  }
+
   if (ini.getValue("config", "show_current_time", buffer, bufferLen)) {
     Serial.print("show_current_time = ");
     cfg->show_current_time = atoi(buffer);
@@ -317,8 +347,8 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
     Serial.println(cfg->snd_alarm_at_startup);
   }
   else {
-    Serial.println("NO snd_alarm_at_startup defined -> enable alarm sound at startup");
-    cfg->snd_alarm_at_startup = 1;
+    Serial.println("NO snd_alarm_at_startup defined -> disable alarm sound at startup");
+    cfg->snd_alarm_at_startup = 0;
   }
   
   if (ini.getValue("config", "warning_music", buffer, bufferLen)) {

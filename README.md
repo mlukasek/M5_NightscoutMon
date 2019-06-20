@@ -13,6 +13,23 @@ IoT Icon Set by Artur Funk (GPL v3)<br/>
 
 ### Revisions:
 
+#### *** 20 June 2019 ***
+Split of Nightscout read and display code (this should allow simpler user display code update and more different "faces" from users).<br/>
+New concept of display pages (different display designs, information, faces).<br/>
+Switch page by short press of the right button.<br/>
+Power OFF by the right button long press (4 seconds).<br/>
+Right button works also as power ON after power off by this button.<br/>
+New page added with large simple info (large BG, clock, delta + arrow and  few icons only).<br/>
+New M5NS.INI key "default_page" added (default 0).<br/>
+Smaller WiFi symbol (now as blue WiFi icon in 2 sizes for the 2 different Nightscout queries).<br/>
+Buttons do not work during Nightscout communication (blue WiFi symbol displayed).<br/>
+Bigger delta value even with COB+IOB values displayed (COB: and IOB: shortened to C: and I: ).<br/>
+Errors now logged silently (log can be displayed as the last page).<br/>
+Warning triangle icon added to show that errors are in the log (up to 5 errors - grey, more - yellow). Only last 10 errors can be displayed.<br/>
+New M5NS.INI key "restart_at_time" added (default no restart) to restart M5Stack regularly at predefined time to reconnect to WiFi access point and clear possible other errors. No startup sound during soft restart, snooze state reapplied, errors cleared.<br/>
+New M5NS.INI key "restart_at_logged_errors" added (default no restart) to restart M5Stack after predefined amount of errors logged in error log to reconnect to WiFi access point and clear possible other errors. No startup sound during soft restart, snooze state reapplied, errors cleared.<br/>
+Right button power icon changed to door icon to better express the page change/power off functions.<br/>
+
 #### *** 12 June 2019 ***
 More silent speaker. Found the way how to switch off adc1 after sound play.<br/>
 Added token key in M5NS.INI to allow connection to secured Nightscout sites (thanks to Peter Leimbach).<br/>
