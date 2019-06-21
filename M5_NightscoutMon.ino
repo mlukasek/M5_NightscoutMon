@@ -122,6 +122,20 @@ void setPageIconPos(int page) {
   }
 }
 
+void addErrorLog(int code){
+  if(err_log_ptr>9) {
+    for(int i=0; i<9; i++) {
+      err_log[i].err_time=err_log[i+1].err_time;
+      err_log[i].err_code=err_log[i+1].err_code;
+    }
+    err_log_ptr=9;
+  }
+  getLocalTime(&err_log[err_log_ptr].err_time);
+  err_log[err_log_ptr].err_code=code;
+  err_log_ptr++;
+  err_log_count++;
+}
+
 void startupLogo() {
     static uint8_t brightness, pre_brightness;
     M5.Lcd.setBrightness(0);
@@ -229,7 +243,19 @@ void sndWarning() {
   }
 }
 
-int tmpvol = 1;
+void drawIcon(int16_t x, int16_t y, const uint8_t *bitmap, uint16_t color) {
+  int16_t w = 16;
+  int16_t h = 16; 
+  int32_t i, j, byteWidth = (w + 7) / 8;
+  for (j = 0; j < h; j++) {
+    for (i = 0; i < w; i++) {
+      if (pgm_read_byte(bitmap + j * byteWidth + i / 8) & (128 >> (i & 7))) {
+        M5.Lcd.drawPixel(x + i, y + j, color);
+      }
+    }
+  }
+}
+
 void buttons_test() {
   if(M5.BtnA.wasPressed()) {
     // M5.Lcd.printf("A");
@@ -244,7 +270,7 @@ void buttons_test() {
       else
         lcdBrightness = cfg.brightness1;
     M5.Lcd.setBrightness(lcdBrightness);
-    addErrorLog(500);
+    // addErrorLog(500);
   }
   if(M5.BtnB.wasPressed()) {
     // M5.Lcd.printf("B");
@@ -646,33 +672,6 @@ void drawMiniGraph(struct NSinfo *ns){
   Serial.println();
 }
 
-void drawIcon(int16_t x, int16_t y, const uint8_t *bitmap, uint16_t color) {
-  int16_t w = 16;
-  int16_t h = 16; 
-  int32_t i, j, byteWidth = (w + 7) / 8;
-  for (j = 0; j < h; j++) {
-    for (i = 0; i < w; i++) {
-      if (pgm_read_byte(bitmap + j * byteWidth + i / 8) & (128 >> (i & 7))) {
-        M5.Lcd.drawPixel(x + i, y + j, color);
-      }
-    }
-  }
-}
-
-void addErrorLog(int code){
-  if(err_log_ptr>9) {
-    for(int i=0; i<9; i++) {
-      err_log[i].err_time=err_log[i+1].err_time;
-      err_log[i].err_code=err_log[i+1].err_code;
-    }
-    err_log_ptr=9;
-  }
-  getLocalTime(&err_log[err_log_ptr].err_time);
-  err_log[err_log_ptr].err_code=code;
-  err_log_ptr++;
-  err_log_count++;
-}
-
 int readNightscout(char *url, char *token, struct NSinfo *ns) {
   HTTPClient http;
   char NSurl[128];
@@ -719,10 +718,11 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
         JsonArray arr=JSONdoc.as<JsonArray>();
         Serial.print("JSON array size = "); Serial.println(arr.size());
         if (JSONerr || arr.size()==0) {   //Check for errors in parsing
-          if(JSONerr)
+          if(JSONerr) {
             err=1001; // "JSON parsing failed"
-          else
+          } else {
             err=1002; // "No data from Nightscout"
+          }
           addErrorLog(err);
         } else {
           JsonObject obj; 
