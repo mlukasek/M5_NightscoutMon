@@ -201,6 +201,25 @@ The middle button snoozes M5Stack for defined time to prevedn alarm or warning s
 Shor press of the right button switches display pages. Long press (4 seconds) puts M5Stack to the sleep as it is a little bit tricky to double click standard red power button.  
 <br/>
 
+### Battery
+
+Battery icon feature works only on newer M5Stack units. Here are my battery mesurements and battery icon statuses:
+
+**internal battery total 43 minutes**  
+plug = full charge or plugged in (1 min)  
+gray full battery (13 min)  
+white 2/3 battery (20 min)  
+yellow 1/3 battery (8 min)  
+red empty battery (1 min)  
+
+**extended battery total 7:49 hrs:min**  
+plug = full charge or plugged in (53 min)  
+gray full battery (2 hrs 59 min)  
+white 2/3 battery (1 hr 55 min)  
+yellow 1/3 battery (1 hr 48 min)  
+red empty battery (14 min)  
+<br/>
+
 ### Donations
 
 If you find my project useful, I will appreciate if you donate me few bucks for further development or buy me a glass of beer or wine :wine_glass:
