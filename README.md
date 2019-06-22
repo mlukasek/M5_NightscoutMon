@@ -51,13 +51,13 @@ Added empty Nightscout check. No restarts repeat if Nightscout is empty.
 Wait for NTP time synchronization.  
 
 #### *** 07 June 2019 ***
-Added check for http/https in nightscout URL in M5NS.INI  
-Increased deafult warning volume to 50.  
+Added check for http/https in Nightscout URL in M5NS.INI  
+Increased default warning volume to 50.  
 Added last 2 weeks revisions to README.  
 
 #### *** 02 June 2019 ***
 Large DELTA value displayed if no COB/IOB on display.  
-Sample M5NS.INI dile now has default values in mg/dL.  
+Sample M5NS.INI file now has default values in mg/dL.  
 Corrected volume bug, it did not work at all. Now accepts values from M5NI.INI correctly.  
 
 #### *** 30 May 2019 ***
@@ -75,8 +75,8 @@ Small changes to silence background hiss as much as possible.
 #### *** 12 May 2019 ***
 BG/calibration/unknown entries are now filtered.  
 Missed reading sound alert added. You can adjust it by snd_no_readings key in M5NS.INI (default 20 minutes).  
-Added possibility to change warning sound volume byt warning_volume key in M5NS.INI (0-100, default=20, 0=silent).  
-Added possibility to change alarm sound volume byt alarm_volume key in M5NS.INI (0-100, default=100, 0=silent).  
+Added possibility to change warning sound volume by warning_volume key in M5NS.INI (0-100, default=20, 0=silent).  
+Added possibility to change alarm sound volume by alarm_volume key in M5NS.INI (0-100, default=100, 0=silent).  
 Reorganized left upper part of display to get space for COB and IOB display.  
 Added show_COB_IOB key to M5NS.INI. If show_COB_IOB = 1 then carbs and insulin on board are displayed. Set 1 (ON) by default.  
 COB and IOB are grey if 0 and white if any carbs or IU on board.  
@@ -100,7 +100,7 @@ Updated device detection for xDrip.
 Only one query to Nightscout for minigraph as well as the last value. Faster code execution, less traffic.  
 
 #### *** 20 Apr 2019 - 2 ***
-Added the main source code M5_NightscoutMon.ino to GitHub. Sorry I forgot in initital commit ;-)  
+Added the main source code M5_NightscoutMon.ino to GitHub. Sorry I forgot in initial commit ;-)  
 
 #### *** 20 Apr 2019 ***
 Initial GitHub commit  
@@ -237,4 +237,4 @@ If you find my project useful, I will appreciate if you donate me few bucks for 
 
 https://paypal.me/8bity
 
-I also collect and repair vintage 8-bit computers [www.8bity.cz], so if you have some really old computer, I could give it a new home and care :smile:.
+I also collect and repair vintage [8-bit computers](http://www.8bity.cz/), so if you have some really old computer, I could give it a new home and care :smile:.
