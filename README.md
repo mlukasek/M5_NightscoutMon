@@ -13,7 +13,7 @@
 [Latest software revisions](#revisions)  
 [What is this good for?](#m5stack-nightscout-monitor-1)  
 [Syntax of M5NS.INI configuration file](#the-syntax-of-m5nsini-configuration-file)  
-[Dipsplay](#display)  
+[Display](#display)  
 [Buttons](#buttons)  
 [Donations - support the project](#donations) :+1:
 
