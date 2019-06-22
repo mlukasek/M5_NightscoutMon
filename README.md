@@ -5,8 +5,7 @@
 ###### This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 ###### This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 ###### You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>. 
-###### This software uses some 3rd party libraries:<br/>IniFile by Steve Marple (GNU LGPL v2.1)<br/>ArduinoJson by Benoit BLANCHON (MIT License)<br/>IoT Icon Set by Artur Funk (GPL v3)  
-###### Additions to the code:<br/>Peter Leimbach (Nightscout token)
+###### This software uses some 3rd party libraries:<br/>IniFile by Steve Marple (GNU LGPL v2.1)<br/>ArduinoJson by Benoit BLANCHON (MIT License)<br/>IoT Icon Set by Artur Funk (GPL v3)<br/>Additions to the code:<br/>Peter Leimbach (Nightscout token)
 
 ![M5Stack Nightscout monitor page 0](https://raw.githubusercontent.com/mlukasek/M5_NightscoutMon/master/images/M5NS_mon_2019-06-20_page1.jpg)
 
@@ -17,7 +16,7 @@
 [Display](#display)  
 [Buttons](#buttons)  
 [Battery](#battery)
-[Installation and support](#installation-and-support)
+[Installation and support](#installation-and-support)  
 [Donations - support the project](#donations) :+1:
 
 
