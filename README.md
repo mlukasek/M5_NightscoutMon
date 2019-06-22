@@ -126,7 +126,7 @@ restart_at_time = HH:MM _– time in HH:MM format when the device will restart_
 restart_at_logged_errors = 0 _- restart device after particular number of errors in the log (0 = do not restart)_  
 show_COB_IOB = 1 _– show COB and IOB, values are grayed out if COB/IOB value is 0_  
 snooze_timeout = 30 _- sound snooze time in minutes after press of the middle button_  
-alarm_repeat = 5 _- sound repeat interval in minutes (alarm repeats only if alarm/warnign conditions are met)_
+alarm_repeat = 5 _- sound repeat interval in minutes (alarm repeats only if alarm/warnign conditions are met)_  
 info_line = 1 _- 0 = sensor info, 1 = button function icons, 2 = loop info + basal_  
 brightness1 = 50 _– the first (default) brightness value_  
 brightness2 = 100 _– the second brightness value_  
@@ -147,7 +147,6 @@ snd_warning_at_startup = 1 _- play test warning sound with its volume during sta
 snd_alarm_at_startup = 0 _- play test alarm sound with its volume during startup (1 = play, 0 =  do not play)_  
 warning_volume = 20 _- volume of warning sound in range 0-100 (0=no sound, 1=silent, 100=max volume)_  
 alarm_volume = 100 _- volume of alarm sound in range 0-100 (0=no sound, 1=silent, 100=max volume)
-
 
 [wlan1] _– you can connect up to 9 WiFi access point, no need to setup all, one is enough_  
 ssid = ssid1  
