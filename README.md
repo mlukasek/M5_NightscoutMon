@@ -233,8 +233,8 @@ There is a Facebook grooup [M5STACK NIGHTSCOUT](https://www.facebook.com/groups/
 
 ### Donations
 
-If you find my project useful, I will appreciate if you donate me few bucks for further development or buy me a glass of beer or wine :wine_glass:
+If you find my project useful, I will appreciate if you donate me few bucks for further development or buy me a glass of beer or wine :wine_glass:.
 
 https://paypal.me/8bity
 
-I also collect and repair vintage 8-bit computers, so if you have some really old computer, I could give it a new home and care :smile:.
+I also collect and repair vintage 8-bit computers [www.8bity.cz], so if you have some really old computer, I could give it a new home and care :smile:.
