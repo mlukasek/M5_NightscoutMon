@@ -112,13 +112,13 @@ M5Stack is small development kit based on ESP32. It is in a nice plastic box, eq
 
 We use Abbott Freestyle Libre, together with MiaoMiao transmitter. It transmits the glycemia values to her mobile phone (we used to use Spike on iPhone, but you can also use Tomato on iPhone or xDrip, Glimp and more on Android). The daughter’s mobile phone then sends data to the Nightscout, where we (parents) watch it using the web application or a mobile phone (Spike, Nightscout, …). We use the small M5Stack monitor with my software to monitor the glycemia during nights in our sleeping room, my wife has one in the kitchen and we take one always on our trips. It has different backlight intensity for night usage and alarms for hypo/hyper glycemia situations.
 
-Some people were asking for the software. I am not a professional programmer, I am a hardware engineer, but I work more with tables, numbers and e-mails recent years, so I was a little bit shy about the code. As there is guite a lot of people insterested in something that shows current values and makes alarms during nights, I decided to release the code as an Open Source.
+Some people were asking for the software. I am not a professional programmer, I am a hardware engineer, but I work more with tables, numbers and e-mails recent years, so I was a little bit shy about the code. As there is quite a lot of people interested in something that shows current values and makes alarms during nights, I decided to release the code as an Open Source.
 
 If you know what to do with it, just download the code, modify it any way it suits you and use it in M5Stack. If you do not know how to handle the source code, just find someone who can. It is easy, just open it in Arduino IDE, download M5Stack libraries, Arduino JSON library and build it to you M5Stack. M5Stack is in more versions, the Core is just enough. Current price on Aliexpress is about 27.95 USD https://www.aliexpress.com/item/M5Stack-Official-Stock-Offer-ESP32-Basic-Core-Development-Kit-Extensible-Micro-Control-Wifi-BLE-IoT-Prototype/32837164440.html
 
-**You will need an microSD card.** It has to be formatted to FAT32 format and you have to put at least M5NS.INI file with configuration to the root of the microSD card. It is a good idea to put M5_NightscoutMon.jpg files to the SD card root too. You can replace M5_NightscoutMon.jpg with any 320x240 pixels picture if you want to customize your experience.
+**You will need a microSD card.** It has to be formatted to FAT32 format and you have to put at least M5NS.INI file with configuration to the root of the microSD card. It is a good idea to put M5_NightscoutMon.jpg files to the SD card root too. You can replace M5_NightscoutMon.jpg with any 320x240 pixels picture if you want to customize your experience.
 
-**You have to update M5NS.INI file to your requirements. As a minimum reuirement you will need to update your Nightscout URL and you’re your WiFi SSID and password.**<br/>
+**You have to update M5NS.INI file to your requirements. As a minimum requirement you will need to update your Nightscout URL and your WiFi SSID and password.**<br/>
 <br/>
 
 ### The syntax of M5NS.INI configuration file
@@ -126,19 +126,19 @@ If you know what to do with it, just download the code, modify it any way it sui
 [config]
 
 nightscout = yoursite.herokuapp.com _– use your Nightscout site URL_  
-token = security token _- token for acces secured Nightscout site, if public Nightscout site is used, delete token line and do not use it_  
+token = security token _- token for access secured Nightscout site, if public Nightscout site is used, delete token line and do not use it_  
 bootpic = /M5_NightscoutMon.jpg _– boot picture_  
 name = YourName _– display name_  
 time_zone = 3600 _– the time zone where you live in seconds (3600 is GMT+1, Prague)_  
 dst = 3600 _– your daylight saving time offset (3600s is +1 hour)_  
 show_mgdl = 0 _– use 0 to display values in mmol/L or 1 for mg/dl_  
 default_page = 0 _– page number displayed after startup_  
-show_current_time = 1 _– show currnet time instead of last valid data time_  
+show_current_time = 1 _– show current time instead of last valid data time_  
 restart_at_time = HH:MM _– time in HH:MM format when the device will restart_  
 restart_at_logged_errors = 0 _- restart device after particular number of errors in the log (0 = do not restart)_  
 show_COB_IOB = 1 _– show COB and IOB, values are grayed out if COB/IOB value is 0_  
 snooze_timeout = 30 _- sound snooze time in minutes after press of the middle button_  
-alarm_repeat = 5 _- sound repeat interval in minutes (alarm repeats only if alarm/warnign conditions are met)_  
+alarm_repeat = 5 _- sound repeat interval in minutes (alarm repeats only if alarm/warning conditions are met)_  
 info_line = 1 _- 0 = sensor info, 1 = button function icons, 2 = loop info + basal_  
 brightness1 = 50 _– the first (default) brightness value_  
 brightness2 = 100 _– the second brightness value_  
@@ -177,11 +177,11 @@ pass = pass2
 There are currently 3 display pages, that can be changed by a short press of the right button. The button does not work when the device communicated with Nightscout (small blue WiFi icon is displayed).
 
 **Page 0 - default page**  
-What you see on the display is a matter of your M5NS.INI and Nightscout configuration. By default you will see current time, date and user name from config file in upper left corner. You will see IOB (Insulin On Board) an COB (Carbs On Board) values bellow the name. Right from the IOB/COB valuew is current BG delta (difference from the last reading, trend where the BG is going). Box with time difference from last valid data from Nighscout is displayed in upper tight corner. Delay of 5 mins is OK and the box has grey color, 5-15 mins is warning and the box will have white background, more then 15 mins without a valid data is error and the box background will be red. There is also possibility to set sound warning on data delay in M5NS.INI.
+What you see on the display is a matter of your M5NS.INI and Nightscout configuration. By default you will see current time, date and user name from config file in upper left corner. You will see IOB (Insulin On Board) an COB (Carbs On Board) values bellow the name. Right from the IOB/COB value is current BG delta (difference from the last reading, trend where the BG is going). Box with time difference from last valid data from Nighscout is displayed in upper right corner. Delay of 5 mins is OK and the box has grey color, 5-15 mins is warning and the box will have white background, more than 15 mins without a valid data is error and the box background will be red. There is also possibility to set sound warning on data delay in M5NS.INI.
 
-Glycemia (BG) value and its direction is bellow the basic information. There is a mini graph form 10 last values right of the glycemia value. The minigraph shows only values in range 3-12 mmol/L (48-216 mg/dL) and values bellow/above this will be displayed on minigraph as the min/max values.
+Glycemia (BG) value and its direction are bellow the basic information. There is a mini graph created from 10 last BG values right of the glycemia value. The mini graph shows only values in range 3-12 mmol/L (48-216 mg/dL) and values bellow/above this will be displayed on mini graph as the min/max values.
 
-There are also icons in upper side of display. Plug or battery icon displays battery status (on newer devices only). Red clock indicated silent "snoze" mode activated. Grey or yellow (more than 5 errors) shows that there are errors in error log (last page). Blue WiFi icon in 2 sizes (2 different queries) indicated that MStack is downloading data from Nightscout.
+There are also icons in upper side of display. Plug or battery icon displays battery status (on newer devices only). Red clock indicated silent "snooze" mode activated. Grey or yellow (more than 5 errors) shows that there are errors in error log (last page). Blue WiFi icon in 2 sizes (2 different queries) indicated that MStack is downloading data from Nightscout.
 
 Last line contains icons for buttons or data source or Loop information (depending on M5NS.INI key "info_line").  
 
@@ -191,44 +191,44 @@ Long distance visible page with large BG value and larger clock. Top line contai
 Bottom info line is the same as on page 0.
 
 **Error Log page**
-Displays last 10 record errors and total number of errors record since last restart. Occassional communication errors, such as "timeout" or "connection refused" are normal and happen sometimes due to WiFi and internet connection and Nightscout site status. If you have a lot of errors every few minutes, consider to move your M5Stack to a different place or extend WiFi signal.  
+Displays last 10 record errors and total number of errors record since last restart. Occasional communication errors, such as "timeout" or "connection refused" are normal and happen sometimes due to WiFi and internet connection and Nightscout site status. If you have a lot of errors every few minutes, consider to move your M5Stack to a different place or extend WiFi signal.  
 <br/>
 
 ### Buttons
 
 The left button changes the backlight in the 3 steps defined in M5NS.INI file.
 
-The middle button snoozes M5Stack for defined time to prevedn alarm or warning sound. You can "snooze" it even before the alarm is activated. Snooze active is indicated by red clock icon in status icon area.
+The middle button snoozes M5Stack for defined time to prevent alarm or warning sound. You can "snooze" it even before the alarm is activated. Snooze active is indicated by red clock icon in status icon area.
 
 Shor press of the right button switches display pages. Long press (4 seconds) puts M5Stack to the sleep as it is a little bit tricky to double click standard red power button.  
 <br/>
 
 ### Battery
 
-Battery icon feature works only on newer M5Stack units. Here are my battery mesurements and battery icon statuses:
+Battery icon feature works only on newer M5Stack units. Here are my battery measurements and battery icon statuses:
 
 **internal battery total 43 minutes**  
-plug = full charge or plugged in (1 min)  
-gray full battery (13 min)  
-white 2/3 battery (20 min)  
-yellow 1/3 battery (8 min)  
-red empty battery (1 min)  
+plug icon = full charge or plugged in ... 1 min  
+gray full battery icon ... 13 min  
+white 2/3 battery icon ... 20 min  
+yellow 1/3 battery icon ... 8 min  
+red empty battery icon ... 1 min  
 
 **extended battery total 7:49 hrs:min**  
-plug = full charge or plugged in (53 min)  
-gray full battery (2 hrs 59 min)  
-white 2/3 battery (1 hr 55 min)  
-yellow 1/3 battery (1 hr 48 min)  
-red empty battery (14 min)  
+plug icon = full charge or plugged in ... 53 min  
+gray full battery icon ... 2 hrs 59 min  
+white 2/3 battery icon ... 1 hr 55 min  
+yellow 1/3 battery icon ... 1 hr 48 min  
+red empty battery icon ... 14 min  
 <br/>
 
 ### Installation and support
 
-Installation can be done by download or git clone the code to the Arduino IDE evnironment. You have to download ESP32 board and M5Stack libraries, Arduino JSON library and build it to you M5Stack.
+Installation can be done by download or git clone the code to the Arduino IDE environment. You have to download ESP32 board and M5Stack libraries, Arduino JSON library and build it to you M5Stack.
 
 Another easier possibility is to download latest [M5Burner release](https://github.com/mlukasek/M5_NightscoutMon/releases). It is Windows executable with binary M5Stack firmware included. Just unzip it, start the M5Burner.exe, choose COM port where your M5Stack is connected and burn the firmware. Simple. Remember to add you microSD card with M5NS.INI configuration file.
 
-There is a Facebook grooup [M5STACK NIGHTSCOUT](https://www.facebook.com/groups/606295776549008/) where you can get support and installation guides in several languages prepared by members of the M5Stack Nightscout community. Please check the [Files section](https://www.facebook.com/groups/606295776549008/files/) first and search the group before asking questions. A lot of questions has been answered already. Big thanks to Patrick Sonnerat, Didier Frétigné, Peter Leimbach and more...  
+There is a Facebook group [M5STACK NIGHTSCOUT](https://www.facebook.com/groups/606295776549008/) where you can get support and installation guides in several languages prepared by members of the M5Stack Nightscout community. Please check the [Files section](https://www.facebook.com/groups/606295776549008/files/) first and search the group before asking questions. A lot of questions have been answered already. Big thanks to Patrick Sonnerat, Didier Frétigné, Peter Leimbach and more...  
 <br/>
 
 ### Donations
