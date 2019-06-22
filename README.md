@@ -1,14 +1,12 @@
-﻿# M5_NightscoutMon
+# M5_NightscoutMon
 ## M5Stack Nightscout monitor
 
-###### M5Stack Nightscout monitor<br/>Copyright (C) 2018, 2019 Martin Lukasek <martin@lukasek.cz>
+##### M5Stack Nightscout monitor<br/>Copyright (C) 2018, 2019 Martin Lukasek <martin@lukasek.cz>
 ###### This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 ###### This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 ###### You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>. 
-###### This software uses some 3rd party libraries:<br/>
-IniFile by Steve Marple <stevemarple@googlemail.com> (GNU LGPL v2.1)<br/>
-ArduinoJson by Benoit BLANCHON (MIT License)<br/>
-IoT Icon Set by Artur Funk (GPL v3)<br/>
+###### This software uses some 3rd party libraries:<br/>IniFile by Steve Marple <stevemarple@googlemail.com> (GNU LGPL v2.1)<br/>ArduinoJson by Benoit BLANCHON (MIT License)<br/>IoT Icon Set by Artur Funk (GPL v3)  
+###### Additions to the code:<br/>Peter Leimbach (Nightscout token)
 <br/>
 
 ### Revisions:
@@ -115,94 +113,52 @@ You have to update M5NS.INI file to your requirements. As a minimum you will nee
 
 [config]
 
-nightscout = yoursite.herokuapp.com – use your Nightscout site URL
+nightscout = yoursite.herokuapp.com _– use your Nightscout site URL_  
+token = security token _- token for acces secured Nightscout site, if public Nightscout site is used, delete token line and do not use it_  
+bootpic = /M5_NightscoutMon.jpg _– boot picture_  
+name = YourName _– display name_  
+time_zone = 3600 _– the time zone where you live in seconds (3600 is GMT+1, Prague)_  
+dst = 3600 _– your daylight saving time offset (3600s is +1 hour)_  
+show_mgdl = 0 _– use 0 to display values in mmol/L or 1 for mg/dl_  
+default_page = 0 _– page number displayed after startup_  
+show_current_time = 1 _– show currnet time instead of last valid data time_  
+restart_at_time = HH:MM _– time in HH:MM format when the device will restart_  
+restart_at_logged_errors = 0 _- restart device after particular number of errors in the log (0 = do not restart)_  
+show_COB_IOB = 1 _– show COB and IOB, values are grayed out if COB/IOB value is 0_  
+snooze_timeout = 30 _- sound snooze time in minutes after press of the middle button_  
+alarm_repeat = 5 _- sound repeat interval in minutes (alarm repeats only if alarm/warnign conditions are met)_
+info_line = 1 _- 0 = sensor info, 1 = button function icons, 2 = loop info + basal_  
+brightness1 = 50 _– the first (default) brightness value_  
+brightness2 = 100 _– the second brightness value_  
+brightness3 = 10 _– the third brightness value_
 
-token = security token - token for acces secured Nightscout site, if public Nightscout site is used, delete token line and do not use it
+- following values are in mmol/L or mg/dL depending on the previous "show_mgdl" key value
 
-bootpic = /M5_NightscoutMon.jpg – boot picture
-
-name = YourName – display name
-
-time_zone = 3600 – the time zone where you live in seconds (3600 is GMT+1, Prague)
-
-dst = 3600 – your daylight saving time offset (3600s is +1 hour)
-
-show_mgdl = 0 – use 0 to display values in mmol/L or 1 for mg/dl
-
-show_current_time = 1 - show currnet time instead of last valid data time
-
-show_COB_IOB = 1 - show COB and IOB, values are grayed out if COB/IOB value is 0
-
-
-
-snooze_timeout = 30 - sound snooze time in minutes after press of the middle button
-
-alarm_repeat = 5 - sound repeat interval in minutes (alarm repeats only if alarm/warnign conditions are met)
-
-
-
-- following values are in mmol/L or mg/dl depending on the previous "show_mgdl" key value
-
-yellow_low = 4.5 – glycemia values under this value will be displayed in yellow color
-
-yellow_high = 9 – glycemia values over this value will be displayed in yellow color
-
-red_low = 3.9 – glycemia values under this value will be displayed in red color
-
-red_high = 11 – glycemia values over this value will be displayed in red color
-
-snd_warning = 3.7 – softer high beep sound will beep every 5 mins when under this value
-
-snd_alarm = 3.0 – strong alarm will sound every 5 min when under this value
-
-snd_warning_high = 14.0 – softer high beep sound will beep every 5 mins when over this value
-
-snd_alarm_high = 20.0 – strong alarm will sound every 5 min when over this value
-
-snd_no_readings = 20 – softer high beep sound will beep every 5 mins when time in minutes when last data was read is over this value
-
-snd_warning_at_startup = 1 - play test warning sound with its volume during startup (1 = play, 0 =  do not play)
-
-snd_alarm_at_startup = 0  - play test alarm sound with its volume during startup (1 = play, 0 =  do not play)
-
-warning_volume = 20 - volume of warning sound in range 0-100 (0=no sound, 1=silent, 100=max volume)
-
-alarm_volume = 100 - volume of alarm sound in range 0-100 (0=no sound, 1=silent, 100=max volume)
+yellow_low = 4.5 _– glycemia values under this value will be displayed in yellow color_  
+yellow_high = 9 _– glycemia values over this value will be displayed in yellow color_  
+red_low = 3.9 _– glycemia values under this value will be displayed in red color_  
+red_high = 11 _– glycemia values over this value will be displayed in red color_  
+snd_warning = 3.7 _– softer high beep sound will beep every 5 mins when under this value_  
+snd_alarm = 3.0 _– strong alarm will sound every 5 min when under this value_  
+snd_warning_high = 14.0 _– softer high beep sound will beep every 5 mins when over this value_  
+snd_alarm_high = 20.0 _– strong alarm will sound every 5 min when over this value_  
+snd_no_readings = 20 _– softer high beep sound will beep every 5 mins when time in minutes when last data was read is over this value_  
+snd_warning_at_startup = 1 _- play test warning sound with its volume during startup (1 = play, 0 =  do not play)_  
+snd_alarm_at_startup = 0 _- play test alarm sound with its volume during startup (1 = play, 0 =  do not play)_  
+warning_volume = 20 _- volume of warning sound in range 0-100 (0=no sound, 1=silent, 100=max volume)_  
+alarm_volume = 100 _- volume of alarm sound in range 0-100 (0=no sound, 1=silent, 100=max volume)
 
 
-
-info_line = 1 - 0 = sensor info, 1 = button function icons, 2 = loop info + basal
-
-
-
-brightness1 = 50 – the first (default) brightness value
-
-brightness2 = 100 – the second brightness value
-
-brightness3 = 10 – the third brightness value
-
-
-
-[wlan1] – you can connect up to 3 WiFi access point, no need to setup all, one is enough
-
-ssid = ssid1
-
+[wlan1] _– you can connect up to 9 WiFi access point, no need to setup all, one is enough_  
+ssid = ssid1  
 pass = pass1
 
-
-[wlan2]
-
-ssid = ssid2
-
+[wlan2]  
+ssid = ssid2  
 pass = pass2
 
-
-[wlan3]
-
-ssid = ssid3
-
-pass = pass3<br/>
-<br/>
+[wlan3]  
+...
 
 ### Display
 
