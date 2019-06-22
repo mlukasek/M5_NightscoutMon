@@ -7,7 +7,16 @@
 ###### You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>. 
 ###### This software uses some 3rd party libraries:<br/>IniFile by Steve Marple <stevemarple@googlemail.com> (GNU LGPL v2.1)<br/>ArduinoJson by Benoit BLANCHON (MIT License)<br/>IoT Icon Set by Artur Funk (GPL v3)  
 ###### Additions to the code:<br/>Peter Leimbach (Nightscout token)
-<br/>
+
+
+### Contents
+[Latest software revisions](#revisions)  
+[What is this good for?](#m5stack-nightscout-monitor-1)  
+[Syntax of M5NS.INI configuration file](#the-syntax-of-m5nsini-configuration-file)  
+[Dipsplay](#display)  
+[Buttons](#buttons)  
+[Donations - support the project](#donations) :+1:
+
 
 ### Revisions:
 
@@ -92,7 +101,8 @@ Only one query to Nightscout for minigraph as well as the last value. Faster cod
 Added the main source code M5_NightscoutMon.ino to GitHub. Sorry I forgot in initital commit ;-)<br/>
 
 #### *** 20 Apr 2019 ***
-Initial GitHub commit<br/><br/>
+Initial GitHub commit<br/>
+<br/>
 
 ### M5Stack Nightscout Monitor
 
@@ -104,9 +114,10 @@ Some people were asking for the software. I am not a professional programmer, I 
 
 If you know what to do with it, just download the code, modify it any way it suits you and use it in M5Stack. If you do not know how to handle the source code, just find someone who can. It is easy, just open it in Arduino IDE, download M5Stack libraries, Arduino JSON library and build it to you M5Stack. M5Stack is in more versions, the Core is just enough. Current price on Aliexpress is about 27.95 USD https://www.aliexpress.com/item/M5Stack-Official-Stock-Offer-ESP32-Basic-Core-Development-Kit-Extensible-Micro-Control-Wifi-BLE-IoT-Prototype/32837164440.html
 
-**You will need an microSD card.** It has to be formatted to FAT32 format and you have to put at least M5NS.INI file with configuration to the root of the microSD card. It is a good idea to put M5_NightscoutMon.jpg files to the SD card root too. You can replace M5_NightscoutMon.jpg with any picture you want to customize your experience.
+**You will need an microSD card.** It has to be formatted to FAT32 format and you have to put at least M5NS.INI file with configuration to the root of the microSD card. It is a good idea to put M5_NightscoutMon.jpg files to the SD card root too. You can replace M5_NightscoutMon.jpg with any 320x240 pixels picture if you want to customize your experience.
 
-**You have to update M5NS.INI file to your requirements. As a minimum reuirement you will need to update your Nightscout URL and you’re your WiFi SSID and password.**
+**You have to update M5NS.INI file to your requirements. As a minimum reuirement you will need to update your Nightscout URL and you’re your WiFi SSID and password.**<br/>
+<br/>
 
 ### The syntax of M5NS.INI configuration file
 
@@ -156,15 +167,19 @@ ssid = ssid2
 pass = pass2
 
 [wlan3]  
-...
+...<br/>
+<br/>
 
 ### Display
 
-You will see “Nightscout” and user name from config file in upper left corner. You will see date when last valid date were uploaded and read from Nightscout bellow the name. Right from this is box with time difference from last valid data. 5 mins is OK, 5-15 mins is warning and the box will have white background, more then 15 mins is error and the box background will be red.
+There are currently 3 display pages, that can be changed by a short press of the right button. The button does not work when the device communicated with Nightscout (small blue WiFi icon is displayed).
 
-Glycemia value and its direction is bellow the date. There is a mini graph form 10 last values right of the glycemia value.
+**Page 0 - default page**  
+What you see on the display is a matter of your M5NS.INI and Nightscout configuration. By default you will see current time, date and user name from config file in upper left corner. You will see IOB (Insulin On Board) an COB (Carbs On Board) values bellow the name. Right from the IOB/COB valuew is current BG delta (difference from the last reading, trend where the BG is going). Box with time difference from last valid data from Nighscout is displayed in upper tight corner. Delay of 5 mins is OK and the box has grey color, 5-15 mins is warning and the box will have white background, more then 15 mins without a valid data is error and the box background will be red. There is also possibility to set sound warning on data delay in M5NS.INI.
 
-Last line contains data source.<br/>
+Glycemia (BG) value and its direction is bellow the basic information. There is a mini graph form 10 last values right of the glycemia value. The minigraph shows only values in range 3-12 mmol/L (48-216 mg/dL) and values bellow/above this will be displayed on minigraph as the min/max values.
+
+Last line contains icons for buttons or data source or Loop information (depending on M5NS.INI key "info_line").<br/>
 <br/>
 
 ### Buttons
