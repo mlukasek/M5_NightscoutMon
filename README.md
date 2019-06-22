@@ -5,7 +5,7 @@
 ###### This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 ###### This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 ###### You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>. 
-###### This software uses some 3rd party libraries:<br/>IniFile by Steve Marple <stevemarple@googlemail.com> (GNU LGPL v2.1)<br/>ArduinoJson by Benoit BLANCHON (MIT License)<br/>IoT Icon Set by Artur Funk (GPL v3)  
+###### This software uses some 3rd party libraries:<br/>IniFile by Steve Marple (GNU LGPL v2.1)<br/>ArduinoJson by Benoit BLANCHON (MIT License)<br/>IoT Icon Set by Artur Funk (GPL v3)  
 ###### Additions to the code:<br/>Peter Leimbach (Nightscout token)
 
 
@@ -21,87 +21,87 @@
 ### Revisions:
 
 #### *** 20 June 2019 ***
-Split of Nightscout read and display code (this should allow simpler user display code update and more different "faces" from users).<br/>
-New concept of display pages (different display designs, information, faces).<br/>
-Switch page by short press of the right button.<br/>
-Power OFF by the right button long press (4 seconds).<br/>
-Right button works also as power ON after power off by this button.<br/>
-New page added with large simple info (large BG, clock, delta + arrow and  few icons only).<br/>
-New M5NS.INI key "default_page" added (default 0).<br/>
-Smaller WiFi symbol (now as blue WiFi icon in 2 sizes for the 2 different Nightscout queries).<br/>
-Buttons do not work during Nightscout communication (blue WiFi symbol displayed).<br/>
-Bigger delta value even with COB+IOB values displayed (COB: and IOB: shortened to C: and I: ).<br/>
-Errors now logged silently (log can be displayed as the last page).<br/>
-Warning triangle icon added to show that errors are in the log (up to 5 errors - grey, more - yellow). Only last 10 errors can be displayed.<br/>
-New M5NS.INI key "restart_at_time" added (default no restart) to restart M5Stack regularly at predefined time to reconnect to WiFi access point and clear possible other errors. No startup sound during soft restart, snooze state reapplied, errors cleared.<br/>
-New M5NS.INI key "restart_at_logged_errors" added (default no restart) to restart M5Stack after predefined amount of errors logged in error log to reconnect to WiFi access point and clear possible other errors. No startup sound during soft restart, snooze state reapplied, errors cleared.<br/>
-Right button power icon changed to door icon to better express the page change/power off functions.<br/>
+Split of Nightscout read and display code (this should allow simpler user display code update and more different "faces" from users).  
+New concept of display pages (different display designs, information, faces).  
+Switch page by short press of the right button.  
+Power OFF by the right button long press (4 seconds).  
+Right button works also as power ON after power off by this button.  
+New page added with large simple info (large BG, clock, delta + arrow and  few icons only).  
+New M5NS.INI key "default_page" added (default 0).  
+Smaller WiFi symbol (now as blue WiFi icon in 2 sizes for the 2 different Nightscout queries).  
+Buttons do not work during Nightscout communication (blue WiFi symbol displayed).  
+Bigger delta value even with COB+IOB values displayed (COB: and IOB: shortened to C: and I: ).  
+Errors now logged silently (log can be displayed as the last page).  
+Warning triangle icon added to show that errors are in the log (up to 5 errors - grey, more - yellow). Only last 10 errors can be displayed.  
+New M5NS.INI key "restart_at_time" added (default no restart) to restart M5Stack regularly at predefined time to reconnect to WiFi access point and clear possible other errors. No startup sound during soft restart, snooze state reapplied, errors cleared.  
+New M5NS.INI key "restart_at_logged_errors" added (default no restart) to restart M5Stack after predefined amount of errors logged in error log to reconnect to WiFi access point and clear possible other errors. No startup sound during soft restart, snooze state reapplied, errors cleared.  
+Right button power icon changed to door icon to better express the page change/power off functions.  
 
 #### *** 12 June 2019 ***
-More silent speaker. Found the way how to switch off adc1 after sound play.<br/>
-Added token key in M5NS.INI to allow connection to secured Nightscout sites (thanks to Peter Leimbach).<br/>
-Added keys snd_warning_at_startup and snd_alarm_at_startup to play warning/alarm sound test during startup (1 = play, 0 = do not play).<br/>
+More silent speaker. Found the way how to switch off adc1 after sound play.  
+Added token key in M5NS.INI to allow connection to secured Nightscout sites (thanks to Peter Leimbach).  
+Added keys snd_warning_at_startup and snd_alarm_at_startup to play warning/alarm sound test during startup (1 = play, 0 = do not play).  
 
 #### *** 09 June 2019 ***
-More WiFi APs possible. Now you can create section [wlan0], [wlan1], up to [wlan9] in M5NS.INI.<br/>
-Added SD card info for better error handling.<br/>
-Added empty Nightscout check. No restarts repeat if Nightscout is empty.<br/>
-Wait for NTP time synchronization.<br/>
+More WiFi APs possible. Now you can create section [wlan0], [wlan1], up to [wlan9] in M5NS.INI.  
+Added SD card info for better error handling.  
+Added empty Nightscout check. No restarts repeat if Nightscout is empty.  
+Wait for NTP time synchronization.  
 
 #### *** 07 June 2019 ***
-Added check for http/https in nightscout URL in M5NS.INI<br/>
-Increased deafult warning volume to 50.<br/>
-Added last 2 weeks revisions to README.<br/>
+Added check for http/https in nightscout URL in M5NS.INI  
+Increased deafult warning volume to 50.  
+Added last 2 weeks revisions to README.  
 
 #### *** 02 June 2019 ***
-Large DELTA value displayed if no COB/IOB on display.<br/>
-Sample M5NS.INI dile now has default values in mg/dL.<br/>
-Corrected volume bug, it did not work at all. Now accepts values from M5NI.INI correctly.<br/>
+Large DELTA value displayed if no COB/IOB on display.  
+Sample M5NS.INI dile now has default values in mg/dL.  
+Corrected volume bug, it did not work at all. Now accepts values from M5NI.INI correctly.  
 
 #### *** 30 May 2019 ***
-Added battery icon. This feature works only on newer M5Stack units. Removed seconds from time to make more place for possibly more icons.<br/>
+Added battery icon. This feature works only on newer M5Stack units. Removed seconds from time to make more place for possibly more icons.  
 
 #### *** 23 May 2019 ***
-Fixed restart bug if some properties were not defined on Nightscout.<br/>
+Fixed restart bug if some properties were not defined on Nightscout.  
 
 #### *** 18 May 2019 ***
-Added button function icons (set M5NS.INI key info_line = 1). This is now default option.<br/>
-Added loop and basal info (set M5NS.INI key info_line = 2)<br/>
-Original sensor information available when M5NS.INI key info_line = 0<br/>
-Small changes to silence background hiss as much as possible.<br/>
+Added button function icons (set M5NS.INI key info_line = 1). This is now default option.  
+Added loop and basal info (set M5NS.INI key info_line = 2).  
+Original sensor information available when M5NS.INI key info_line = 0  
+Small changes to silence background hiss as much as possible.  
 
 #### *** 12 May 2019 ***
-BG/calibration/unknown entries are now filtered.<br/>
-Missed reading sound alert added. You can adjust it by snd_no_readings key in M5NS.INI (default 20 minutes).<br/>
-Added possibility to change warning sound volume byt warning_volume key in M5NS.INI (0-100, default=20, 0=silent).<br/>
-Added possibility to change alarm sound volume byt alarm_volume key in M5NS.INI (0-100, default=100, 0=silent).<br/>
-Reorganized left upper part of display to get space for COB and IOB display.<br/>
-Added show_COB_IOB key to M5NS.INI. If show_COB_IOB = 1 then carbs and insulin on board are displayed. Set 1 (ON) by default.<br/>
-COB and IOB are grey if 0 and white if any carbs or IU on board.<br/>
-Added key show_current_time to M5NS.INI. If show_current_time = 1 (default now) then current clock is displayed instead of last sensor reding time.<br/>
+BG/calibration/unknown entries are now filtered.  
+Missed reading sound alert added. You can adjust it by snd_no_readings key in M5NS.INI (default 20 minutes).  
+Added possibility to change warning sound volume byt warning_volume key in M5NS.INI (0-100, default=20, 0=silent).  
+Added possibility to change alarm sound volume byt alarm_volume key in M5NS.INI (0-100, default=100, 0=silent).  
+Reorganized left upper part of display to get space for COB and IOB display.  
+Added show_COB_IOB key to M5NS.INI. If show_COB_IOB = 1 then carbs and insulin on board are displayed. Set 1 (ON) by default.  
+COB and IOB are grey if 0 and white if any carbs or IU on board.  
+Added key show_current_time to M5NS.INI. If show_current_time = 1 (default now) then current clock is displayed instead of last sensor reding time.  
 
 #### *** 2 May 2019 ***
-Snooze alarm function introduced and placed on the middle button.<br/>
-New M5NS.INI key snooze_timeout (default 30 min) to specify time for how long should be sound alarm silent after press of the middle button.<br/>
-New M5NS.INI key alarm_repeat to specify time (default 5 min) when sound alarm shoud repeat if its reason remains.<br/>
-Corrected bug with alarm sometimes repeating twice.<br/>
-WiFi symbol moved to the source code. External SD file is no more needed.<br/>
-Configuration file M5NS.INI handling moved to separate source files.<br/>
+Snooze alarm function introduced and placed on the middle button.  
+New M5NS.INI key snooze_timeout (default 30 min) to specify time for how long should be sound alarm silent after press of the middle button.  
+New M5NS.INI key alarm_repeat to specify time (default 5 min) when sound alarm shoud repeat if its reason remains.  
+Corrected bug with alarm sometimes repeating twice.  
+WiFi symbol moved to the source code. External SD file is no more needed.  
+Configuration file M5NS.INI handling moved to separate source files.  
 
 #### *** 27 Apr 2019 - 2 ***
-Larger JSONDocument size for xDrip and possibly other Nightscout upload application compatibility.<br/>
-A little bit better HTTP error handling and error printing to the M5Stack screen.<br/>
-When "show_mgdl = 1", then all values in M5NS.INI have to be in mg/dL instead of mmol/L.<br/>
-Updated device detection for xDrip.<br/>
+Larger JSONDocument size for xDrip and possibly other Nightscout upload application compatibility.  
+A little bit better HTTP error handling and error printing to the M5Stack screen.  
+When "show_mgdl = 1", then all values in M5NS.INI have to be in mg/dL instead of mmol/L.  
+Updated device detection for xDrip.  
 
 #### *** 27 Apr 2019 ***
-Only one query to Nightscout for minigraph as well as the last value. Faster code execution, less traffic.<br/>
+Only one query to Nightscout for minigraph as well as the last value. Faster code execution, less traffic.  
 
 #### *** 20 Apr 2019 - 2 ***
-Added the main source code M5_NightscoutMon.ino to GitHub. Sorry I forgot in initital commit ;-)<br/>
+Added the main source code M5_NightscoutMon.ino to GitHub. Sorry I forgot in initital commit ;-)  
 
 #### *** 20 Apr 2019 ***
-Initial GitHub commit<br/>
+Initial GitHub commit  
 <br/>
 
 ### M5Stack Nightscout Monitor
@@ -179,20 +179,32 @@ What you see on the display is a matter of your M5NS.INI and Nightscout configur
 
 Glycemia (BG) value and its direction is bellow the basic information. There is a mini graph form 10 last values right of the glycemia value. The minigraph shows only values in range 3-12 mmol/L (48-216 mg/dL) and values bellow/above this will be displayed on minigraph as the min/max values.
 
-Last line contains icons for buttons or data source or Loop information (depending on M5NS.INI key "info_line").<br/>
+There are also icons in upper side of display. Plug or battery icon displays battery status (on newer devices only). Red clock indicated silent "snoze" mode activated. Grey or yellow (more than 5 errors) shows that there are errors in error log (last page). Blue WiFi icon in 2 sizes (2 different queries) indicated that MStack is downloading data from Nightscout.
+
+Last line contains icons for buttons or data source or Loop information (depending on M5NS.INI key "info_line").  
+
+**Page 1 - simple page with large BG value**  
+Long distance visible page with large BG value and larger clock. Top line contains current time, icons, delta value a BG direction arrow.
+
+Bottom info line is the same as on page 0.
+
+**Error Log page**
+Displays last 10 record errors and total number of errors record since last restart. Occassional communication errors, such as "timeout" or "connection refused" are normal and happen sometimes due to WiFi and internet connection and Nightscout site status. If you have a lot of errors every few minutes, consider to move your M5Stack to a different place or extend WiFi signal.  
 <br/>
 
 ### Buttons
 
 The left button changes the backlight in the 3 steps defined in M5NS.INI file.
 
-The middle button wakes M5Stack from sleep.
+The middle button snoozes M5Stack for defined time to prevedn alarm or warning sound. You can "snooze" it even before the alarm is activated. Snooze active is indicated by red clock icon in status icon area.
 
-The right button puts M5Stack to the sleep as it is a little bit tricky do double click standard power button.<br/>
+Shor press of the right button switches display pages. Long press (4 seconds) puts M5Stack to the sleep as it is a little bit tricky to double click standard red power button.  
 <br/>
 
 ### Donations
 
-If you find my project useful, you can donate me few bucks for further development or buy me a glass of wine 😉
+If you find my project useful, I will appreciate if you donate me few bucks for further development or buy me a glass of beer or wine :wine_glass:
 
 https://paypal.me/8bity
+
+I also collect and repair vintage 8-bit computers, so if you have some really old computer, I could give it a new home and care :smile:.
