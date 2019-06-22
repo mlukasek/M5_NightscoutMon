@@ -16,7 +16,7 @@
 [Syntax of M5NS.INI configuration file](#the-syntax-of-m5nsini-configuration-file)  
 [Display](#display)  
 [Buttons](#buttons)  
-[Battery](#battery)
+[Battery](#battery)  
 [Installation and support](#installation-and-support)  
 [Donations - support the project](#donations) :+1:
 
