@@ -147,7 +147,7 @@ brightness1 = 50 _– the first (default) brightness value_
 brightness2 = 100 _– the second brightness value_  
 brightness3 = 10 _– the third brightness value_
 
-- following values are in mmol/L or mg/dL depending on the previous "show_mgdl" key value
+_- following values are in mmol/L or mg/dL depending on the previous setting of "show_mgdl" key value_
 
 yellow_low = 4.5 _– glycemia values under this value will be displayed in yellow color_  
 yellow_high = 9 _– glycemia values over this value will be displayed in yellow color_  
