@@ -15,6 +15,8 @@
 [Syntax of M5NS.INI configuration file](#the-syntax-of-m5nsini-configuration-file)  
 [Display](#display)  
 [Buttons](#buttons)  
+[Battery](#battery)
+[Installation and support](#installation-and-support)
 [Donations - support the project](#donations) :+1:
 
 
@@ -218,6 +220,15 @@ gray full battery (2 hrs 59 min)
 white 2/3 battery (1 hr 55 min)  
 yellow 1/3 battery (1 hr 48 min)  
 red empty battery (14 min)  
+<br/>
+
+### Installation and support
+
+Installation can be done by download or git clone the code to the Arduino IDE evnironment. You have to download ESP32 board and M5Stack libraries, Arduino JSON library and build it to you M5Stack.
+
+Another easier possibility is to download latest [M5Burner release](https://github.com/mlukasek/M5_NightscoutMon/releases). It is Windows executable with binary M5Stack firmware included. Just unzip it, start the M5Burner.exe, choose COM port where your M5Stack is connected and burn the firmware. Simple. Remember to add you microSD card with M5NS.INI configuration file.
+
+There is a Facebook grooup [M5STACK NIGHTSCOUT](https://www.facebook.com/groups/606295776549008/) where you can get support and installation guides in several languages prepared by members of the M5Stack Nightscout community. Please check the [Files section](https://www.facebook.com/groups/606295776549008/files/) first and search the group before asking questions. A lot of questions has been answered already. Big thanks to Patrick Sonnerat, Didier Frétigné, Peter Leimbach and more...  
 <br/>
 
 ### Donations
