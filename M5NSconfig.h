@@ -12,11 +12,11 @@ struct tConfig {
   int timeZone = 3600; // time zone offset in hours, must be corrected for internatinal use and DST
   int dst = 0; // DST time offset in hours, must be corrected for internatinal use and DST
   int show_mgdl = 0; // 0 = display mg/DL, 1 = diplay mmol/L
-  int default_page = 0;
-  char restart_at_time[10];
-  int restart_at_logged_errors = 0; // 0 = do not restart on errors in log
-  int show_current_time = 0;
-  int show_COB_IOB = 0;
+  int default_page = 0; // page number displayed after startup
+  char restart_at_time[10]; // time in HH:MM format when the device will restart
+  int restart_at_logged_errors = 0; // restart device after particular number of errors in the log (0 = do not restart)
+  int show_current_time = 0; // show currnet time instead of last valid data time_
+  int show_COB_IOB = 0; // show COB and IOB, values are grayed out if COB/IOB value is 0
   int snooze_timeout = 30; // timeout to snooze alarm in minutes
   int alarm_repeat = 5; // repeat alarm every X minutes
   float yellow_low = 4.5;
