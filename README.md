@@ -203,7 +203,7 @@ The left button changes the backlight in the 3 steps defined in M5NS.INI file.
 
 The middle button snoozes M5Stack for defined time to prevent alarm or warning sound. You can "snooze" it even before the alarm is activated. Snooze active is indicated by red clock icon in status icon area.
 
-Shor press of the right button switches display pages. Long press (4 seconds) puts M5Stack to the sleep as it is a little bit tricky to double click standard red power button.  
+Short press of the right button switches display pages. Long press (4 seconds) puts M5Stack to the sleep as it is a little bit tricky to double click standard red power button.  
 <br/>
 
 ### Battery
