@@ -685,7 +685,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     else
       strcpy(NSurl,"");
     strcat(NSurl,url);
-    strcat(NSurl,"/api/v1/entries.json");
+    strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv");
     if ((token!=NULL) && (strlen(token)>0)){
       strcat(NSurl,"?token=");
       strcat(NSurl,token);
