@@ -685,14 +685,13 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     else
       strcpy(NSurl,"");
     strcat(NSurl,url);
-    
     if(strstr(NSurl,"sugarmate") != NULL) // Sugarmate JSON URL for Dexcom follower
       ns->is_Sugarmate = 1;
     else
     {
       ns->is_Sugarmate = 0;
-      strcat(NSurl,"/api/v1/entries/sgv.json"); // "/api/v1/entries.json"
-      if ((token!=NULL) && (strlen(token)>0)){
+      strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv"); // "/api/v1/entries.json"
+      if ((token!=NULL) && (strlen(token)>0)) {
         strcat(NSurl,"?token=");
         strcat(NSurl,token);
       }
