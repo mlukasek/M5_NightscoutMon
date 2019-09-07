@@ -21,6 +21,7 @@
     Additions to the code:
     Peter Leimbach (Nightscout token)
     Patrick Sonnerat (Dexcom Sugarmate connection)
+    Sulka Haro (Nightscout API queries help)
 */
 
 #include <M5Stack.h>
@@ -692,7 +693,10 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
       ns->is_Sugarmate = 0;
       strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv"); // "/api/v1/entries.json"
       if ((token!=NULL) && (strlen(token)>0)) {
-        strcat(NSurl,"?token=");
+        if(strchr(NSurl,'?'))
+          strcat(NSurl,"&token=");
+        else
+          strcat(NSurl,"?token=");
         strcat(NSurl,token);
       }
     }
