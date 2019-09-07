@@ -5,7 +5,7 @@
 #include "IniFile.h"
 
 struct tConfig {
-  char url[64];
+  char url[128];
   char token[32]; // security token
   char bootPic[64];
   char userName[32];
