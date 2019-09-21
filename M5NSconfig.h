@@ -27,7 +27,7 @@ struct tConfig {
   float snd_alarm = 3.0;
   float snd_warning_high = 14;
   float snd_alarm_high = 20;
-  int snd_no_readings = 20;
+  int snd_no_readings = 20; 
   int snd_warning_at_startup = 1;
   int snd_alarm_at_startup =0;
   char warning_music[64];
@@ -36,6 +36,9 @@ struct tConfig {
   int alarm_volume = 100;
   int info_line = 1; // 0 = sensor info, 1 = button function icons, 2 = loop info + basal
   uint8_t brightness1, brightness2, brightness3;
+  int date_format = 0; // 0 = dd.mm., 1 = MM/DD
+  int display_rotation = 1; // 1 = buttons down, 3 = buttons up, 5 = mirror buttons up, 7 = mirror buttons down
+  int temperature_unit = 1; // 1 = CELSIUS, 2 = KELVIN, 3= FAHRENHEIT
   int dev_mode = 0; // developer mode, do not use, does strange things and changes often ;-)
   char wlanssid[10][32];
   char wlanpass[10][32];

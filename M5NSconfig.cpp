@@ -436,6 +436,36 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
     cfg->brightness3 = 10;
   }
 
+  if (ini.getValue("config", "date_format", buffer, bufferLen)) {
+    Serial.print("date_format = ");
+    cfg->date_format = atoi(buffer);
+    Serial.println(cfg->date_format);
+  }
+  else {
+    Serial.println("NO date_format defined = 0 (dd.mm.)");
+    cfg->date_format = 0;
+  }
+
+  if (ini.getValue("config", "display_rotation", buffer, bufferLen)) {
+    Serial.print("display_rotation = ");
+    cfg->display_rotation = atoi(buffer);
+    Serial.println(cfg->display_rotation);
+  }
+  else {
+    Serial.println("NO display_rotation defined = 1 = buttons down");
+    cfg->display_rotation = 1;
+  }
+
+  if (ini.getValue("config", "temperature_unit", buffer, bufferLen)) {
+    Serial.print("temperature_unit = ");
+    cfg->temperature_unit = atoi(buffer);
+    Serial.println(cfg->temperature_unit);
+  }
+  else {
+    Serial.println("NO temperature_unit defined = CELSIUS");
+    cfg->temperature_unit = 1;
+  }
+
   for(int i=0; i<=9; i++) {
     char wlansection[10];
     sprintf(wlansection, "wlan%1d", i);
