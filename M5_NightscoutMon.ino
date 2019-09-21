@@ -1874,7 +1874,7 @@ void loop(){
         M5.Lcd.setTextDatum(MC_DATUM);
         M5.Lcd.setFreeFont(FSSB9);
         M5.Lcd.setTextColor(TFT_DARKGREY, TFT_BLACK);
-        M5.Lcd.drawString("Adelka", 160, 145, GFXFF);
+        M5.Lcd.drawString(cfg.userName, 160, 145, GFXFF);
     
         // Redraw new hand positions, hour and minute hands not erased here to avoid flicker
         osx = sx*78+160;    
