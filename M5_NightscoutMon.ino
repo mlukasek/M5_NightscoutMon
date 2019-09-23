@@ -501,6 +501,7 @@ void setup() {
     // M5.Speaker.mute();
 
     // Lcd display
+    M5.Lcd.invertDisplay(0);
     M5.Lcd.setBrightness(100);
     M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setTextColor(WHITE);
@@ -540,9 +541,10 @@ void setup() {
 
     readConfiguration(iniFilename, &cfg);
     // strcpy(cfg.url, "https://sugarmate.io/api/v1/xxxxxx/latest.json");
-    // strcpy(cfg.url, "user.herokuapp.com");
+    // strcpy(cfg.url, "user.herokuapp.com"); 
     // cfg.dev_mode = 1;
     // cfg.show_mgdl = 1;
+    // cfg.sgv_only = 1;
     // cfg.default_page = 2;
     // strcpy(cfg.restart_at_time, "21:59");
     // cfg.restart_at_logged_errors=3;
@@ -599,7 +601,7 @@ void setup() {
 
     M5.Lcd.setBrightness(lcdBrightness);
     M5.Lcd.fillScreen(BLACK);
-
+    
     // fill dummy values to error log
     /*
     for(int i=0; i<10; i++) {
@@ -714,7 +716,11 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     else
     {
       ns->is_Sugarmate = 0;
-      strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv"); // "/api/v1/entries.json"
+      if(cfg.sgv_only) {
+        strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv");
+      } else {
+        strcat(NSurl,"/api/v1/entries.json");
+      }
       if ((token!=NULL) && (strlen(token)>0)) {
         if(strchr(NSurl,'?'))
           strcat(NSurl,"&token=");
@@ -773,6 +779,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
           JsonObject obj;
           if(ns->is_Sugarmate==0) {
             // Nightscout values
+
             int sgvindex = 0;
             do {
               obj=JSONdoc[sgvindex].as<JsonObject>();
@@ -1801,7 +1808,6 @@ void loop(){
       M5.Lcd.setTextSize(1);
       M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
       if(getLocalTime(&localTimeInfo)) {
-        
         switch(cfg.date_format) {
           case 1:
             sprintf(localTimeStr, "%02d:%02d  %d/%d  ", localTimeInfo.tm_hour, localTimeInfo.tm_min, localTimeInfo.tm_mon+1, localTimeInfo.tm_mday);
@@ -1821,6 +1827,7 @@ void loop(){
     }
     if(dispPage==2) {
       if(getLocalTime(&localTimeInfo)) {
+        // sprintf(localTimeStr, "%02d:%02d:%02d", localTimeInfo.tm_hour, localTimeInfo.tm_min, localTimeInfo.tm_sec);
       } else {
         lastMin = 61;
         lastSec = 61;
@@ -1866,16 +1873,17 @@ void loop(){
         // draw day
         M5.Lcd.drawRoundRect(182, 97, 36, 26, 7, TFT_LIGHTGREY);
         M5.Lcd.setTextDatum(MC_DATUM);
-        M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
         M5.Lcd.setFreeFont(FSSB9);
+        M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
         M5.Lcd.drawString("28", 200, 108, GFXFF);
       
         // draw name
-        M5.Lcd.setTextDatum(MC_DATUM);
-        M5.Lcd.setFreeFont(FSSB9);
         M5.Lcd.setTextColor(TFT_DARKGREY, TFT_BLACK);
         M5.Lcd.drawString(cfg.userName, 160, 145, GFXFF);
     
+        // draw digital time
+        // M5.Lcd.drawString(localTimeStr, 160, 75, GFXFF);
+        
         // Redraw new hand positions, hour and minute hands not erased here to avoid flicker
         osx = sx*78+160;    
         osy = sy*78+110;
