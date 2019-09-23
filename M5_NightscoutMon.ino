@@ -1875,8 +1875,8 @@ void loop(){
         M5.Lcd.setTextDatum(MC_DATUM);
         M5.Lcd.setFreeFont(FSSB9);
         M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-        M5.Lcd.drawString("28", 200, 108, GFXFF);
-      
+        M5.Lcd.drawString(String(localTimeInfo.tm_mday), 200, 108, GFXFF);
+     
         // draw name
         M5.Lcd.setTextColor(TFT_DARKGREY, TFT_BLACK);
         M5.Lcd.drawString(cfg.userName, 160, 145, GFXFF);
