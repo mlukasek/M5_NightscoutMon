@@ -145,6 +145,16 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
     cfg->show_mgdl = 0;
   }
 
+  if (ini.getValue("config", "sgv_only", buffer, bufferLen)) {
+    Serial.print("sgv_only = ");
+    cfg->sgv_only = atoi(buffer);
+    Serial.println(cfg->sgv_only);
+  }
+  else {
+    Serial.println("NO sgv_only defined -> 0 = try to read everything");
+    cfg->sgv_only = 0;
+  }
+
   if (ini.getValue("config", "default_page", buffer, bufferLen)) {
     Serial.print("default_page = ");
     cfg->default_page = atoi(buffer);

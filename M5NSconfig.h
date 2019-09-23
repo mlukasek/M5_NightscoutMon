@@ -12,6 +12,7 @@ struct tConfig {
   int timeZone = 3600; // time zone offset in hours, must be corrected for internatinal use and DST
   int dst = 0; // DST time offset in hours, must be corrected for internatinal use and DST
   int show_mgdl = 0; // 0 = display mg/DL, 1 = diplay mmol/L
+  int sgv_only = 0; // 1 = filter only SGV values from Nightscout, 0 = read everything (default)
   int default_page = 0; // page number displayed after startup
   char restart_at_time[10]; // time in HH:MM format when the device will restart
   int restart_at_logged_errors = 0; // restart device after particular number of errors in the log (0 = do not restart)
