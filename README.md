@@ -23,6 +23,10 @@
 
 ### Revisions:
 
+#### *** 23 September 2019 ***
+Key sgv_only (default 0) added to M5NS.INI. You shoul set it to 1 if you use xDrip, Spike or similar to filter out calibrations etc.
+Explicit M5.Lcd.invertDisplay(0) added to try to prevent inverted display.
+
 #### *** 21 September 2019 ***
 Added support for Dexcom by using Sugarmate connection workaround. Thanks to Patrick Sonnerat.  
 Only SGV entries are now queried, so no more troubles with calibration. Thanks to Sulka Haro.  
@@ -145,6 +149,7 @@ name = YourName _– display name_
 time_zone = 3600 _– the time zone where you live in seconds (3600 is GMT+1, Prague)_  
 dst = 3600 _– your daylight saving time offset (3600s is +1 hour)_  
 show_mgdl = 0 _– use 0 to display values in mmol/L or 1 for mg/dl_  
+sgv_only = 0 _- set to 1 if you use xDrip, Spike or similar to filter out calibrations etc_  
 default_page = 0 _– page number displayed after startup_  
 show_current_time = 1 _– show current time instead of last valid data time_  
 restart_at_time = HH:MM _– time in HH:MM format when the device will restart_  
