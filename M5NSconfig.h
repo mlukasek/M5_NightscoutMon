@@ -39,6 +39,7 @@ struct tConfig {
   uint8_t brightness1, brightness2, brightness3;
   int date_format = 0; // 0 = dd.mm., 1 = MM/DD
   int display_rotation = 1; // 1 = buttons down, 3 = buttons up, 5 = mirror buttons up, 7 = mirror buttons down
+  int invert_display = -1; // -1 = not defined, no not call M5.Lcd.invertDisplay(), 0 or 1 call M5.Lcd.invertDisplay(parameter value)
   int temperature_unit = 1; // 1 = CELSIUS, 2 = KELVIN, 3= FAHRENHEIT
   int dev_mode = 0; // developer mode, do not use, does strange things and changes often ;-)
   char wlanssid[10][32];

@@ -456,6 +456,16 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
     cfg->date_format = 0;
   }
 
+  if (ini.getValue("config", "invert_display", buffer, bufferLen)) {
+    Serial.print("invert_display = ");
+    cfg->invert_display = atoi(buffer);
+    Serial.println(cfg->invert_display);
+  }
+  else {
+    Serial.println("NO invert_display defined = -1");
+    cfg->invert_display = -1;
+  }
+
   if (ini.getValue("config", "display_rotation", buffer, bufferLen)) {
     Serial.print("display_rotation = ");
     cfg->display_rotation = atoi(buffer);

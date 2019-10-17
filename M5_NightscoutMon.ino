@@ -501,7 +501,6 @@ void setup() {
     // M5.Speaker.mute();
 
     // Lcd display
-    M5.Lcd.invertDisplay(0);
     M5.Lcd.setBrightness(100);
     M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setTextColor(WHITE);
@@ -564,8 +563,15 @@ void setup() {
     // cfg.temperature_unit = 3;
     // cfg.date_format = 1;
     // cfg.display_rotation = 7;
+    // cfg.invert_display = 1;
     // cfg.info_line = 1;
 
+    if(cfg.invert_display != -1) {
+      M5.Lcd.invertDisplay(cfg.invert_display);
+      Serial.print("Calling M5.Lcd.invertDisplay("); Serial.print(cfg.invert_display); Serial.println(")");
+    } else {
+      Serial.println("No invert_display defined in INI.");
+    }
     M5.Lcd.setRotation(cfg.display_rotation);
     lcdBrightness = cfg.brightness1;
     M5.Lcd.setBrightness(lcdBrightness);
