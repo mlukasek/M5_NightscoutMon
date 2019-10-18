@@ -24,7 +24,7 @@
 ### Revisions:
 
 #### *** 10 October 2019 ***
-Key invert_display (default = -1 when key is not present) added to M5NS.INI. You should not use it in M5NS.INI unless you have a problem with display inversion. Set invert_dsiplay = 0 or invert_dsiplay = 1 if you have troubles to call M5.Lcd.invertDisplay(0) or M5.Lcd.invertDisplay(1). Under normal circumstances 0 should be normal display and 1 should be inverted display.
+Key invert_display (default = -1 when key is not present) added to M5NS.INI. You should not use it in M5NS.INI unless you have a problem with display inversion. Set invert_display = 0 or invert_display = 1 if you have troubles to call M5.Lcd.invertDisplay(0) or M5.Lcd.invertDisplay(1). Under normal circumstances 0 should be normal display and 1 should be inverted display.
 
 
 #### *** 23 September 2019 ***
