@@ -23,6 +23,17 @@
 
 ### Revisions:
 
+#### *** 20 October 2019 ***
+This is mostly test release with new "geek" features. Should be mostly for people with specific troubles and early adopters.  
+Maximum password length extended to 63 characters.  
+Possibility to connect to open WiFi network (without password).  
+device_name key added to M5NS.INI (default is M5NS).  
+mDNS added, you can connect to M5 Nightscout monitor by device_name.local (default M5NS.local).  
+mDNS name and IP address is displayed on Error log page.  
+Experimental web server added. Display configuration and check the current and the latest firmware version.  
+Online update option from internal web page.  
+Please note, there is no security implemented yet. Internal web page is on unsecured port 80. Updates are going from server port 80, no SLL used currently. Use on your own risk.  
+
 #### *** 10 October 2019 ***
 Key invert_display (default = -1 when key is not present) added to M5NS.INI. You should not use it in M5NS.INI unless you have a problem with display inversion. Set invert_display = 0 or invert_display = 1 if you have troubles to call M5.Lcd.invertDisplay(0) or M5.Lcd.invertDisplay(1). Under normal circumstances 0 should be normal display and 1 should be inverted display.
 
