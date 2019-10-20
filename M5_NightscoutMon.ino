@@ -29,7 +29,10 @@
 #include <Preferences.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
 #include <HTTPClient.h>
+#include <HTTPUpdate.h>
 #include "time.h"
 // #include <util/eu_dst.h>
 #define ARDUINOJSON_USE_LONG_LONG 1
@@ -40,6 +43,8 @@
 #include "DHT12.h"
 #include <Wire.h>     //The DHT12 uses I2C comunication.
 DHT12 dht12;          //Preset scale CELSIUS and ID 0x5c.
+
+#define M5NSversion "2019101901"
 
 // extern const unsigned char alarmSndData[];
 
@@ -61,6 +66,8 @@ extern const unsigned char plug_icon16x16[];
 
 Preferences preferences;
 tConfig cfg;
+
+WebServer w3srv(80);
 
 const char* ntpServer = "pool.ntp.org"; // "time.nist.gov", "time.google.com"
 struct tm localTimeInfo;
@@ -85,7 +92,7 @@ int icon_ypos[3] = {0, 0, 0};
 // analog clock global variables
 uint16_t osx=120, osy=120, omx=120, omy=120, ohx=120, ohy=120;  // Saved H, M, S x & y coords
 boolean initial = 1;
-
+boolean mDNSactive = false;
 #ifndef min
   #define min(a,b) (((a) < (b)) ? (a) : (b))
 #endif
@@ -136,6 +143,285 @@ struct NSinfo {
   float basal_combobolusbasal = 0;
   float basal_totalbasal = 0;
 } ns;
+
+void handleRoot() {
+  String webVer;
+  HTTPClient http;
+  IPAddress ip = WiFi.localIP();
+  char tmpStr[32];
+
+  Serial.println("Serving root web page");
+
+  if((WiFiMulti.run() == WL_CONNECTED)) {
+    http.begin("http://m5ns.goit.cz/update/update.inf");
+    int httpCode = http.GET();
+    if(httpCode > 0) {
+      if(httpCode == HTTP_CODE_OK) {
+        webVer = http.getString();
+      }
+    }
+  }
+  // Serial.println(webVer.length());
+
+  char NSurl[128];
+  if(strncmp(cfg.url, "http", 4))
+    strcpy(NSurl,"https://");
+  else
+    strcpy(NSurl,"");
+  strcat(NSurl,cfg.url);
+  if ((cfg.token!=NULL) && (strlen(cfg.token)>0)) {
+    if(strchr(NSurl,'?'))
+      strcat(NSurl,"&token=");
+    else
+      strcat(NSurl,"?token=");
+    strcat(NSurl,cfg.token);
+  }
+
+  String sgvUnits = cfg.show_mgdl?"mg/dL":"mmol/L";
+  
+  String message = "<!DOCTYPE HTML>\r\n";
+  message += "<html>\r\n";
+  message += "<head>\r\n";
+  message += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\r\n";
+  message += "<style>\r\n";
+  message += "html { font-family: Segoe UI; font-size: 15px; font-weight: 100; display: inline-block; margin: 5px auto; text-align: left;}\r\n";
+  message += ".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px;\r\n";
+  message += "text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}\r\n";
+  message += ".button2 {background-color: #555555;}\r\n";
+  message += "</style>\r\n";  
+  message += "<title>M5 Nightscout - "; message += cfg.userName;  message += "</title>\r\n";
+  message += "</head>\r\n";
+  message += "<body>\r\n";
+  message += "<h1>M5Stack Nightscout monitor for "; message += cfg.userName; message += "!</h1>\r\n";
+  
+  message += "<p><b>Current configuration</b><br />\r\n";
+  message += "Nightscout URL: "; message += "<a href=\""; message += NSurl; message += "\"><b>"; message += NSurl; message += "</b></a><br />\r\n";
+  message += "User name: <b>"; message += cfg.userName; message += "</b><br />\r\n";
+  message += "Device name: <b>"; message += cfg.deviceName; message += "</b><br />\r\n";
+  message += "Time offset: <b>"; message += cfg.timeZone; message += " seconds</b><br />\r\n";
+  message += "Daylight saving time offset: <b>"; message += cfg.dst; message += " seconds</b><br />\r\n";
+  message += "Display units: <b>"; message += cfg.show_mgdl?"mg/dL":"mmol/L"; message += "</b><br />\r\n";
+  message += "Filter only SGV values: <b>"; message += cfg.sgv_only?"YES":"NO"; message += "</b><br />\r\n";
+  message += "Default page: <b>"; message += cfg.default_page; message += "</b><br />\r\n";
+  message += "Restart at time: <b>"; message += strcmp(cfg.restart_at_time,"NORES")==0?"do NOT restart":cfg.restart_at_time; message += "</b><br />\r\n";
+  message += "Restart at logged number of errors: <b>"; message += cfg.restart_at_logged_errors==0?"do NOT restart":String(cfg.restart_at_logged_errors); message += "</b><br />\r\n";
+  message += "Show time: <b>"; message += cfg.show_current_time?"current time":"last valid data"; message += "</b><br />\r\n";
+  message += "Show COB+IOB: <b>"; message += cfg.show_COB_IOB?"YES":"NO"; message += "</b><br />\r\n";
+  message += "Snooze timeout: <b>"; message += cfg.snooze_timeout; message += " minutes</b><br />\r\n";
+  message += "Repeat alarm/warning every <b>"; message += cfg.alarm_repeat; message += " minutes</b><br />\r\n";
+  message += "<font color=\"#BB9900\">Display yellow bellow <b>"; message += cfg.yellow_low; message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"#BB9900\">Display yellow above <b>"; message += cfg.yellow_high; message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"Red\">Display red bellow <b>"; message += cfg.red_low; message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"Red\">Display red above <b>"; message += cfg.red_high; message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"Teal\">Warning sound bellow <b>"; message += cfg.snd_warning; message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"Teal\">Warning sound above <b>"; message += cfg.snd_warning_high; message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"Teal\">Alarm sound bellow <b>"; message += cfg.snd_alarm; message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"Teal\">Alarm sound above <b>"; message += cfg.snd_alarm_high; message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"Teal\">Warning sound when no reading for <b>"; message += cfg.snd_no_readings; message += " minutes</b></font><br />\r\n";
+  message += "<font color=\"Teal\">Play test warning sound during startup: <b>"; message += cfg.snd_warning_at_startup?"YES":"NO"; message += "</b></font><br />\r\n";
+  message += "<font color=\"Teal\">Play test alarm sound during startup: <b>"; message += cfg.snd_alarm_at_startup?"YES":"NO"; message += "</b></font><br />\r\n";
+  message += "<font color=\"Teal\">Warning sound volume <b>"; message += cfg.warning_volume; message += "</b></font><br />\r\n";
+  message += "<font color=\"Teal\">Alarm sound volume <b>"; message += cfg.alarm_volume; message += "</b></font><br />\r\n";
+  message += "Status line: <b>";
+  switch(cfg.info_line) {
+    case 0: message += "sensor info"; break;
+    case 1: message += "button function icons"; break;
+    case 2: message += "loop info + basal"; break;
+  }
+  message += "</b><br />\r\n";
+  message += "Brightness settings steps: <b>";  message += cfg.brightness1; message += ", "; message += cfg.brightness2; message += ", "; message += cfg.brightness3; message += "</b><br />\r\n";
+  message += "Date format: <b>"; message += cfg.date_format?"MM/DD":"dd.mm."; message += "</b><br />\r\n";
+  message += "Display rotation: <b>";
+  switch(cfg.display_rotation) {
+    case 1: message += "buttons down"; break;
+    case 3: message += "buttons up"; break;
+    case 5: message += "mirror buttons up"; break;
+    case 7: message += "mirror buttons down"; break;
+  }
+  message += "</b><br />\r\n";
+  message += "Display inversion: <b>";
+  switch(cfg.invert_display) {
+    case -1: message += "do not change"; break;
+    case 0: message += "false"; break;
+    case 1: message += "true"; break;
+  }
+  message += "</b><br />\r\n";
+  message += "Temperature units: <b>";
+  switch(cfg.temperature_unit) {
+    case 1: message += "Celsius"; break;
+    case 2: message += "Kelvin"; break;
+    case 3: message += "Fahrenheit"; break;
+  }
+  message += "</b><br />\r\n";
+  message += "Developer mode: <b>"; message += cfg.dev_mode?"Enabled":"Disabled"; message += "</b><br />\r\n";
+  message += "WiFi connected to SSID: <b>"; message += WiFi.SSID(); message += "</b>, ";
+  if(mDNSactive) {
+    message += "mDNS name: <b>";
+    sprintf(tmpStr, "%s.local", cfg.deviceName);
+    message += tmpStr; message += "</b>, ";
+  }
+  message += "IP address: <b>";
+  sprintf(tmpStr, "%u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
+  message += tmpStr; message += "</b><br />\r\n";
+  
+  for(int i=0; i<10; i++) {
+    if(cfg.wlanssid[i][0] != 0) {
+      message += "[wlan"; message += i; message += "] <b>";
+      message += "SSID='";
+      message += cfg.wlanssid[i];
+      if(cfg.wlanpass[i][0]!=0) {
+        message += "', PASS='";
+        message += cfg.wlanpass[i];
+        message += "'</b><br />\r\n";
+      } else {
+        message += "', no password (open)</b><br />\r\n";
+      }
+    }
+  }
+/*
+  char warning_music[64];
+  char alarm_music[64];
+
+  if (output26State=="off") {
+    client.println("<p><a href=\"/26/on\"><button class=\"button\">ON</button></a></p>");
+  } else {
+    client.println("<p><a href=\"/26/off\"><button class=\"button button2\">OFF</button></a></p>");
+  }
+*/  
+  
+  message += "<a href=\"/editcfg\"><strong>Edit configuration</strong></a></p>\r\n";
+
+  message += "<p><b>Application firmware</b><br />\r\n";
+  message += "Current version: "; message += M5NSversion; message += "<br />\r\n";
+  message += "Latest version: "; message += webVer; message += "\r\n";
+  if(webVer > M5NSversion) {
+    message += " ";
+    message += "<a href=\"/update\"><b>click to update</b></href>";
+  }
+  message += "</p>\r\n";
+  
+  message += "</body>\r\n";
+  message += "</html>\r\n";
+  w3srv.send(200, "text/html", message);
+}
+
+void handleUpdate() {
+  Serial.print("Updating firmware, please wait ... ");
+  M5.Lcd.setBrightness(100);
+  M5.Lcd.fillScreen(BLACK);
+  M5.Lcd.setTextColor(WHITE);
+  M5.Lcd.setCursor(0, 18);
+  M5.Lcd.setTextSize(1);
+  M5.Lcd.setFreeFont(FMB9);
+  M5.Lcd.setTextDatum(TL_DATUM);
+  M5.Lcd.println("FIRMWARE UPDATE");
+  M5.Lcd.println();
+  Serial.print("Free Heap: "); Serial.println(ESP.getFreeHeap());
+  M5.Lcd.print("Free Heap: "); M5.Lcd.println(ESP.getFreeHeap());
+  M5.Lcd.println();
+
+  String message = "<!DOCTYPE HTML>\r\n";
+  message += "<html>\r\n";
+  message += "<head>\r\n"; 
+  message += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\r\n";
+  message += "<meta http-equiv=\"refresh\" content=\"30;url=/\" />";
+  message += "<style>\r\n";  
+  message += "html { font-family: Segoe UI; display: inline-block; margin: 5px auto; text-align: left;}\r\n";
+  message += "</style>\r\n";  
+  message += "<title>M5 Nightscout - "; message += cfg.userName;  message += "</title>\r\n";
+  message += "</head>\r\n";
+  message += "<body>\r\n";
+  message += "<h1>M5Stack Nightscout monitor for "; message += cfg.userName; message += "!</h1>\r\n";
+
+  String webVer;
+  HTTPClient http;
+  WiFiClient client;
+  if((WiFiMulti.run() == WL_CONNECTED)) {
+    http.begin("http://m5ns.goit.cz/update/update.inf");
+    int httpCode = http.GET();
+    if(httpCode > 0) {
+      if(httpCode == HTTP_CODE_OK) {
+        webVer = http.getString();
+      }
+    }
+  }
+
+  M5.Lcd.print("Current firmware: "); M5.Lcd.println(M5NSversion);
+  M5.Lcd.print("Found firmware:"); M5.Lcd.println(webVer);
+  
+  if(webVer > M5NSversion) {
+    message += "<p>Updating firmware to version ";
+    message += webVer;
+    message += ", please wait ... </p>\r\n";
+    message += "<p>Device will restart automatically.</p>\r\n";
+    message += "</body>\r\n";
+    message += "</html>\r\n";
+    w3srv.send(200, "text/html", message);
+
+    M5.Lcd.println();
+    M5.Lcd.println("Updating the firmware... ");
+    M5.Lcd.println();
+    httpUpdate.rebootOnUpdate(false);
+    t_httpUpdate_return ret = httpUpdate.update(client, "http://m5ns.goit.cz/update/M5_NightscoutMon.ino.bin");
+    //t_httpUpdate_return ret = httpUpdate.update(client, "server", 80, "file.bin");
+
+    switch (ret) {
+      case HTTP_UPDATE_FAILED:
+        Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
+        M5.Lcd.setTextColor(RED);
+        M5.Lcd.println("UPDATE FAILED");
+        break;
+
+      case HTTP_UPDATE_NO_UPDATES:
+        Serial.println("HTTP_UPDATE_NO_UPDATES");
+        M5.Lcd.setTextColor(YELLOW);
+        M5.Lcd.println("NO UPDATES");
+        break;
+
+      case HTTP_UPDATE_OK:
+        Serial.println("HTTP_UPDATE_OK, restarting ...");
+        M5.Lcd.setTextColor(GREEN);
+        M5.Lcd.println("UPDATED SUCCESSFULLY");
+        M5.Lcd.println("Restarting ...");
+
+        M5.update();
+        delay(1000);
+        ESP.restart();
+        break;
+    }    
+  } else {
+    message += "<p>Nothing to update. Firmware version ";
+    message += webVer;
+    message += " is current.</p>\r\n";
+    message += "</body>\r\n";
+    message += "</html>\r\n";
+    w3srv.send(200, "text/html", message);
+
+    Serial.println("Nothing to update");
+    M5.Lcd.println();
+    M5.Lcd.setTextColor(YELLOW);
+    M5.Lcd.println("NOTHING TO UPDATE");
+  }
+  M5.update();
+  delay(2000);
+  M5.Lcd.fillScreen(BLACK);
+  draw_page();
+}
+
+void handleNotFound() {
+  String message = "M5Stack Nighscout monitor ERROR 404 File Not Found\n\n";
+  message += "URI: ";
+  message += w3srv.uri();
+  message += "\nMethod: ";
+  message += (w3srv.method() == HTTP_GET) ? "GET" : "POST";
+  message += "\nArguments: ";
+  message += w3srv.args();
+  message += "\n";
+  for (uint8_t i = 0; i < w3srv.args(); i++) {
+    message += " " + w3srv.argName(i) + ": " + w3srv.arg(i) + "\n";
+  }
+  w3srv.send(404, "text/plain", message);
+}
 
 void setPageIconPos(int page) {
   switch(page) {
@@ -413,8 +699,14 @@ void wifi_connect() {
 
   // We start by connecting to a WiFi network
   for(int i=0; i<=9; i++) {
-    if((cfg.wlanssid[i][0]!=0) && (cfg.wlanpass[i][0]!=0))
-      WiFiMulti.addAP(cfg.wlanssid[i], cfg.wlanpass[i]);
+    if(cfg.wlanssid[i][0]!=0) {
+      if(cfg.wlanpass[i][0]==0) {
+        // no or empty password -> send NULL
+        WiFiMulti.addAP(cfg.wlanssid[i], NULL);
+      } else {
+        WiFiMulti.addAP(cfg.wlanssid[i], cfg.wlanpass[i]);
+      }
+    }
   }
 
   Serial.println();
@@ -488,147 +780,6 @@ int8_t getBatteryLevel()
     }
   }
   return -1;
-}
-
-// the setup routine runs once when M5Stack starts up
-void setup() {
-    // initialize the M5Stack object
-    M5.begin();
-    // prevent button A "ghost" random presses
-    Wire.begin();
-    SD.begin();
-    
-    // M5.Speaker.mute();
-
-    // Lcd display
-    M5.Lcd.setBrightness(100);
-    M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setTextColor(WHITE);
-    M5.Lcd.setCursor(0, 0);
-    M5.Lcd.setTextSize(2);
-    yield();
-
-    Serial.print("Free Heap: "); Serial.println(ESP.getFreeHeap());
-
-    uint8_t cardType = SD.cardType();
-
-    if(cardType == CARD_NONE){
-        Serial.println("No SD card attached");
-        M5.Lcd.println("No SD card attached");
-        while(1);
-    }
-
-    Serial.print("SD Card Type: ");
-    M5.Lcd.print("SD Card Type: ");
-    if(cardType == CARD_MMC){
-        Serial.println("MMC");
-        M5.Lcd.println("MMC");
-    } else if(cardType == CARD_SD){
-        Serial.println("SDSC");
-        M5.Lcd.println("SDSC");
-    } else if(cardType == CARD_SDHC){
-        Serial.println("SDHC");
-        M5.Lcd.println("SDHC");
-    } else {
-        Serial.println("UNKNOWN");
-        M5.Lcd.println("UNKNOWN");
-    }
-
-    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-    Serial.printf("SD Card Size: %llu MB\n", cardSize);
-    M5.Lcd.printf("SD Card Size: %llu MB\n", cardSize);
-
-    readConfiguration(iniFilename, &cfg);
-    // strcpy(cfg.url, "https://sugarmate.io/api/v1/xxxxxx/latest.json");
-    // strcpy(cfg.url, "user.herokuapp.com"); 
-    // cfg.dev_mode = 1;
-    // cfg.show_mgdl = 1;
-    // cfg.sgv_only = 1;
-    // cfg.default_page = 2;
-    // strcpy(cfg.restart_at_time, "21:59");
-    // cfg.restart_at_logged_errors=3;
-    // cfg.show_COB_IOB = 0;
-    // cfg.snd_warning = 5.5;
-    // cfg.snd_alarm = 4.5;
-    // cfg.snd_warning_high = 9;
-    // cfg.snd_alarm_high = 14;
-    // cfg.alarm_volume = 0;
-    // cfg.warning_volume = 0;
-    // cfg.snd_warning_at_startup = 1;
-    // cfg.snd_alarm_at_startup = 1;
-  
-    // cfg.alarm_repeat = 1;
-    // cfg.snooze_timeout = 2;
-    // cfg.brightness1 = 0;
-    // cfg.temperature_unit = 3;
-    // cfg.date_format = 1;
-    // cfg.display_rotation = 7;
-    // cfg.invert_display = 1;
-    // cfg.info_line = 1;
-
-    if(cfg.invert_display != -1) {
-      M5.Lcd.invertDisplay(cfg.invert_display);
-      Serial.print("Calling M5.Lcd.invertDisplay("); Serial.print(cfg.invert_display); Serial.println(")");
-    } else {
-      Serial.println("No invert_display defined in INI.");
-    }
-    M5.Lcd.setRotation(cfg.display_rotation);
-    lcdBrightness = cfg.brightness1;
-    M5.Lcd.setBrightness(lcdBrightness);
-    
-    startupLogo();
-    yield();
-
-    preferences.begin("M5StackNS", false);
-    if(preferences.getBool("SoftReset", false)) {
-      // no startup sound after soft reset and remove the SoftReset key
-      lastSnoozeTime=preferences.getUInt("LastSnoozeTime", 0);
-      preferences.remove("SoftReset");
-      preferences.remove("LastSnoozeTime");
-    } else {
-      // normal startup so decide by M5NS.INI if to play startup sound
-      if(cfg.snd_warning_at_startup) {
-        play_tone(3000, 100, cfg.warning_volume);
-        delay(500);
-      }
-      if(cfg.snd_alarm_at_startup) {
-        play_tone(660, 400, cfg.alarm_volume);
-        delay(500);
-      }
-    }
-    preferences.end();
-
-    delay(1000);
-    M5.Lcd.fillScreen(BLACK);
-
-    M5.Lcd.setBrightness(lcdBrightness);
-    wifi_connect();
-    yield();
-
-    M5.Lcd.setBrightness(lcdBrightness);
-    M5.Lcd.fillScreen(BLACK);
-    
-    // fill dummy values to error log
-    /*
-    for(int i=0; i<10; i++) {
-      getLocalTime(&err_log[i].err_time);
-      err_log[i].err_code=404;
-    }
-    getLocalTime(&err_log[6].err_time);
-    err_log[6].err_code=HTTPC_ERROR_CONNECTION_REFUSED;
-    err_log_ptr=10;
-    err_log_count=23;
-    */
-    
-    // test file with time stamps
-    // msCountLog = millis()-6000;
-
-    dispPage = cfg.default_page;
-    setPageIconPos(dispPage);
-    // stat startup time
-    msStart = millis();
-    // update glycemia now
-    msCount = msStart-16000;
 }
 
 void drawArrow(int x, int y, int asize, int aangle, int pwidth, int plength, uint16_t color){
@@ -1735,7 +1886,10 @@ void draw_page() {
         M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
         M5.Lcd.drawString("no errors in log", 0, 20, GFXFF);
       } else {
-        for(int i=0; i<err_log_ptr; i++) {
+        int maxErrDisp = err_log_ptr;
+        if(maxErrDisp>9)
+          maxErrDisp = 9;
+        for(int i=0; i<maxErrDisp; i++) {
           M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
           sprintf(tmpStr, "%02d.%02d.%02d:%02d", err_log[i].err_time.tm_mday, err_log[i].err_time.tm_mon+1, err_log[i].err_time.tm_hour, err_log[i].err_time.tm_min);
           M5.Lcd.drawString(tmpStr, 0, 20+i*18, GFXFF);
@@ -1765,6 +1919,12 @@ void draw_page() {
         sprintf(tmpStr, "Total errors %d", err_log_count);
         M5.Lcd.drawString(tmpStr, 0, 20+err_log_ptr*18, GFXFF);
       }
+      IPAddress ip = WiFi.localIP();
+      if(mDNSactive)
+        sprintf(tmpStr, "%s.local (%u.%u.%u.%u)", cfg.deviceName, ip[0], ip[1], ip[2], ip[3]);
+      else
+        sprintf(tmpStr, "IP Address: %u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
+      M5.Lcd.drawString(tmpStr, 0, 20+10*18, GFXFF);
       handleAlarmsInfoLine(&ns);
       drawBatteryStatus(icon_xpos[2], icon_ypos[2]);
       drawLogWarningIcon();
@@ -1773,8 +1933,166 @@ void draw_page() {
   }
 }
 
+// the setup routine runs once when M5Stack starts up
+void setup() {
+    // initialize the M5Stack object
+    M5.begin();
+    // prevent button A "ghost" random presses
+    Wire.begin();
+    SD.begin();
+    
+    // M5.Speaker.mute();
+
+    // Lcd display
+    M5.Lcd.setBrightness(100);
+    M5.Lcd.fillScreen(BLACK);
+    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setCursor(0, 0);
+    M5.Lcd.setTextSize(2);
+    yield();
+
+    Serial.print("Free Heap: "); Serial.println(ESP.getFreeHeap());
+
+    uint8_t cardType = SD.cardType();
+
+    if(cardType == CARD_NONE){
+        Serial.println("No SD card attached");
+        M5.Lcd.println("No SD card attached");
+        while(1);
+    }
+
+    Serial.print("SD Card Type: ");
+    M5.Lcd.print("SD Card Type: ");
+    if(cardType == CARD_MMC){
+        Serial.println("MMC");
+        M5.Lcd.println("MMC");
+    } else if(cardType == CARD_SD){
+        Serial.println("SDSC");
+        M5.Lcd.println("SDSC");
+    } else if(cardType == CARD_SDHC){
+        Serial.println("SDHC");
+        M5.Lcd.println("SDHC");
+    } else {
+        Serial.println("UNKNOWN");
+        M5.Lcd.println("UNKNOWN");
+    }
+
+    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+    Serial.printf("SD Card Size: %llu MB\n", cardSize);
+    M5.Lcd.printf("SD Card Size: %llu MB\n", cardSize);
+
+    readConfiguration(iniFilename, &cfg);
+    // strcpy(cfg.url, "https://sugarmate.io/api/v1/xxxxxx/latest.json");
+    // strcpy(cfg.url, "user.herokuapp.com"); 
+    // cfg.dev_mode = 1;
+    // cfg.show_mgdl = 1;
+    // cfg.sgv_only = 1;
+    // cfg.default_page = 2;
+    // strcpy(cfg.restart_at_time, "21:59");
+    // cfg.restart_at_logged_errors=3;
+    // cfg.show_COB_IOB = 0;
+    // cfg.snd_warning = 5.5;
+    // cfg.snd_alarm = 4.5;
+    // cfg.snd_warning_high = 9;
+    // cfg.snd_alarm_high = 14;
+    // cfg.alarm_volume = 0;
+    // cfg.warning_volume = 0;
+    // cfg.snd_warning_at_startup = 1;
+    // cfg.snd_alarm_at_startup = 1;
+  
+    // cfg.alarm_repeat = 1;
+    // cfg.snooze_timeout = 2;
+    // cfg.brightness1 = 0;
+    // cfg.temperature_unit = 3;
+    // cfg.date_format = 1;
+    // cfg.display_rotation = 7;
+    // cfg.invert_display = 1;
+    // cfg.info_line = 1;
+
+    if(cfg.invert_display != -1) {
+      M5.Lcd.invertDisplay(cfg.invert_display);
+      Serial.print("Calling M5.Lcd.invertDisplay("); Serial.print(cfg.invert_display); Serial.println(")");
+    } else {
+      Serial.println("No invert_display defined in INI.");
+    }
+    M5.Lcd.setRotation(cfg.display_rotation);
+    lcdBrightness = cfg.brightness1;
+    M5.Lcd.setBrightness(lcdBrightness);
+    
+    startupLogo();
+    yield();
+
+    preferences.begin("M5StackNS", false);
+    if(preferences.getBool("SoftReset", false)) {
+      // no startup sound after soft reset and remove the SoftReset key
+      lastSnoozeTime=preferences.getUInt("LastSnoozeTime", 0);
+      preferences.remove("SoftReset");
+      preferences.remove("LastSnoozeTime");
+    } else {
+      // normal startup so decide by M5NS.INI if to play startup sound
+      if(cfg.snd_warning_at_startup) {
+        play_tone(3000, 100, cfg.warning_volume);
+        delay(500);
+      }
+      if(cfg.snd_alarm_at_startup) {
+        play_tone(660, 400, cfg.alarm_volume);
+        delay(500);
+      }
+    }
+    preferences.end();
+
+    delay(1000);
+    M5.Lcd.fillScreen(BLACK);
+
+    M5.Lcd.setBrightness(lcdBrightness);
+    wifi_connect();
+    yield();
+
+    M5.Lcd.setBrightness(lcdBrightness);
+    M5.Lcd.fillScreen(BLACK);
+    
+    // fill dummy values to error log
+    /*
+    for(int i=0; i<10; i++) {
+      getLocalTime(&err_log[i].err_time);
+      err_log[i].err_code=404;
+    }
+    getLocalTime(&err_log[6].err_time);
+    err_log[6].err_code=HTTPC_ERROR_CONNECTION_REFUSED;
+    err_log_ptr=10;
+    err_log_count=23;
+    */
+
+    // start the internal web server
+    if (MDNS.begin(cfg.deviceName)) {
+      Serial.println("MDNS responder started OK.");
+      mDNSactive = true;
+    } else {
+      Serial.println("ERROR: Could not startMDNS responder.");
+      mDNSactive = false;
+    }
+    w3srv.on("/", handleRoot);
+    w3srv.on("/update", handleUpdate);
+    w3srv.on("/inline", []() {
+      w3srv.send(200, "text/plain", "this is inline and works as well");
+    });
+    w3srv.onNotFound(handleNotFound);
+    w3srv.begin();
+    
+    // test file with time stamps
+    // msCountLog = millis()-6000;
+
+    dispPage = cfg.default_page;
+    setPageIconPos(dispPage);
+    // stat startup time
+    msStart = millis();
+    // update glycemia now
+    msCount = msStart-16000;
+}
+
 // the loop routine runs over and over again forever
 void loop(){
+  w3srv.handleClient();
   delay(20);
   buttons_test();
 
