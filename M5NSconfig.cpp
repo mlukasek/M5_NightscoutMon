@@ -115,6 +115,16 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
     strcpy(cfg->userName, " ");
   }
   
+  if (ini.getValue("config", "device_name", buffer, bufferLen)) {
+    Serial.print("device_name = ");
+    Serial.println(buffer);
+    strlcpy(cfg->deviceName, buffer, 32);
+  }
+  else {
+    Serial.println("NO device name defined, default M5NS");
+    strcpy(cfg->deviceName, "M5NS");
+  }
+  
   if (ini.getValue("config", "time_zone", buffer, bufferLen)) {
     Serial.print("time_zone = ");
     cfg->timeZone = atoi(buffer);
@@ -492,7 +502,7 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
 
     if (ini.getValue(wlansection, "ssid", buffer, bufferLen)) {
       Serial.printf("[wlan%1d] ssid = %s\n", i, buffer);
-      strlcpy(cfg->wlanssid[i], buffer,32);
+      strlcpy(cfg->wlanssid[i], buffer, 32);
     } else {
       Serial.printf("NO [wlan%1d] ssid\n", i);
       cfg->wlanssid[i][0] = 0;
@@ -500,7 +510,7 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
   
     if (ini.getValue(wlansection, "pass", buffer, bufferLen)) {
       Serial.printf("[wlan%1d] pass = %s\n", i, buffer);
-      strlcpy(cfg->wlanpass[i], buffer, 32);
+      strlcpy(cfg->wlanpass[i], buffer, 64);
     } else {
       Serial.printf("NO [wlan%1d] pass\n", i);
       cfg->wlanpass[i][0] = 0;
