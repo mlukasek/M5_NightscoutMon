@@ -162,6 +162,7 @@ token = security token _- token for access secured Nightscout site, if public Ni
 bootpic = /M5_NightscoutMon.jpg _– boot picture_  
 name = YourName _– display name_  
 device_name = M5NS _- device name for mDNS, that can be used to  access the device from local intranet, use .local domain, eg. m5ns.local_  
+disable_web_server - 0 _- To disable internal Web server enter 'disable_web_server = 1'_  
 time_zone = 3600 _– the time zone where you live in seconds (3600 is GMT+1, Prague)_  
 dst = 3600 _– your daylight saving time offset (3600s is +1 hour)_  
 show_mgdl = 0 _– use 0 to display values in mmol/L or 1 for mg/dl_  
