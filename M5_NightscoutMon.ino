@@ -44,7 +44,7 @@
 #include <Wire.h>     //The DHT12 uses I2C comunication.
 DHT12 dht12;          //Preset scale CELSIUS and ID 0x5c.
 
-#define M5NSversion "2019101901"
+#define M5NSversion "2019102704"
 
 // extern const unsigned char alarmSndData[];
 
@@ -146,6 +146,7 @@ struct NSinfo {
 
 void handleRoot() {
   String webVer;
+  String whatsNew;
   HTTPClient http;
   IPAddress ip = WiFi.localIP();
   char tmpStr[32];
@@ -160,6 +161,16 @@ void handleRoot() {
         webVer = http.getString();
       }
     }
+    http.end();
+    http.begin("http://m5ns.goit.cz/update/whatsnew.txt");
+    httpCode = http.GET();
+    if(httpCode > 0) {
+      if(httpCode == HTTP_CODE_OK) {
+        whatsNew = http.getString();
+      }
+    }
+    http.end();
+    whatsNew.replace("\r\n","<br />\r\n");
   }
   // Serial.println(webVer.length());
 
@@ -178,6 +189,8 @@ void handleRoot() {
   }
 
   String sgvUnits = cfg.show_mgdl?"mg/dL":"mmol/L";
+  int decpl = cfg.show_mgdl?0:1;
+  int mult = cfg.show_mgdl?18:1;
   
   String message = "<!DOCTYPE HTML>\r\n";
   message += "<html>\r\n";
@@ -209,14 +222,14 @@ void handleRoot() {
   message += "Show COB+IOB: <b>"; message += cfg.show_COB_IOB?"YES":"NO"; message += "</b><br />\r\n";
   message += "Snooze timeout: <b>"; message += cfg.snooze_timeout; message += " minutes</b><br />\r\n";
   message += "Repeat alarm/warning every <b>"; message += cfg.alarm_repeat; message += " minutes</b><br />\r\n";
-  message += "<font color=\"#BB9900\">Display yellow bellow <b>"; message += cfg.yellow_low; message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"#BB9900\">Display yellow above <b>"; message += cfg.yellow_high; message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"Red\">Display red bellow <b>"; message += cfg.red_low; message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"Red\">Display red above <b>"; message += cfg.red_high; message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"Teal\">Warning sound bellow <b>"; message += cfg.snd_warning; message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"Teal\">Warning sound above <b>"; message += cfg.snd_warning_high; message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"Teal\">Alarm sound bellow <b>"; message += cfg.snd_alarm; message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"Teal\">Alarm sound above <b>"; message += cfg.snd_alarm_high; message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"#BB9900\">Display yellow bellow <b>"; message += String(cfg.yellow_low*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"#BB9900\">Display yellow above <b>"; message += String(cfg.yellow_high*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"Red\">Display red bellow <b>"; message += String(cfg.red_low*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"Red\">Display red above <b>"; message += String(cfg.red_high*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"Teal\">Warning sound bellow <b>"; message += String(cfg.snd_warning*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"Teal\">Warning sound above <b>"; message += String(cfg.snd_warning_high*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"Teal\">Alarm sound bellow <b>"; message += String(cfg.snd_alarm*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
+  message += "<font color=\"Teal\">Alarm sound above <b>"; message += String(cfg.snd_alarm_high*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
   message += "<font color=\"Teal\">Warning sound when no reading for <b>"; message += cfg.snd_no_readings; message += " minutes</b></font><br />\r\n";
   message += "<font color=\"Teal\">Play test warning sound during startup: <b>"; message += cfg.snd_warning_at_startup?"YES":"NO"; message += "</b></font><br />\r\n";
   message += "<font color=\"Teal\">Play test alarm sound during startup: <b>"; message += cfg.snd_alarm_at_startup?"YES":"NO"; message += "</b></font><br />\r\n";
@@ -254,6 +267,7 @@ void handleRoot() {
   }
   message += "</b><br />\r\n";
   message += "Developer mode: <b>"; message += cfg.dev_mode?"Enabled":"Disabled"; message += "</b><br />\r\n";
+  message += "Internal Web Server: <b>"; message += cfg.disable_web_server?"Disabled":"Enabled"; message += "</b><br />\r\n";
   message += "WiFi connected to SSID: <b>"; message += WiFi.SSID(); message += "</b>, ";
   if(mDNSactive) {
     message += "mDNS name: <b>";
@@ -293,12 +307,17 @@ void handleRoot() {
 
   message += "<p><b>Application firmware</b><br />\r\n";
   message += "Current version: "; message += M5NSversion; message += "<br />\r\n";
-  message += "Latest version: "; message += webVer; message += "\r\n";
+  message += "Latest version: "; message += webVer; 
   if(webVer > M5NSversion) {
     message += " ";
-    message += "<a href=\"/update\"><b>click to update</b></href>";
+    message += "<a href=\"/update\"><b>click to update</b></a>";
   }
-  message += "</p>\r\n";
+  message += "<br />\r\n";
+  if(whatsNew.length()>0) {
+    message += "<b>Last update information:</b><br />\r\n";
+    message += whatsNew;
+    message += "\r\n";
+  }
   
   message += "</body>\r\n";
   message += "</html>\r\n";
@@ -324,7 +343,7 @@ void handleUpdate() {
   message += "<html>\r\n";
   message += "<head>\r\n"; 
   message += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\r\n";
-  message += "<meta http-equiv=\"refresh\" content=\"30;url=/\" />";
+  message += "<meta http-equiv=\"refresh\" content=\"30;url=/\" />\r\n";
   message += "<style>\r\n";  
   message += "html { font-family: Segoe UI; display: inline-block; margin: 5px auto; text-align: left;}\r\n";
   message += "</style>\r\n";  
@@ -406,6 +425,25 @@ void handleUpdate() {
   delay(2000);
   M5.Lcd.fillScreen(BLACK);
   draw_page();
+}
+
+void handleEditConfig() {
+  String message = "<!DOCTYPE HTML>\r\n";
+  message += "<html>\r\n";
+  message += "<head>\r\n"; 
+  message += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\r\n";
+  // message += "<meta http-equiv=\"refresh\" content=\"30;url=/\" />\r\n";
+  message += "<style>\r\n";  
+  message += "html { font-family: Segoe UI; display: inline-block; margin: 5px auto; text-align: left;}\r\n";
+  message += "</style>\r\n";  
+  message += "<title>M5 Nightscout - "; message += cfg.userName;  message += "</title>\r\n";
+  message += "</head>\r\n";
+  message += "<body>\r\n";
+  message += "<h1>M5Stack Nightscout monitor for "; message += cfg.userName; message += "!</h1>\r\n";
+  message += "<p>Configuration editor is not implemented yet.</p>\r\n";
+  message += "</body>\r\n";
+  message += "</html>\r\n";
+  w3srv.send(200, "text/html", message);
 }
 
 void handleNotFound() {
@@ -2063,7 +2101,7 @@ void setup() {
     err_log_count=23;
     */
 
-    // start the internal web server
+    // start MDNS service and the internal web server
     if (MDNS.begin(cfg.deviceName)) {
       Serial.println("MDNS responder started OK.");
       mDNSactive = true;
@@ -2071,13 +2109,16 @@ void setup() {
       Serial.println("ERROR: Could not startMDNS responder.");
       mDNSactive = false;
     }
-    w3srv.on("/", handleRoot);
-    w3srv.on("/update", handleUpdate);
-    w3srv.on("/inline", []() {
-      w3srv.send(200, "text/plain", "this is inline and works as well");
-    });
-    w3srv.onNotFound(handleNotFound);
-    w3srv.begin();
+    if(cfg.disable_web_server==0) {
+      w3srv.on("/", handleRoot);
+      w3srv.on("/update", handleUpdate);
+      w3srv.on("/editcfg", handleEditConfig);
+      w3srv.on("/inline", []() {
+        w3srv.send(200, "text/plain", "this is inline and works as well");
+      });
+      w3srv.onNotFound(handleNotFound);
+      w3srv.begin();
+    }
     
     // test file with time stamps
     // msCountLog = millis()-6000;
@@ -2092,7 +2133,8 @@ void setup() {
 
 // the loop routine runs over and over again forever
 void loop(){
-  w3srv.handleClient();
+  if(cfg.disable_web_server==0)
+    w3srv.handleClient();
   delay(20);
   buttons_test();
 
@@ -2107,6 +2149,8 @@ void loop(){
     Serial.print("msCount = "); Serial.println(msCount);
   } else {
     if((cfg.restart_at_logged_errors>0) && (err_log_count>=cfg.restart_at_logged_errors)) {
+      Serial.println("Restarting on number of logged errors...");
+      delay(500);
       preferences.begin("M5StackNS", false);
       preferences.putBool("SoftReset", true);
       preferences.putUInt("LastSnoozeTime", lastSnoozeTime);
@@ -2119,6 +2163,8 @@ void loop(){
       sprintf(localTimeStr, "%02d:%02d", localTimeInfo.tm_hour, localTimeInfo.tm_min);
       // no soft restart less than a minute from last restart to prevent several restarts in the same minute
       if((millis()-msStart>60000) && (strcmp(cfg.restart_at_time, localTimeStr)==0)) {
+        Serial.println("Restarting on preset time...");
+        delay(500);
         preferences.begin("M5StackNS", false);
         preferences.putBool("SoftReset", true);
         preferences.putUInt("LastSnoozeTime", lastSnoozeTime);
