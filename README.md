@@ -198,7 +198,7 @@ snd_alarm_at_startup = 0 _- play test alarm sound with its volume during startup
 warning_volume = 20 _- volume of warning sound in range 0-100 (0=no sound, 1=silent, 100=max volume)_  
 alarm_volume = 100 _- volume of alarm sound in range 0-100 (0=no sound, 1=silent, 100=max volume)
 
-[wlan1] _– you can connect up to 9 WiFi access point, no need to setup all, one is enough_  
+[wlan1] _– you can connect up to 9 WiFi access points, no need to setup all, one is enough_  
 ssid = ssid1  
 pass = pass1
 
