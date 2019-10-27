@@ -161,6 +161,7 @@ nightscout = yoursite.herokuapp.com _– use your Nightscout site URL_
 token = security token _- token for access secured Nightscout site, if public Nightscout site is used, delete token line and do not use it_  
 bootpic = /M5_NightscoutMon.jpg _– boot picture_  
 name = YourName _– display name_  
+device_name = M5NS _- device name for mDNS, that can be use to  access the device from local intranet, use .local domain, eg. m5ns.local_  
 time_zone = 3600 _– the time zone where you live in seconds (3600 is GMT+1, Prague)_  
 dst = 3600 _– your daylight saving time offset (3600s is +1 hour)_  
 show_mgdl = 0 _– use 0 to display values in mmol/L or 1 for mg/dl_  
