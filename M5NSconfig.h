@@ -43,6 +43,7 @@ struct tConfig {
   int invert_display = -1; // -1 = not defined, no not call M5.Lcd.invertDisplay(), 0 or 1 call M5.Lcd.invertDisplay(parameter value)
   int temperature_unit = 1; // 1 = CELSIUS, 2 = KELVIN, 3= FAHRENHEIT
   int dev_mode = 0; // developer mode, do not use, does strange things and changes often ;-)
+  int disable_web_server = 0; // 1 = disable internal web server
   char wlanssid[10][32];
   char wlanpass[10][64];
 } ;

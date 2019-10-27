@@ -496,6 +496,16 @@ void readConfiguration(char *iniFilename, tConfig *cfg) {
     cfg->temperature_unit = 1;
   }
 
+  if (ini.getValue("config", "disable_web_server", buffer, bufferLen)) {
+    Serial.print("disable_web_server = ");
+    cfg->disable_web_server = atoi(buffer);
+    Serial.println(cfg->disable_web_server);
+  }
+  else {
+    Serial.println("NO disable_web_server defined = 0");
+    cfg->disable_web_server = 0;
+  }
+
   for(int i=0; i<=9; i++) {
     char wlansection[10];
     sprintf(wlansection, "wlan%1d", i);
