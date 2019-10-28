@@ -35,12 +35,11 @@ Online update option from internal web page.
 Please note, there is no security implemented yet. Internal web page is on unsecured port 80. Updates are going from server port 80, no SLL used currently. Use on your own risk.  
 
 #### *** 10 October 2019 ***
-Key invert_display (default = -1 when key is not present) added to M5NS.INI. You should not use it in M5NS.INI unless you have a problem with display inversion. Set invert_display = 0 or invert_display = 1 if you have troubles to call M5.Lcd.invertDisplay(0) or M5.Lcd.invertDisplay(1). Under normal circumstances 0 should be normal display and 1 should be inverted display.
-
+Key invert_display (default = -1 when key is not present) added to M5NS.INI. You should not use it in M5NS.INI unless you have a problem with display inversion. Set invert_display = 0 or invert_display = 1 if you have troubles to call M5.Lcd.invertDisplay(0) or M5.Lcd.invertDisplay(1). Under normal circumstances 0 should be normal display and 1 should be inverted display.  
 
 #### *** 23 September 2019 ***
-Key sgv_only (default 0) added to M5NS.INI. You should set it to 1 if you use xDrip, Spike or similar to filter out calibrations etc.
-Explicit M5.Lcd.invertDisplay(0) added to try to prevent inverted display.
+Key sgv_only (default 0) added to M5NS.INI. You should set it to 1 if you use xDrip, Spike or similar to filter out calibrations etc.  
+Explicit M5.Lcd.invertDisplay(0) added to try to prevent inverted display.  
 
 #### *** 21 September 2019 ***
 Added support for Dexcom by using Sugarmate connection workaround. Thanks to Patrick Sonnerat.  
@@ -50,7 +49,7 @@ New page with analog clock and Temperature/Humidity. Display environment values 
 New key in M5NS.INI temperature_unit = 1 for CELSIUS, 2 for KELVIN, 3 for FAHRENHEIT. Can be omitted (default is Celsius).  
 Display rotation possibility added. New key in M5NS.INI display_rotation = 1 (buttons down, default, can be omitted), 3 = buttons up, 5 = mirror buttons up, 7 = mirror buttons down.  
 US date format added. New key in M5NS.INI date_format = 0 (dd.mm., default, can be omitted), 1 = MM/DD.  
-JSON query update for some Bluetooth Glucose Meters.    
+JSON query update for some Bluetooth Glucose Meters.  
 
 #### *** 20 June 2019 ***
 Split of Nightscout read and display code (this should allow simpler user display code update and more different "faces" from users).  
