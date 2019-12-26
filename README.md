@@ -23,6 +23,11 @@
 
 ### Revisions:
 
+#### *** 26 December 2019 ***
+HTTP Server now supports full configuration edit and save.
+WebConfig sources moved to separate files.
+Backup copy of M5NS.INI is copied to M5NS.BAK during save.
+
 #### *** 20 October 2019 ***
 This is mostly test release with new "geek" features. Should be mostly for people with specific troubles and early adopters.  
 Maximum password length extended to 63 characters.  
