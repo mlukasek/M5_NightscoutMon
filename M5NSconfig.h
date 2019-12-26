@@ -48,6 +48,41 @@ struct tConfig {
   char wlanpass[10][64];
 } ;
 
+struct NSinfo {
+  char sensDev[64];
+  uint64_t rawtime = 0;
+  time_t sensTime = 0;
+  struct tm sensTm;
+  char sensDir[32];
+  float sensSgvMgDl = 0;
+  float sensSgv = 0;
+  float last10sgv[10];
+  bool is_xDrip = 0;  
+  bool is_Sugarmate = 0;  
+  int arrowAngle = 180;
+  float iob = 0;
+  char iob_display[16];
+  char iob_displayLine[16];
+  float cob = 0;
+  char cob_display[16];
+  char cob_displayLine[16];
+  int delta_absolute = 0;
+  float delta_elapsedMins = 0;
+  bool delta_interpolated = 0;
+  int delta_mean5MinsAgo = 0;
+  int delta_mgdl = 0;
+  float delta_scaled = 0;
+  char delta_display[16];
+  char loop_display_symbol = '?';
+  char loop_display_code[16];
+  char loop_display_label[16];
+  char basal_display[16];
+  float basal_current = 0;
+  float basal_tempbasal = 0;
+  float basal_combobolusbasal = 0;
+  float basal_totalbasal = 0;
+} ;
+
 void readConfiguration(char *iniFilename, tConfig *cfg);
 
 #endif
