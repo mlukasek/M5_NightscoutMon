@@ -40,11 +40,12 @@
 #include "Free_Fonts.h"
 #include "IniFile.h"
 #include "M5NSconfig.h"
+#include "M5NSWebConfig.h"
 #include "DHT12.h"
 #include <Wire.h>     //The DHT12 uses I2C comunication.
 DHT12 dht12;          //Preset scale CELSIUS and ID 0x5c.
 
-#define M5NSversion "2019102704"
+String M5NSversion("2019122601");
 
 // extern const unsigned char alarmSndData[];
 
@@ -85,6 +86,8 @@ int err_log_count = 0;
 
 int dispPage = 0;
 #define MAX_PAGE 3
+int maxPage = MAX_PAGE;
+
 // icon positions for the first page - WiFi/log, Snooze, Battery
 int icon_xpos[3] = {144, 144+18, 144+2*18};
 int icon_ypos[3] = {0, 0, 0};
@@ -101,7 +104,7 @@ WiFiMulti WiFiMulti;
 unsigned long msCount;
 unsigned long msCountLog;
 unsigned long msStart;
-static uint8_t lcdBrightness = 10;
+uint8_t lcdBrightness = 10;
 static char *iniFilename = "/M5NS.INI";
 
 DynamicJsonDocument JSONdoc(16384);
@@ -109,357 +112,7 @@ time_t lastAlarmTime = 0;
 time_t lastSnoozeTime = 0;
 static uint8_t music_data[25000]; // 5s in sample rate 5000 samp/s
 
-struct NSinfo {
-  char sensDev[64];
-  uint64_t rawtime = 0;
-  time_t sensTime = 0;
-  struct tm sensTm;
-  char sensDir[32];
-  float sensSgvMgDl = 0;
-  float sensSgv = 0;
-  float last10sgv[10];
-  bool is_xDrip = 0;  
-  bool is_Sugarmate = 0;  
-  int arrowAngle = 180;
-  float iob = 0;
-  char iob_display[16];
-  char iob_displayLine[16];
-  float cob = 0;
-  char cob_display[16];
-  char cob_displayLine[16];
-  int delta_absolute = 0;
-  float delta_elapsedMins = 0;
-  bool delta_interpolated = 0;
-  int delta_mean5MinsAgo = 0;
-  int delta_mgdl = 0;
-  float delta_scaled = 0;
-  char delta_display[16];
-  char loop_display_symbol = '?';
-  char loop_display_code[16];
-  char loop_display_label[16];
-  char basal_display[16];
-  float basal_current = 0;
-  float basal_tempbasal = 0;
-  float basal_combobolusbasal = 0;
-  float basal_totalbasal = 0;
-} ns;
-
-void handleRoot() {
-  String webVer;
-  String whatsNew;
-  HTTPClient http;
-  IPAddress ip = WiFi.localIP();
-  char tmpStr[32];
-
-  Serial.println("Serving root web page");
-
-  if((WiFiMulti.run() == WL_CONNECTED)) {
-    http.begin("http://m5ns.goit.cz/update/update.inf");
-    int httpCode = http.GET();
-    if(httpCode > 0) {
-      if(httpCode == HTTP_CODE_OK) {
-        webVer = http.getString();
-      }
-    }
-    http.end();
-    http.begin("http://m5ns.goit.cz/update/whatsnew.txt");
-    httpCode = http.GET();
-    if(httpCode > 0) {
-      if(httpCode == HTTP_CODE_OK) {
-        whatsNew = http.getString();
-      }
-    }
-    http.end();
-    whatsNew.replace("\r\n","<br />\r\n");
-  }
-  // Serial.println(webVer.length());
-
-  char NSurl[128];
-  if(strncmp(cfg.url, "http", 4))
-    strcpy(NSurl,"https://");
-  else
-    strcpy(NSurl,"");
-  strcat(NSurl,cfg.url);
-  if ((cfg.token!=NULL) && (strlen(cfg.token)>0)) {
-    if(strchr(NSurl,'?'))
-      strcat(NSurl,"&token=");
-    else
-      strcat(NSurl,"?token=");
-    strcat(NSurl,cfg.token);
-  }
-
-  String sgvUnits = cfg.show_mgdl?"mg/dL":"mmol/L";
-  int decpl = cfg.show_mgdl?0:1;
-  int mult = cfg.show_mgdl?18:1;
-  
-  String message = "<!DOCTYPE HTML>\r\n";
-  message += "<html>\r\n";
-  message += "<head>\r\n";
-  message += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\r\n";
-  message += "<style>\r\n";
-  message += "html { font-family: Segoe UI; font-size: 15px; font-weight: 100; display: inline-block; margin: 5px auto; text-align: left;}\r\n";
-  message += ".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px;\r\n";
-  message += "text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}\r\n";
-  message += ".button2 {background-color: #555555;}\r\n";
-  message += "</style>\r\n";  
-  message += "<title>M5 Nightscout - "; message += cfg.userName;  message += "</title>\r\n";
-  message += "</head>\r\n";
-  message += "<body>\r\n";
-  message += "<h1>M5Stack Nightscout monitor for "; message += cfg.userName; message += "!</h1>\r\n";
-  
-  message += "<p><b>Current configuration</b><br />\r\n";
-  message += "Nightscout URL: "; message += "<a href=\""; message += NSurl; message += "\"><b>"; message += NSurl; message += "</b></a><br />\r\n";
-  message += "User name: <b>"; message += cfg.userName; message += "</b><br />\r\n";
-  message += "Device name: <b>"; message += cfg.deviceName; message += "</b><br />\r\n";
-  message += "Time offset: <b>"; message += cfg.timeZone; message += " seconds</b><br />\r\n";
-  message += "Daylight saving time offset: <b>"; message += cfg.dst; message += " seconds</b><br />\r\n";
-  message += "Display units: <b>"; message += cfg.show_mgdl?"mg/dL":"mmol/L"; message += "</b><br />\r\n";
-  message += "Filter only SGV values: <b>"; message += cfg.sgv_only?"YES":"NO"; message += "</b><br />\r\n";
-  message += "Default page: <b>"; message += cfg.default_page; message += "</b><br />\r\n";
-  message += "Restart at time: <b>"; message += strcmp(cfg.restart_at_time,"NORES")==0?"do NOT restart":cfg.restart_at_time; message += "</b><br />\r\n";
-  message += "Restart at logged number of errors: <b>"; message += cfg.restart_at_logged_errors==0?"do NOT restart":String(cfg.restart_at_logged_errors); message += "</b><br />\r\n";
-  message += "Show time: <b>"; message += cfg.show_current_time?"current time":"last valid data"; message += "</b><br />\r\n";
-  message += "Show COB+IOB: <b>"; message += cfg.show_COB_IOB?"YES":"NO"; message += "</b><br />\r\n";
-  message += "Snooze timeout: <b>"; message += cfg.snooze_timeout; message += " minutes</b><br />\r\n";
-  message += "Repeat alarm/warning every <b>"; message += cfg.alarm_repeat; message += " minutes</b><br />\r\n";
-  message += "<font color=\"#BB9900\">Display yellow bellow <b>"; message += String(cfg.yellow_low*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"#BB9900\">Display yellow above <b>"; message += String(cfg.yellow_high*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"Red\">Display red bellow <b>"; message += String(cfg.red_low*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"Red\">Display red above <b>"; message += String(cfg.red_high*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"Teal\">Warning sound bellow <b>"; message += String(cfg.snd_warning*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"Teal\">Warning sound above <b>"; message += String(cfg.snd_warning_high*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"Teal\">Alarm sound bellow <b>"; message += String(cfg.snd_alarm*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"Teal\">Alarm sound above <b>"; message += String(cfg.snd_alarm_high*mult, decpl); message += " "+sgvUnits; message += "</b></font><br />\r\n";
-  message += "<font color=\"Teal\">Warning sound when no reading for <b>"; message += cfg.snd_no_readings; message += " minutes</b></font><br />\r\n";
-  message += "<font color=\"Teal\">Play test warning sound during startup: <b>"; message += cfg.snd_warning_at_startup?"YES":"NO"; message += "</b></font><br />\r\n";
-  message += "<font color=\"Teal\">Play test alarm sound during startup: <b>"; message += cfg.snd_alarm_at_startup?"YES":"NO"; message += "</b></font><br />\r\n";
-  message += "<font color=\"Teal\">Warning sound volume <b>"; message += cfg.warning_volume; message += "</b></font><br />\r\n";
-  message += "<font color=\"Teal\">Alarm sound volume <b>"; message += cfg.alarm_volume; message += "</b></font><br />\r\n";
-  message += "Status line: <b>";
-  switch(cfg.info_line) {
-    case 0: message += "sensor info"; break;
-    case 1: message += "button function icons"; break;
-    case 2: message += "loop info + basal"; break;
-  }
-  message += "</b><br />\r\n";
-  message += "Brightness settings steps: <b>";  message += cfg.brightness1; message += ", "; message += cfg.brightness2; message += ", "; message += cfg.brightness3; message += "</b><br />\r\n";
-  message += "Date format: <b>"; message += cfg.date_format?"MM/DD":"dd.mm."; message += "</b><br />\r\n";
-  message += "Display rotation: <b>";
-  switch(cfg.display_rotation) {
-    case 1: message += "buttons down"; break;
-    case 3: message += "buttons up"; break;
-    case 5: message += "mirror buttons up"; break;
-    case 7: message += "mirror buttons down"; break;
-  }
-  message += "</b><br />\r\n";
-  message += "Display inversion: <b>";
-  switch(cfg.invert_display) {
-    case -1: message += "do not change"; break;
-    case 0: message += "false"; break;
-    case 1: message += "true"; break;
-  }
-  message += "</b><br />\r\n";
-  message += "Temperature units: <b>";
-  switch(cfg.temperature_unit) {
-    case 1: message += "Celsius"; break;
-    case 2: message += "Kelvin"; break;
-    case 3: message += "Fahrenheit"; break;
-  }
-  message += "</b><br />\r\n";
-  message += "Developer mode: <b>"; message += cfg.dev_mode?"Enabled":"Disabled"; message += "</b><br />\r\n";
-  message += "Internal Web Server: <b>"; message += cfg.disable_web_server?"Disabled":"Enabled"; message += "</b><br />\r\n";
-  message += "WiFi connected to SSID: <b>"; message += WiFi.SSID(); message += "</b>, ";
-  if(mDNSactive) {
-    message += "mDNS name: <b>";
-    sprintf(tmpStr, "%s.local", cfg.deviceName);
-    message += tmpStr; message += "</b>, ";
-  }
-  message += "IP address: <b>";
-  sprintf(tmpStr, "%u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
-  message += tmpStr; message += "</b><br />\r\n";
-  
-  for(int i=0; i<10; i++) {
-    if(cfg.wlanssid[i][0] != 0) {
-      message += "[wlan"; message += i; message += "] <b>";
-      message += "SSID='";
-      message += cfg.wlanssid[i];
-      if(cfg.wlanpass[i][0]!=0) {
-        message += "', PASS='";
-        message += cfg.wlanpass[i];
-        message += "'</b><br />\r\n";
-      } else {
-        message += "', no password (open)</b><br />\r\n";
-      }
-    }
-  }
-/*
-  char warning_music[64];
-  char alarm_music[64];
-
-  if (output26State=="off") {
-    client.println("<p><a href=\"/26/on\"><button class=\"button\">ON</button></a></p>");
-  } else {
-    client.println("<p><a href=\"/26/off\"><button class=\"button button2\">OFF</button></a></p>");
-  }
-*/  
-  
-  message += "<a href=\"/editcfg\"><strong>Edit configuration</strong></a></p>\r\n";
-
-  message += "<p><b>Application firmware</b><br />\r\n";
-  message += "Current version: "; message += M5NSversion; message += "<br />\r\n";
-  message += "Latest version: "; message += webVer; 
-  if(webVer > M5NSversion) {
-    message += " ";
-    message += "<a href=\"/update\"><b>click to update</b></a>";
-  }
-  message += "<br />\r\n";
-  if(whatsNew.length()>0) {
-    message += "<b>Last update information:</b><br />\r\n";
-    message += whatsNew;
-    message += "\r\n";
-  }
-  
-  message += "</body>\r\n";
-  message += "</html>\r\n";
-  w3srv.send(200, "text/html", message);
-}
-
-void handleUpdate() {
-  Serial.print("Updating firmware, please wait ... ");
-  M5.Lcd.setBrightness(100);
-  M5.Lcd.fillScreen(BLACK);
-  M5.Lcd.setTextColor(WHITE);
-  M5.Lcd.setCursor(0, 18);
-  M5.Lcd.setTextSize(1);
-  M5.Lcd.setFreeFont(FMB9);
-  M5.Lcd.setTextDatum(TL_DATUM);
-  M5.Lcd.println("FIRMWARE UPDATE");
-  M5.Lcd.println();
-  Serial.print("Free Heap: "); Serial.println(ESP.getFreeHeap());
-  M5.Lcd.print("Free Heap: "); M5.Lcd.println(ESP.getFreeHeap());
-  M5.Lcd.println();
-
-  String message = "<!DOCTYPE HTML>\r\n";
-  message += "<html>\r\n";
-  message += "<head>\r\n"; 
-  message += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\r\n";
-  message += "<meta http-equiv=\"refresh\" content=\"30;url=/\" />\r\n";
-  message += "<style>\r\n";  
-  message += "html { font-family: Segoe UI; display: inline-block; margin: 5px auto; text-align: left;}\r\n";
-  message += "</style>\r\n";  
-  message += "<title>M5 Nightscout - "; message += cfg.userName;  message += "</title>\r\n";
-  message += "</head>\r\n";
-  message += "<body>\r\n";
-  message += "<h1>M5Stack Nightscout monitor for "; message += cfg.userName; message += "!</h1>\r\n";
-
-  String webVer;
-  HTTPClient http;
-  WiFiClient client;
-  if((WiFiMulti.run() == WL_CONNECTED)) {
-    http.begin("http://m5ns.goit.cz/update/update.inf");
-    int httpCode = http.GET();
-    if(httpCode > 0) {
-      if(httpCode == HTTP_CODE_OK) {
-        webVer = http.getString();
-      }
-    }
-  }
-
-  M5.Lcd.print("Current firmware: "); M5.Lcd.println(M5NSversion);
-  M5.Lcd.print("Found firmware:"); M5.Lcd.println(webVer);
-  
-  if(webVer > M5NSversion) {
-    message += "<p>Updating firmware to version ";
-    message += webVer;
-    message += ", please wait ... </p>\r\n";
-    message += "<p>Device will restart automatically.</p>\r\n";
-    message += "</body>\r\n";
-    message += "</html>\r\n";
-    w3srv.send(200, "text/html", message);
-
-    M5.Lcd.println();
-    M5.Lcd.println("Updating the firmware... ");
-    M5.Lcd.println();
-    httpUpdate.rebootOnUpdate(false);
-    t_httpUpdate_return ret = httpUpdate.update(client, "http://m5ns.goit.cz/update/M5_NightscoutMon.ino.bin");
-    //t_httpUpdate_return ret = httpUpdate.update(client, "server", 80, "file.bin");
-
-    switch (ret) {
-      case HTTP_UPDATE_FAILED:
-        Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
-        M5.Lcd.setTextColor(RED);
-        M5.Lcd.println("UPDATE FAILED");
-        break;
-
-      case HTTP_UPDATE_NO_UPDATES:
-        Serial.println("HTTP_UPDATE_NO_UPDATES");
-        M5.Lcd.setTextColor(YELLOW);
-        M5.Lcd.println("NO UPDATES");
-        break;
-
-      case HTTP_UPDATE_OK:
-        Serial.println("HTTP_UPDATE_OK, restarting ...");
-        M5.Lcd.setTextColor(GREEN);
-        M5.Lcd.println("UPDATED SUCCESSFULLY");
-        M5.Lcd.println("Restarting ...");
-
-        M5.update();
-        delay(1000);
-        ESP.restart();
-        break;
-    }    
-  } else {
-    message += "<p>Nothing to update. Firmware version ";
-    message += webVer;
-    message += " is current.</p>\r\n";
-    message += "</body>\r\n";
-    message += "</html>\r\n";
-    w3srv.send(200, "text/html", message);
-
-    Serial.println("Nothing to update");
-    M5.Lcd.println();
-    M5.Lcd.setTextColor(YELLOW);
-    M5.Lcd.println("NOTHING TO UPDATE");
-  }
-  M5.update();
-  delay(2000);
-  M5.Lcd.fillScreen(BLACK);
-  draw_page();
-}
-
-void handleEditConfig() {
-  String message = "<!DOCTYPE HTML>\r\n";
-  message += "<html>\r\n";
-  message += "<head>\r\n"; 
-  message += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\r\n";
-  // message += "<meta http-equiv=\"refresh\" content=\"30;url=/\" />\r\n";
-  message += "<style>\r\n";  
-  message += "html { font-family: Segoe UI; display: inline-block; margin: 5px auto; text-align: left;}\r\n";
-  message += "</style>\r\n";  
-  message += "<title>M5 Nightscout - "; message += cfg.userName;  message += "</title>\r\n";
-  message += "</head>\r\n";
-  message += "<body>\r\n";
-  message += "<h1>M5Stack Nightscout monitor for "; message += cfg.userName; message += "!</h1>\r\n";
-  message += "<p>Configuration editor is not implemented yet.</p>\r\n";
-  message += "</body>\r\n";
-  message += "</html>\r\n";
-  w3srv.send(200, "text/html", message);
-}
-
-void handleNotFound() {
-  String message = "M5Stack Nighscout monitor ERROR 404 File Not Found\n\n";
-  message += "URI: ";
-  message += w3srv.uri();
-  message += "\nMethod: ";
-  message += (w3srv.method() == HTTP_GET) ? "GET" : "POST";
-  message += "\nArguments: ";
-  message += w3srv.args();
-  message += "\n";
-  for (uint8_t i = 0; i < w3srv.args(); i++) {
-    message += " " + w3srv.argName(i) + ": " + w3srv.arg(i) + "\n";
-  }
-  w3srv.send(404, "text/plain", message);
-}
+struct NSinfo ns;
 
 void setPageIconPos(int page) {
   switch(page) {
@@ -674,7 +327,7 @@ void buttons_test() {
     int txw=M5.Lcd.textWidth(tmpStr);
     Serial.print("Set SNOOZE: "); Serial.println(tmpStr);
     M5.Lcd.drawString(tmpStr, 159-txw/2, 220, GFXFF);
-    if(dispPage<MAX_PAGE)
+    if(dispPage<maxPage)
       drawIcon(icon_xpos[1], icon_ypos[1], (uint8_t*)clock_icon16x16, TFT_RED);
   } 
   
@@ -711,7 +364,7 @@ void buttons_test() {
       drawIcon(246, 220, (uint8_t*)door_icon16x16, TFT_LIGHTGREY);
     } else {
       dispPage++;
-      if(dispPage>MAX_PAGE)
+      if(dispPage>maxPage)
         dispPage = 0;
       setPageIconPos(dispPage);
       M5.Lcd.clear(BLACK);
@@ -1190,7 +843,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
 
 void drawBatteryStatus(int16_t x, int16_t y) {
   int8_t battLevel = getBatteryLevel();
-  Serial.print("Battery level: "); Serial.println(battLevel);
+  // Serial.print("Battery level: "); Serial.println(battLevel);
   M5.Lcd.fillRect(x, y, 16, 17, TFT_BLACK);
   if(battLevel!=-1) {
     switch(battLevel) {
@@ -1236,11 +889,11 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
   M5.Lcd.setTextDatum(TL_DATUM);
   if( snoozeDifSec<cfg.snooze_timeout*60 ) {
     sprintf(tmpStr, "%i", (cfg.snooze_timeout*60-snoozeDifSec+59)/60);
-    if(dispPage<MAX_PAGE)
+    if(dispPage<maxPage)
       drawIcon(icon_xpos[1], icon_ypos[1], (uint8_t*)clock_icon16x16, TFT_RED);
   } else {
     strcpy(tmpStr, "Snooze");
-    if(dispPage<MAX_PAGE)
+    if(dispPage<maxPage)
       M5.Lcd.fillRect(icon_xpos[1], icon_ypos[1], 16, 16, BLACK);
   }
   M5.Lcd.setTextSize(1);
@@ -1455,7 +1108,7 @@ void draw_page() {
           M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
         else
           M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-        Serial.print("ns.iob_displayLine=\""); Serial.print(ns.iob_displayLine); Serial.println("\"");
+        // Serial.print("ns.iob_displayLine=\""); Serial.print(ns.iob_displayLine); Serial.println("\"");
         strncpy(tmpstr, ns.iob_displayLine, 16);
         if(strncmp(tmpstr, "IOB:", 4)==0) {
           strcpy(tmpstr,"I");
@@ -1466,7 +1119,7 @@ void draw_page() {
           M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
         else
           M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-        Serial.print("ns.cob_displayLine=\""); Serial.print(ns.cob_displayLine); Serial.println("\"");
+        // Serial.print("ns.cob_displayLine=\""); Serial.print(ns.cob_displayLine); Serial.println("\"");
         strncpy(tmpstr, ns.cob_displayLine, 16);
         if(strncmp(tmpstr, "COB:", 4)==0) {
           strcpy(tmpstr,"C");
@@ -2112,7 +1765,10 @@ void setup() {
     if(cfg.disable_web_server==0) {
       w3srv.on("/", handleRoot);
       w3srv.on("/update", handleUpdate);
-      w3srv.on("/editcfg", handleEditConfig);
+      w3srv.on("/savecfg", handleSaveConfig);
+      w3srv.on("/switch", handleSwitchConfig);
+      w3srv.on("/edititem", handleEditConfigItem);
+      w3srv.on("/getedititem", handleGetEditConfigItem);
       w3srv.on("/inline", []() {
         w3srv.send(200, "text/plain", "this is inline and works as well");
       });
@@ -2133,7 +1789,7 @@ void setup() {
 
 // the loop routine runs over and over again forever
 void loop(){
-  if(cfg.disable_web_server==0)
+  if(!cfg.disable_web_server)
     w3srv.handleClient();
   delay(20);
   buttons_test();
