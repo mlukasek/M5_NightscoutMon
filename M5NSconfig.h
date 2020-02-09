@@ -83,6 +83,6 @@ struct NSinfo {
   float basal_totalbasal = 0;
 } ;
 
-void readConfiguration(char *iniFilename, tConfig *cfg);
+void readConfiguration(const char *iniFilename, tConfig *cfg);
 
 #endif
