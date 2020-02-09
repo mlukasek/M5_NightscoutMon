@@ -4,8 +4,12 @@
 
 ### 09 February 2020
 
-* Possibility to use VSCode & Platform.IO  
-* Cleanup of README.md, changelog refactored to CHANGELOG.md  
+* Corrected an error in shifting SGV history graph buffer.  
+* Commented out some unused variables  
+* Renamed WiFiMulti to WiFiMultiple. (Dominik Dzienia)  
+* Some externals moved to extern.h  (Dominik Dzienia)  
+* Sources are now possible to compile in VSCode & Platform.IO, which is about 4 times faster, has better syntax highlighting, ... Just rename .ino to .cpp (Dominik Dzienia)  
+* Cleanup of README.md, changelog refactored to CHANGELOG.md (Dominik Dzienia)  
 
 ### 26 December 2019
 
