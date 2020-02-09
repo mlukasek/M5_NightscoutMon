@@ -47,7 +47,7 @@
 #include <Wire.h>     //The DHT12 uses I2C comunication.
 DHT12 dht12;          //Preset scale CELSIUS and ID 0x5c.
 
-String M5NSversion("2020020901");
+String M5NSversion("2020020902");
 
 // extern const unsigned char alarmSndData[];
 
@@ -755,9 +755,19 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     else
       strcpy(NSurl,"");
     strcat(NSurl,url);
-    strcat(NSurl,"/api/v2/properties/iob,cob,delta,loop,basal");
+    switch(cfg.info_line) {
+      case 2:
+        strcat(NSurl,"/api/v2/properties/iob,cob,delta,loop,basal");
+        break;
+      case 3:
+        strcat(NSurl,"/api/v2/properties/iob,cob,delta,openaps,basal");
+        break;
+      default:
+        strcat(NSurl,"/api/v2/properties/iob,cob,delta,basal");
+    }
+    
     if (strlen(token) > 0){
-      strcat(NSurl,"&token=");
+      strcat(NSurl,"?token=");
       strcat(NSurl,token);
     }
     
@@ -813,8 +823,15 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
           strncpy(ns->delta_display, delta["display"] | "", 16); // "-0.2"
           // Serial.println("DELTA OK");
           
-          JsonObject loop_obj = JSONdoc["loop"];
-          JsonObject loop_display = loop_obj["display"];
+          JsonObject loop_obj;
+          JsonObject loop_display;
+          if(cfg.info_line==3) {
+            loop_obj = JSONdoc["openaps"];
+            loop_display = loop_obj["status"];
+          } else {
+            loop_obj = JSONdoc["loop"];
+            loop_display = loop_obj["display"];
+          }
           strncpy(tmpstr, loop_display["symbol"] | "?", 4); // "⌁"
           ns->loop_display_symbol = tmpstr[0];
           strncpy(ns->loop_display_code, loop_display["code"] | "N/A", 16); // "enacted"
@@ -1000,6 +1017,7 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
                 drawIcon(246, 220, (uint8_t*)door_icon16x16, TFT_LIGHTGREY);
                 break;
               case 2: // loop + basal information
+              case 3: // openaps + basal information
                 strcpy(infoStr, "L: ");
                 strlcat(infoStr, ns->loop_display_label, 64);
                 M5.Lcd.drawString(infoStr, 0, 220, GFXFF);
@@ -1708,7 +1726,7 @@ void setup() {
     // cfg.date_format = 1;
     // cfg.display_rotation = 7;
     // cfg.invert_display = 1;
-    // cfg.info_line = 1;
+    // cfg.info_line = 3;
 
     if(cfg.invert_display != -1) {
       M5.Lcd.invertDisplay(cfg.invert_display);
