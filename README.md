@@ -43,30 +43,34 @@ If you know what to do with it, just download the code, modify it any way it sui
 ```ini
 [config]
 
-nightscout = yoursite.herokuapp.com   ; use your Nightscout site URL
-token = security token                ; token for access secured Nightscout site, if public Nightscout site is used, delete token line and do not use it
-bootpic = /M5_NightscoutMon.jpg       ; boot picture
-name = YourName                       ; display name
-device_name = M5NS                    ; device name for mDNS, that can be used to  access the device from local intranet, use .local domain, eg. m5ns.local
-disable_web_server = 0                ; To disable internal Web server enter 'disable_web_server = 1'
-time_zone = 3600                      ; the time zone where you live in seconds (3600 is GMT+1, Prague)
-dst = 3600                            ; your daylight saving time offset (3600s is +1 hour)
-show_mgdl = 0                         ; use 0 to display values in mmol/L or 1 for mg/dl
-sgv_only = 0                          ; set to 1 if you use xDrip, Spike or similar to filter out calibrations etc
-default_page = 0                      ; page number displayed after startup
-show_current_time = 1                 ; show current time instead of last valid data time
-restart_at_time = HH:MM               ; time in HH:MM format when the device will restart
-restart_at_logged_errors = 0          ; restart device after particular number of errors in the log (0 = do not restart)
-show_COB_IOB = 1                      ; show COB and IOB, values are grayed out if COB/IOB value is 0
-snooze_timeout = 30                   ; sound snooze time in minutes after press of the middle button
-alarm_repeat = 5                      ; sound repeat interval in minutes (alarm repeats only if alarm/warning conditions are met)
-info_line = 1                         ; 0 = sensor info, 1 = button function icons, 2 = loop info (Loop) + basal, 3 = OpenAPS loop info + basal
-temperature_unit = 1                  ; 1 = CELSIUS, 2 = KELVIN, 3 = FAHRENHEIT. Can be omitted (default is Celsius).
-display_rotation = 1                  ; 1 = buttons down (default, can be omitted), 3 = buttons up, 5 = mirror buttons up, 7 = mirror buttons down  
-date_format = 0                       ; 0 = dd.mm. (default, can be omitted), 1 = MM/DD
-brightness1 = 50                      ; the first (default) brightness value
-brightness2 = 100                     ; the second brightness value
-brightness3 = 10                      ; the third brightness value
+nightscout = yoursite.herokuapp.com ; use your Nightscout site URL
+token = security token              ; token for access secured Nightscout site, 
+                                    ; if public Nightscout site is used, delete token line and do not use it
+bootpic = /M5_NightscoutMon.jpg     ; boot picture
+name = YourName                     ; display name
+device_name = M5NS                  ; device name for mDNS, that can be used to  access the device from local intranet, 
+                                    ; use .local domain, eg. m5ns.local
+disable_web_server = 0              ; To disable internal Web server enter 'disable_web_server = 1'
+time_zone = 3600                    ; the time zone where you live in seconds (3600 is GMT+1, Prague)
+dst = 3600                          ; your daylight saving time offset (3600s is +1 hour)
+show_mgdl = 0                       ; use 0 to display values in mmol/L or 1 for mg/dl
+sgv_only = 0                        ; set to 1 if you use xDrip, Spike or similar to filter out calibrations etc
+default_page = 0                    ; page number displayed after startup
+show_current_time = 1               ; show current time instead of last valid data time
+restart_at_time = HH:MM             ; time in HH:MM format when the device will restart
+restart_at_logged_errors = 0        ; restart device after particular number of errors in the log (0 = do not restart)
+show_COB_IOB = 1                    ; show COB and IOB, values are grayed out if COB/IOB value is 0
+snooze_timeout = 30                 ; sound snooze time in minutes after press of the middle button
+alarm_repeat = 5                    ; sound repeat interval in minutes (alarm repeats only if alarm/warning conditions are met)
+info_line = 1                       ; 0 = sensor info, 1 = button function icons, 
+                                    ; 2 = loop info (Loop) + basal, 3 = OpenAPS loop info + basal
+temperature_unit = 1                ; 1 = CELSIUS, 2 = KELVIN, 3 = FAHRENHEIT. Can be omitted (default is Celsius).
+display_rotation = 1                ; 1 = buttons down (default, can be omitted), 3 = buttons up, 
+                                    ; 5 = mirror buttons up, 7 = mirror buttons down  
+date_format = 0                     ; 0 = dd.mm. (default, can be omitted), 1 = MM/DD
+brightness1 = 50                    ; the first (default) brightness value
+brightness2 = 100                   ; the second brightness value
+brightness3 = 10                    ; the third brightness value
 
 ;;;;;;;;;; following values are in mmol/L or mg/dL depending on the previous setting of "show_mgdl" key value_
 
