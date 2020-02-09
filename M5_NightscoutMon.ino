@@ -25,6 +25,7 @@
     Sulka Haro (Nightscout API queries help)
 */
 
+#include <Arduino.h>
 #include <M5Stack.h>
 #include <Preferences.h>
 #include <WiFi.h>
@@ -34,6 +35,7 @@
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
 #include "time.h"
+#include "externs.h"
 // #include <util/eu_dst.h>
 #define ARDUINOJSON_USE_LONG_LONG 1
 #include <ArduinoJson.h>
@@ -45,7 +47,7 @@
 #include <Wire.h>     //The DHT12 uses I2C comunication.
 DHT12 dht12;          //Preset scale CELSIUS and ID 0x5c.
 
-String M5NSversion("2019122601");
+String M5NSversion("2020020902");
 
 // extern const unsigned char alarmSndData[];
 
@@ -96,16 +98,24 @@ int icon_ypos[3] = {0, 0, 0};
 uint16_t osx=120, osy=120, omx=120, omy=120, ohx=120, ohy=120;  // Saved H, M, S x & y coords
 boolean initial = 1;
 boolean mDNSactive = false;
+
 #ifndef min
   #define min(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
-WiFiMulti WiFiMulti;
+#ifndef M_PI
+    #define M_PI 3.14159265358979323846
+#endif
+
+void draw_page();
+
+WiFiMulti WiFiMultiple;
+
 unsigned long msCount;
 unsigned long msCountLog;
 unsigned long msStart;
 uint8_t lcdBrightness = 10;
-static char *iniFilename = "/M5NS.INI";
+const char iniFilename[] = "/M5NS.INI";
 
 DynamicJsonDocument JSONdoc(16384);
 time_t lastAlarmTime = 0;
@@ -166,7 +176,7 @@ void addErrorLog(int code){
 }
 
 void startupLogo() {
-    static uint8_t brightness, pre_brightness;
+    // static uint8_t brightness, pre_brightness;
     M5.Lcd.setBrightness(0);
     if(cfg.bootPic[0]==0) {
       // M5.Lcd.pushImage(0, 0, 320, 240, (uint16_t *)gImage_logoM5);
@@ -354,8 +364,8 @@ void buttons_test() {
       }
       if(timeToPwrOff<=0) {
         // play_tone(3000, 100, 1);
-        M5.setWakeupButton(BUTTON_C_PIN);
-        M5.powerOFF();
+        M5.Power.setWakeupButton(BUTTON_C_PIN);
+        M5.Power.powerOFF();
       }
       M5.update();
     }
@@ -393,9 +403,9 @@ void wifi_connect() {
     if(cfg.wlanssid[i][0]!=0) {
       if(cfg.wlanpass[i][0]==0) {
         // no or empty password -> send NULL
-        WiFiMulti.addAP(cfg.wlanssid[i], NULL);
+        WiFiMultiple.addAP(cfg.wlanssid[i], NULL);
       } else {
-        WiFiMulti.addAP(cfg.wlanssid[i], cfg.wlanpass[i]);
+        WiFiMultiple.addAP(cfg.wlanssid[i], cfg.wlanpass[i]);
       }
     }
   }
@@ -405,7 +415,7 @@ void wifi_connect() {
   Serial.print("Wait for WiFi... ");
   M5.Lcd.print("Wait for WiFi... ");
 
-  while(WiFiMulti.run() != WL_CONNECTED) {
+  while(WiFiMultiple.run() != WL_CONNECTED) {
       Serial.print(".");
       M5.Lcd.print(".");
       delay(500);
@@ -552,7 +562,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
   int err=0;
   char tmpstr[32];
   
-  if((WiFiMulti.run() == WL_CONNECTED)) {
+  if((WiFiMultiple.run() == WL_CONNECTED)) {
     // configure target server and url
     if(strncmp(url, "http", 4))
       strcpy(NSurl,"https://");
@@ -653,7 +663,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
             ns->sensSgv = JSONdoc["value"]; // get value of sensor measurement
             time_t tmptime = JSONdoc["x"]; // time in milliseconds since 1970
             if(ns->sensTime != tmptime) {
-              for(int i=9; i>=0; i--) { // add new value and shift buffer
+              for(int i=9; i>0; i--) { // add new value and shift buffer
                ns->last10sgv[i]=ns->last10sgv[i-1];
               }
               ns->last10sgv[0] = ns->sensSgv;
@@ -745,9 +755,19 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     else
       strcpy(NSurl,"");
     strcat(NSurl,url);
-    strcat(NSurl,"/api/v2/properties/iob,cob,delta,loop,basal");
+    switch(cfg.info_line) {
+      case 2:
+        strcat(NSurl,"/api/v2/properties/iob,cob,delta,loop,basal");
+        break;
+      case 3:
+        strcat(NSurl,"/api/v2/properties/iob,cob,delta,openaps,basal");
+        break;
+      default:
+        strcat(NSurl,"/api/v2/properties/iob,cob,delta,basal");
+    }
+    
     if (strlen(token) > 0){
-      strcat(NSurl,"&token=");
+      strcat(NSurl,"?token=");
       strcat(NSurl,token);
     }
     
@@ -803,8 +823,15 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
           strncpy(ns->delta_display, delta["display"] | "", 16); // "-0.2"
           // Serial.println("DELTA OK");
           
-          JsonObject loop_obj = JSONdoc["loop"];
-          JsonObject loop_display = loop_obj["display"];
+          JsonObject loop_obj;
+          JsonObject loop_display;
+          if(cfg.info_line==3) {
+            loop_obj = JSONdoc["openaps"];
+            loop_display = loop_obj["status"];
+          } else {
+            loop_obj = JSONdoc["loop"];
+            loop_display = loop_obj["display"];
+          }
           strncpy(tmpstr, loop_display["symbol"] | "?", 4); // "⌁"
           ns->loop_display_symbol = tmpstr[0];
           strncpy(ns->loop_display_code, loop_display["code"] | "N/A", 16); // "enacted"
@@ -990,6 +1017,7 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
                 drawIcon(246, 220, (uint8_t*)door_icon16x16, TFT_LIGHTGREY);
                 break;
               case 2: // loop + basal information
+              case 3: // openaps + basal information
                 strcpy(infoStr, "L: ");
                 strlcat(infoStr, ns->loop_display_label, 64);
                 M5.Lcd.drawString(infoStr, 0, 220, GFXFF);
@@ -1215,7 +1243,7 @@ void draw_page() {
         M5.Lcd.drawString(sensSgvStr, 0, 120, GFXFF);
       }
       int tw=M5.Lcd.textWidth(sensSgvStr);
-      int th=M5.Lcd.fontHeight(GFXFF);
+      // int th=M5.Lcd.fontHeight(GFXFF);
       // Serial.print("textWidth="); Serial.println(tw);
       // Serial.print("textHeight="); Serial.println(th);
     
@@ -1259,7 +1287,7 @@ void draw_page() {
       M5.Lcd.setTextDatum(MC_DATUM);
       M5.Lcd.setTextColor(glColor, TFT_BLACK);
       char sensSgvStr[30];
-      int smaller_font = 0;
+      // int smaller_font = 0;
       if( cfg.show_mgdl ) {
         if(ns.sensSgvMgDl<100) {
           sprintf(sensSgvStr, "%2.0f", ns.sensSgvMgDl);
@@ -1339,7 +1367,7 @@ void draw_page() {
       M5.Lcd.setTextDatum(TL_DATUM);
       M5.Lcd.setTextColor(glColor, TFT_BLACK);
       char sensSgvStr[30];
-      int smaller_font = 0;
+      // int smaller_font = 0;
       if( cfg.show_mgdl ) {
         if(ns.sensSgvMgDl<100) {
           sprintf(sensSgvStr, "%2.0f", ns.sensSgvMgDl);
@@ -1698,7 +1726,7 @@ void setup() {
     // cfg.date_format = 1;
     // cfg.display_rotation = 7;
     // cfg.invert_display = 1;
-    // cfg.info_line = 1;
+    // cfg.info_line = 3;
 
     if(cfg.invert_display != -1) {
       M5.Lcd.invertDisplay(cfg.invert_display);

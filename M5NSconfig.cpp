@@ -38,7 +38,7 @@ void printErrorMessage(uint8_t e, bool eol = true)
     Serial.println();
 }
 
-void readConfiguration(char *iniFilename, tConfig *cfg) {
+void readConfiguration(const char *iniFilename, tConfig *cfg) {
   const size_t bufferLen = 80;
   char buffer[bufferLen];
     

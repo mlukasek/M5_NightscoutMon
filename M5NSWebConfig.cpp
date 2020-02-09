@@ -13,19 +13,7 @@
 #include "IniFile.h"
 #include "M5NSconfig.h"
 #include "M5NSWebConfig.h"
-
-extern WebServer w3srv;
-extern tConfig cfg;
-extern struct NSinfo ns;
-extern WiFiMulti WiFiMulti;
-extern boolean mDNSactive;
-extern int8_t getBatteryLevel();
-extern void draw_page();
-extern String M5NSversion;
-extern int dispPage;
-extern int maxPage;
-extern void setPageIconPos(int page);
-extern uint8_t lcdBrightness;
+#include "externs.h"
 
 void handleRoot() {
   String webVer;
@@ -36,21 +24,33 @@ void handleRoot() {
 
   Serial.println("Serving root web page");
 
-  if((WiFiMulti.run() == WL_CONNECTED)) {
+  if((WiFiMultiple.run() == WL_CONNECTED)) {
     http.begin("http://m5ns.goit.cz/update/update.inf");
+    http.setTimeout(5000);
+    http.setConnectTimeout(5000);
     int httpCode = http.GET();
     if(httpCode > 0) {
       if(httpCode == HTTP_CODE_OK) {
         webVer = http.getString();
+      } else {
+        Serial.println("Error getting update.inf +");
       }
+    } else {
+      Serial.println("Error getting update.inf");
     }
     http.end();
     http.begin("http://m5ns.goit.cz/update/whatsnew.txt");
+    http.setTimeout(5000);
+    http.setConnectTimeout(5000);
     httpCode = http.GET();
     if(httpCode > 0) {
       if(httpCode == HTTP_CODE_OK) {
         whatsNew = http.getString();
+      } else {
+        Serial.println("Error getting whatsnew.txt +");
       }
+    } else {
+      Serial.println("Error getting whatsnew.txt");
     }
     http.end();
     whatsNew.replace("\r\n","<br />\r\n");
@@ -298,7 +298,7 @@ void handleUpdate() {
   String webVer;
   HTTPClient http;
   WiFiClient client;
-  if((WiFiMulti.run() == WL_CONNECTED)) {
+  if((WiFiMultiple.run() == WL_CONNECTED)) {
     http.begin("http://m5ns.goit.cz/update/update.inf");
     int httpCode = http.GET();
     if(httpCode > 0) {
@@ -491,8 +491,8 @@ void handleEditConfigItem() {
   message += "<h1>M5Stack Nightscout monitor for "; message += cfg.userName; message += "!</h1>\r\n";
   message += "<p>Edit configuration item.</p>\r\n";
   message += "<form action=\"/getedititem\" method=\"post\">\r\n";
-  char itemName[60];
-  char itemValue[250];
+  // char itemName[60];
+  // char itemValue[250];
   if(String(w3srv.argName(0)).equals("param")) {
     if(String(w3srv.arg(0)).equals("userName")) {
       message += "M5Stack user name: \r\n";
