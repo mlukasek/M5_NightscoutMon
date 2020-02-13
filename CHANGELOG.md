@@ -4,6 +4,8 @@
 
 ### 09 February 2020
 
+* Support for OpenAPS loop (set info_line = 3 in M5NS.INI).  
+* Corrected error in token implementation for IOB, COB, Loop, OpenAPS, basal.  
 * Corrected an error in shifting SGV history graph buffer.  
 * Commented out some unused variables  
 * Renamed WiFiMulti to WiFiMultiple. (Dominik Dzienia)  
