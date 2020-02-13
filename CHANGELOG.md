@@ -5,7 +5,7 @@
 ### 13 February 2020
 
 * Improved time handling when Epoch in milliseconds has decimal places (CGMBLEKit).
-* Added version number to the letest (log) page.  
+* Added version number to the latest (log) page.  
 * Some minor diagnostics monitor/log updates.  
 
 ### 09 February 2020
