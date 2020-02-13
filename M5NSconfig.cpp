@@ -511,18 +511,18 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
     sprintf(wlansection, "wlan%1d", i);
 
     if (ini.getValue(wlansection, "ssid", buffer, bufferLen)) {
-      Serial.printf("[wlan%1d] ssid = %s\n", i, buffer);
+      Serial.printf("[wlan%1d] ssid = %s\r\n", i, buffer);
       strlcpy(cfg->wlanssid[i], buffer, 32);
     } else {
-      Serial.printf("NO [wlan%1d] ssid\n", i);
+      Serial.printf("NO [wlan%1d] ssid\r\n", i);
       cfg->wlanssid[i][0] = 0;
     }
   
     if (ini.getValue(wlansection, "pass", buffer, bufferLen)) {
-      Serial.printf("[wlan%1d] pass = %s\n", i, buffer);
+      Serial.printf("[wlan%1d] pass = %s\r\n", i, buffer);
       strlcpy(cfg->wlanpass[i], buffer, 64);
     } else {
-      Serial.printf("NO [wlan%1d] pass\n", i);
+      Serial.printf("NO [wlan%1d] pass\r\n", i);
       cfg->wlanpass[i][0] = 0;
     }
   }
