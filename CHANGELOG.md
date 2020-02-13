@@ -2,6 +2,12 @@
 
 ## Revisions
 
+### 13 February 2020
+
+* Improved time handling when Epoch in milliseconds has decimal places (CGMBLEKit).
+* Added version number to the latest (log) page.  
+* Some minor diagnostics monitor/log updates.  
+
 ### 09 February 2020
 
 * Support for OpenAPS loop (set info_line = 3 in M5NS.INI).  

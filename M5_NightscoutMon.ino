@@ -47,7 +47,7 @@
 #include <Wire.h>     //The DHT12 uses I2C comunication.
 DHT12 dht12;          //Preset scale CELSIUS and ID 0x5c.
 
-String M5NSversion("2020020902");
+String M5NSversion("2020021301");
 
 // extern const unsigned char alarmSndData[];
 
@@ -591,17 +591,17 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     M5.Lcd.fillRect(icon_xpos[0], icon_ypos[0], 16, 16, BLACK);
     drawIcon(icon_xpos[0], icon_ypos[0], (uint8_t*)wifi2_icon16x16, TFT_BLUE);
     
-    Serial.print("JSON query NSurl = \'");Serial.print(NSurl);Serial.print("\'\n");
+    Serial.print("JSON query NSurl = \'");Serial.print(NSurl);Serial.print("\'\r\n");
     http.begin(NSurl); //HTTP
     
-    Serial.print("[HTTP] GET...\n");
+    Serial.print("[HTTP] GET...\r\n");
     // start connection and send HTTP header
     int httpCode = http.GET();
   
     // httpCode will be negative on error
     if(httpCode > 0) {
       // HTTP header has been send and Server response header has been handled
-      Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+      Serial.printf("[HTTP] GET... code: %d\r\n", httpCode);
 
       // file found at server
       if(httpCode == HTTP_CODE_OK) {
@@ -621,6 +621,24 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
         // Serial.println(json);
         // const size_t capacity = JSON_ARRAY_SIZE(10) + 10*JSON_OBJECT_SIZE(19) + 3840;
         // Serial.print("JSON size needed= "); Serial.print(capacity); 
+        int ndx=0;
+        int sr=json.indexOf("\"date\":", ndx);
+        while(sr!=-1) {
+          ndx=sr+1;
+          if(sr+20<json.length()) {
+            // Serial.printf("Found date at position %d with char '%c' at +20\r\n", sr, json.charAt(sr+20));
+            if(json.charAt(sr+20)=='.') {
+              Serial.printf("Deleting at postion %d char '%c'\r\n", sr+20, json.charAt(sr+20));
+              json.remove(sr+20,1);
+              while(sr+20<json.length() && json.charAt(sr+20)>='0' && json.charAt(sr+20)<='9') {
+                Serial.printf("Cyclus deleting at postition %d char '%c'\r\n", sr+20, json.charAt(sr+20));
+                json.remove(sr+20,1);
+              }
+            }
+          }
+          sr=json.indexOf("\"date\":", ndx);
+        }
+        // Serial.println(json);
         Serial.print("Free Heap = "); Serial.println(ESP.getFreeHeap());
         DeserializationError JSONerr = deserializeJson(JSONdoc, json);
         Serial.println("JSON deserialized OK");
@@ -648,6 +666,17 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
               sgvindex=0;
             strlcpy(ns->sensDev, JSONdoc[sgvindex]["device"] | "N/A", 64);
             ns->is_xDrip = obj.containsKey("xDrip_raw");
+            /*
+            JsonVariant answer = JSONdoc[sgvindex]["date"];
+            const char* s = answer.as<char*>(); 
+            if(s!=NULL)
+              strlcpy(tmpstr, s, 32);
+            else
+              tmpstr[0]=0;
+            Serial.printf("DATE string: %s\r\n", tmpstr);
+            double LD=answer; 
+            Serial.printf("DATE double: %lf\r\n", LD);
+            */
             ns->rawtime = JSONdoc[sgvindex]["date"].as<long long>(); // sensTime is time in milliseconds since 1970, something like 1555229938118
             ns->sensTime = ns->rawtime / 1000; // no milliseconds, since 2000 would be - 946684800, but ok
             strlcpy(ns->sensDir, JSONdoc[sgvindex]["direction"] | "N/A", 32);
@@ -741,7 +770,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     http.end();
 
     if(err!=0) {
-      Serial.printf("Returnining with error %d\n",err);
+      Serial.printf("Returnining with error %d\r\n",err);
       return err;
     }
       
@@ -774,12 +803,12 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     M5.Lcd.fillRect(icon_xpos[0], icon_ypos[0], 16, 16, BLACK);
     drawIcon(icon_xpos[0], icon_ypos[0], (uint8_t*)wifi1_icon16x16, TFT_BLUE);
 
-    Serial.print("Properties query NSurl = \'");Serial.print(NSurl);Serial.print("\'\n");
+    Serial.print("Properties query NSurl = \'");Serial.print(NSurl);Serial.print("\'\r\n");
     http.begin(NSurl); //HTTP
-    Serial.print("[HTTP] GET properties...\n");
+    Serial.print("[HTTP] GET properties...\r\n");
     httpCode = http.GET();
     if(httpCode > 0) {
-      Serial.printf("[HTTP] GET properties... code: %d\n", httpCode);
+      Serial.printf("[HTTP] GET properties... code: %d\r\n", httpCode);
       if(httpCode == HTTP_CODE_OK) {
         // const char* propjson = "{\"iob\":{\"iob\":0,\"activity\":0,\"source\":\"OpenAPS\",\"device\":\"openaps://Spike iPhone 8 Plus\",\"mills\":1557613521000,\"display\":\"0\",\"displayLine\":\"IOB: 0U\"},\"cob\":{\"cob\":0,\"source\":\"OpenAPS\",\"device\":\"openaps://Spike iPhone 8 Plus\",\"mills\":1557613521000,\"treatmentCOB\":{\"decayedBy\":\"2019-05-11T23:05:00.000Z\",\"isDecaying\":0,\"carbs_hr\":20,\"rawCarbImpact\":0,\"cob\":7,\"lastCarbs\":{\"_id\":\"5cd74c26156712edb4b32455\",\"enteredBy\":\"Martin\",\"eventType\":\"Carb Correction\",\"reason\":\"\",\"carbs\":7,\"duration\":0,\"created_at\":\"2019-05-11T22:24:00.000Z\",\"mills\":1557613440000,\"mgdl\":67}},\"display\":0,\"displayLine\":\"COB: 0g\"},\"delta\":{\"absolute\":-4,\"elapsedMins\":4.999483333333333,\"interpolated\":false,\"mean5MinsAgo\":69,\"mgdl\":-4,\"scaled\":-0.2,\"display\":\"-0.2\",\"previous\":{\"mean\":69,\"last\":69,\"mills\":1557613221946,\"sgvs\":[{\"mgdl\":69,\"mills\":1557613221946,\"device\":\"MIAOMIAO\",\"direction\":\"Flat\",\"filtered\":92588,\"unfiltered\":92588,\"noise\":1,\"rssi\":100}]}}}";
         String propjson = http.getString();
@@ -1606,8 +1635,8 @@ void draw_page() {
         M5.Lcd.drawString("no errors in log", 0, 20, GFXFF);
       } else {
         int maxErrDisp = err_log_ptr;
-        if(maxErrDisp>9)
-          maxErrDisp = 9;
+        if(maxErrDisp>8)
+          maxErrDisp = 8;
         for(int i=0; i<maxErrDisp; i++) {
           M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
           sprintf(tmpStr, "%02d.%02d.%02d:%02d", err_log[i].err_time.tm_mday, err_log[i].err_time.tm_mon+1, err_log[i].err_time.tm_hour, err_log[i].err_time.tm_min);
@@ -1643,6 +1672,8 @@ void draw_page() {
         sprintf(tmpStr, "%s.local (%u.%u.%u.%u)", cfg.deviceName, ip[0], ip[1], ip[2], ip[3]);
       else
         sprintf(tmpStr, "IP Address: %u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
+      M5.Lcd.drawString(tmpStr, 0, 20+9*18, GFXFF);
+      sprintf(tmpStr, "Version: %s", M5NSversion.c_str());
       M5.Lcd.drawString(tmpStr, 0, 20+10*18, GFXFF);
       handleAlarmsInfoLine(&ns);
       drawBatteryStatus(icon_xpos[2], icon_ypos[2]);
@@ -1697,8 +1728,8 @@ void setup() {
     }
 
     uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-    Serial.printf("SD Card Size: %llu MB\n", cardSize);
-    M5.Lcd.printf("SD Card Size: %llu MB\n", cardSize);
+    Serial.printf("SD Card Size: %llu MB\r\n", cardSize);
+    M5.Lcd.printf("SD Card Size: %llu MB\r\n", cardSize);
 
     readConfiguration(iniFilename, &cfg);
     // strcpy(cfg.url, "https://sugarmate.io/api/v1/xxxxxx/latest.json");
@@ -1726,7 +1757,7 @@ void setup() {
     // cfg.date_format = 1;
     // cfg.display_rotation = 7;
     // cfg.invert_display = 1;
-    // cfg.info_line = 3;
+    // cfg.info_line = 2;
 
     if(cfg.invert_display != -1) {
       M5.Lcd.invertDisplay(cfg.invert_display);
