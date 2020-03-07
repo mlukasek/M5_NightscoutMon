@@ -191,6 +191,7 @@ void handleRoot() {
     case 0: message += "sensor info"; break;
     case 1: message += "button function icons"; break;
     case 2: message += "loop info + basal"; break;
+    case 3: message += "openaps info + basal"; break;
   }
   message += "</b> <a href=\"switch?param=info_line\">[change]</a><br />\r\n";
   message += "Brightness settings steps: <b>";  message += cfg.brightness1; message += ", "; message += cfg.brightness2; message += ", "; message += cfg.brightness3; message += "</b> <a href=\"edititem?param=brightness\">[edit]</a><br />\r\n";
@@ -423,7 +424,7 @@ void handleSwitchConfig() {
       }
       if(String(w3srv.arg(i)).equals("info_line")) {
         cfg.info_line++;
-        if(cfg.info_line>2)
+        if(cfg.info_line>3)
           cfg.info_line = 0;
       }
       if(String(w3srv.arg(i)).equals("date_format")) {

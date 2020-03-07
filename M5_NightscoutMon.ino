@@ -47,7 +47,7 @@
 #include <Wire.h>     //The DHT12 uses I2C comunication.
 DHT12 dht12;          //Preset scale CELSIUS and ID 0x5c.
 
-String M5NSversion("2020021301");
+String M5NSversion("2020030701");
 
 // extern const unsigned char alarmSndData[];
 
@@ -1619,7 +1619,7 @@ void draw_page() {
     
     case MAX_PAGE: {
       // display error log
-      char tmpStr[32];
+      char tmpStr[64];
       HTTPClient http;
       M5.Lcd.fillScreen(BLACK);
       M5.Lcd.setCursor(0, 18);
@@ -1669,7 +1669,7 @@ void draw_page() {
       }
       IPAddress ip = WiFi.localIP();
       if(mDNSactive)
-        sprintf(tmpStr, "%s.local (%u.%u.%u.%u)", cfg.deviceName, ip[0], ip[1], ip[2], ip[3]);
+        sprintf(tmpStr, "%u.%u.%u.%u=%s.local", ip[0], ip[1], ip[2], ip[3], cfg.deviceName);
       else
         sprintf(tmpStr, "IP Address: %u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
       M5.Lcd.drawString(tmpStr, 0, 20+9*18, GFXFF);
@@ -1749,7 +1749,8 @@ void setup() {
     // cfg.warning_volume = 0;
     // cfg.snd_warning_at_startup = 1;
     // cfg.snd_alarm_at_startup = 1;
-  
+    // strcpy(cfg.deviceName, "M5NIGHTSCOUTMONITOR");
+
     // cfg.alarm_repeat = 1;
     // cfg.snooze_timeout = 2;
     // cfg.brightness1 = 0;
