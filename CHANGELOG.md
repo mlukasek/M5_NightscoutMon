@@ -2,6 +2,13 @@
 
 ## Revisions
 
+### 12 April 2020
+
+* WiFi passwords are now hidden on all web pages and forms.  
+* "snooze" part completely reworked.  
+* Possibility to multiply alarm/warning sound snooze time by multiple presses of middle button. The button has to be pressed in less than 2s after the last press. The steps are 1x-2x-3x-4x-OFF and again.  
+* Snooze (middle button) from one device works on all devices on the same network subnet with the same user (Nightscout URL). UDP broadcast is distrubuted in local network subnet.  
+
 ### 13 February 2020
 
 * Improved time handling when Epoch in milliseconds has decimal places (CGMBLEKit).

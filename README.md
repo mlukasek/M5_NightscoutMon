@@ -12,7 +12,7 @@
 
 ### Contents
 [What is this good for?](#m5stack-nightscout-monitor-1)  
-[Latest software revisions (CHANGELOG)](CHANGELOG.md)  
+[Latest software revisions (CHANGELOG) **WHAT IS NEW**](CHANGELOG.md)  
 [Syntax of M5NS.INI configuration file](#the-syntax-of-m5nsini-configuration-file)  
 [Display](#display)  
 [Buttons](#buttons)  
@@ -136,7 +136,7 @@ Displays last 10 record errors and total number of errors record since last rest
 
 The **left button** changes the backlight in the 3 steps defined in M5NS.INI file.
 
-The **middle button** snoozes M5Stack for defined time to prevent alarm or warning sound. You can "snooze" it even before the alarm is activated. Snooze active is indicated by red clock icon in status icon area.
+The **middle button** snoozes M5Stack for defined time to prevent alarm or warning sound. You can "snooze" it even before the alarm is activated. Snooze active is indicated by red clock icon in status icon area. You can press "snooze" more times to make snooze time longer. It cycles 1x - 2x - 3x - 4x - OFF and again. You have 2s to press button again, otherwise it starts from 1x. The "snooze" function is distributed to all devices in your local network with the same Nightscout user (Nightscout URL).
 
 Short press of the **right button** switches display pages. Long press (4 seconds) puts M5Stack to the sleep as it is a little bit tricky to double click standard red power button.  
 <br/>
@@ -195,4 +195,4 @@ If you find my project useful, I will appreciate if you donate me few bucks for 
 
 https://paypal.me/8bity
 
-I also collect and repair vintage [8-bit computers](http://www.8bity.cz/), so if you have some really old computer, I could give it a new home and care :smile:.
+I also collect and repair vintage [8-bit computers](http://www.8bity.cz/), so if you have some really old computer, I could give it a new home and care :smile:. Thank you!
