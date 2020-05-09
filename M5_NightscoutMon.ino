@@ -28,8 +28,9 @@
 #include <Arduino.h>
 #include <M5Stack.h>
 #include <Preferences.h>
-#include <WiFi.h>
+// #include <WiFi.h>
 #include <WiFiMulti.h>
+#include <WiFiUdp.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
@@ -47,10 +48,20 @@
 #include <Wire.h>     //The DHT12 uses I2C comunication.
 DHT12 dht12;          //Preset scale CELSIUS and ID 0x5c.
 
-String M5NSversion("2020030701");
+String M5NSversion("2020041201");
+
+// The UDP library class
+WiFiUDP udp;
+#define UDP_TX_PACKET_MAX_SIZE 2048
+#define UDP_SEND_RETRIES 3
+// IP address to send UDP data to
+// const char * udpAddress = "192.168.1.255";
+const int udpPort = 50555;
+
+// buffers for receiving and sending UDP data
+char packetBuffer[UDP_TX_PACKET_MAX_SIZE];  //buffer to hold incoming packet,
 
 // extern const unsigned char alarmSndData[];
-
 extern const unsigned char sun_icon16x16[];
 extern const unsigned char clock_icon16x16[];
 extern const unsigned char timer_icon16x16[];
@@ -59,7 +70,6 @@ extern const unsigned char door_icon16x16[];
 extern const unsigned char warning_icon16x16[];
 extern const unsigned char wifi1_icon16x16[];
 extern const unsigned char wifi2_icon16x16[];
-
 extern const unsigned char bat0_icon16x16[];
 extern const unsigned char bat1_icon16x16[];
 extern const unsigned char bat2_icon16x16[];
@@ -112,14 +122,18 @@ void draw_page();
 WiFiMulti WiFiMultiple;
 
 unsigned long msCount;
-unsigned long msCountLog;
+// unsigned long msCountLog;
 unsigned long msStart;
 uint8_t lcdBrightness = 10;
 const char iniFilename[] = "/M5NS.INI";
 
 DynamicJsonDocument JSONdoc(16384);
 time_t lastAlarmTime = 0;
-time_t lastSnoozeTime = 0;
+time_t snoozeUntil = 0;
+int snoozeMult = 0;
+unsigned long lastButtonMillis = 0;
+int udpSendSnoozeRetries = 0;
+
 static uint8_t music_data[25000]; // 5s in sample rate 5000 samp/s
 
 struct NSinfo ns;
@@ -173,6 +187,30 @@ void addErrorLog(int code){
   err_log[err_log_ptr].err_code=code;
   err_log_ptr++;
   err_log_count++;
+}
+
+uint16_t crc16_update(uint16_t crc, uint8_t a)
+{
+  int i;
+  crc ^= a;
+  for (i = 0; i < 8; ++i)
+  {
+    if (crc & 1)
+    crc = (crc >> 1) ^ 0xA001;
+    else
+    crc = (crc >> 1);
+  }
+  return crc;
+}
+
+uint16_t calcCRC(char* str)
+{
+  uint16_t crc=0; // starting value as you like, must be the same before each calculation
+  for (int i=0;i<strlen(str);i++) // for each character in the string
+  {
+    crc= crc16_update (crc, str[i]); // update the crc value
+  }
+  return crc;
 }
 
 void startupLogo() {
@@ -310,7 +348,16 @@ void buttons_test() {
         lcdBrightness = cfg.brightness1;
     M5.Lcd.setBrightness(lcdBrightness);
     // addErrorLog(500);
+    /* UDP send test
+    IPAddress broadcastIp = ~WiFi.subnetMask() | WiFi.gatewayIP();
+    Serial.print("Sending broadcast to: ");
+    Serial.println(broadcastIp);
+    udp.beginPacket(broadcastIp, udpPort); // udpAddress
+    udp.printf("Seconds since boot: %lu", millis()/1000);
+    udp.endPacket();
+    */
   }
+
   if(M5.BtnB.wasPressed()) {
     // M5.Lcd.printf("B");
     Serial.printf("B");
@@ -322,23 +369,54 @@ void buttons_test() {
     play_tone(1760, 100, 1);
     */
     struct tm timeinfo;
-    if(!getLocalTime(&timeinfo)){
-      lastSnoozeTime=0;
+    bool timeOK = getLocalTime(&timeinfo);
+    if( (millis()-lastButtonMillis)<2000 ) {
+      // snoozing just recently - will multiply snooze time
+      // Serial.printf("lastButton < 2s \r\n");
+      snoozeMult++;
+      if(snoozeMult>4)
+        snoozeMult = 0;
     } else {
-      lastSnoozeTime=mktime(&timeinfo);
+      // Serial.printf("lastButton > 2s,  MULT = 1\r\n");
+      // new Snooze
+      snoozeMult = 1;
     }
+    if(!timeOK){
+      // Serial.printf("Time not OK - NO SLEEP\r\n");
+      snoozeUntil = 0;
+    } else {
+      snoozeUntil = mktime(&timeinfo) + snoozeMult*cfg.snooze_timeout*60;
+      Serial.print("snoozeUntil = "); Serial.println(snoozeUntil);
+    }
+
     M5.Lcd.fillRect(110, 220, 100, 20, TFT_WHITE);
     M5.Lcd.setTextDatum(TL_DATUM);
     M5.Lcd.setTextSize(1);
     M5.Lcd.setFreeFont(FSSB12);
     M5.Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
     char tmpStr[10];
-    sprintf(tmpStr, "%i", cfg.snooze_timeout);
+    int snoozeRemaining = 0;
+    if(timeOK) {
+      snoozeRemaining = difftime(snoozeUntil, mktime(&timeinfo));
+      if(snoozeRemaining<0)
+        snoozeRemaining = 0;
+    }
+    if(snoozeMult==0)
+      strcpy(tmpStr, "OFF");
+    else
+      sprintf(tmpStr, "%i", (snoozeRemaining+59)/60);
     int txw=M5.Lcd.textWidth(tmpStr);
-    Serial.print("Set SNOOZE: "); Serial.println(tmpStr);
+    Serial.print("Set SNOOZE: "); Serial.print(tmpStr); Serial.print(", snoozeUntil-now = "); Serial.println(snoozeRemaining);
     M5.Lcd.drawString(tmpStr, 159-txw/2, 220, GFXFF);
-    if(dispPage<maxPage)
-      drawIcon(icon_xpos[1], icon_ypos[1], (uint8_t*)clock_icon16x16, TFT_RED);
+    if(dispPage<maxPage) {
+      if(snoozeMult==0)
+        M5.Lcd.fillRect(icon_xpos[1], icon_ypos[1], 16, 16, BLACK);
+      else
+        drawIcon(icon_xpos[1], icon_ypos[1], (uint8_t*)clock_icon16x16, TFT_RED);
+    }
+    udpSendSnoozeRetries = UDP_SEND_RETRIES;
+    lastButtonMillis = millis();
+    M5.update();
   } 
   
   if(M5.BtnC.wasPressed()) {
@@ -929,22 +1007,25 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
   // calculate last alarm time difference
   int sensorDifSec=24*60*60; // too much
   int alarmDifSec=24*60*60; // too much
-  int snoozeDifSec=cfg.snooze_timeout*60; // timeout
-  if(getLocalTime(&timeinfo)){
+  int snoozeRemaining = 0;
+  bool timeOK = getLocalTime(&timeinfo);
+  if(timeOK){
     sensorDifSec=difftime(mktime(&timeinfo), ns->sensTime);
     alarmDifSec=difftime(mktime(&timeinfo), lastAlarmTime);
-    snoozeDifSec=difftime(mktime(&timeinfo), lastSnoozeTime);
-    if( snoozeDifSec>cfg.snooze_timeout*60 )
-      snoozeDifSec=cfg.snooze_timeout*60; // timeout
+    if(timeOK) {
+      snoozeRemaining = difftime(snoozeUntil, mktime(&timeinfo));
+      if(snoozeRemaining < 0)
+        snoozeRemaining = 0;
+    }
   }
   unsigned int sensorDifMin = (sensorDifSec+30)/60;
   
   Serial.print("Alarm time difference = "); Serial.print(alarmDifSec); Serial.println(" sec");
-  Serial.print("Snooze time difference = "); Serial.print(snoozeDifSec); Serial.println(" sec");
+  Serial.print("Snooze time remaining = "); Serial.print(snoozeRemaining); Serial.print(" sec, Snooze until "); Serial.println(snoozeUntil);
   char tmpStr[10];
   M5.Lcd.setTextDatum(TL_DATUM);
-  if( snoozeDifSec<cfg.snooze_timeout*60 ) {
-    sprintf(tmpStr, "%i", (cfg.snooze_timeout*60-snoozeDifSec+59)/60);
+  if( snoozeRemaining>0 ) { 
+    sprintf(tmpStr, "%i", (snoozeRemaining+59)/60);
     if(dispPage<maxPage)
       drawIcon(icon_xpos[1], icon_ypos[1], (uint8_t*)clock_icon16x16, TFT_RED);
   } else {
@@ -963,7 +1044,7 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
     M5.Lcd.setTextColor(TFT_BLACK, TFT_RED);
     int stw=M5.Lcd.textWidth(tmpStr);
     M5.Lcd.drawString(tmpStr, 159-stw/2, 220, GFXFF);
-    if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
+    if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
         sndAlarm();
         lastAlarmTime = mktime(&timeinfo);
     }
@@ -976,7 +1057,7 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
       M5.Lcd.setTextColor(TFT_BLACK, TFT_YELLOW);
       int stw=M5.Lcd.textWidth(tmpStr);
       M5.Lcd.drawString(tmpStr, 159-stw/2, 220, GFXFF);
-      if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
+      if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
         sndWarning();
         lastAlarmTime = mktime(&timeinfo);
       }
@@ -989,7 +1070,7 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
         M5.Lcd.setTextColor(TFT_BLACK, TFT_RED);
         int stw=M5.Lcd.textWidth(tmpStr);
         M5.Lcd.drawString(tmpStr, 159-stw/2, 220, GFXFF);
-        if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
+        if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
             sndAlarm();
             lastAlarmTime = mktime(&timeinfo);
         }
@@ -1002,7 +1083,7 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
           M5.Lcd.setTextColor(TFT_BLACK, TFT_YELLOW);
           int stw=M5.Lcd.textWidth(tmpStr);
           M5.Lcd.drawString(tmpStr, 159-stw/2, 220, GFXFF);
-          if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
+          if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
             sndWarning();
             lastAlarmTime = mktime(&timeinfo);
           }
@@ -1015,7 +1096,7 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
             M5.Lcd.setTextColor(TFT_BLACK, TFT_YELLOW);
             int stw=M5.Lcd.textWidth(tmpStr);
             M5.Lcd.drawString(tmpStr, 159-stw/2, 220, GFXFF);
-            if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeDifSec==cfg.snooze_timeout*60) ) {
+            if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
               sndWarning();
               lastAlarmTime = mktime(&timeinfo);
             }
@@ -1059,6 +1140,18 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
         }
       }
     }
+  }
+  if(udpSendSnoozeRetries>0) {
+    udpSendSnoozeRetries--;
+    IPAddress broadcastIp = ~WiFi.subnetMask() | WiFi.gatewayIP(); // broadcast to local subnet
+    Serial.print("Sending UDP with Snooze infobroadcast to: ");
+    Serial.println(broadcastIp);
+    udp.beginPacket(broadcastIp, udpPort); // udpAddress
+    int urlCRC = calcCRC(cfg.url);
+    unsigned long snzUntl = snoozeUntil;
+    udp.printf("M5_Nightscout SNOOZE: USR=%d, SnoozeUntil=%lu", urlCRC, snzUntl);
+    udp.write('\0');
+    udp.endPacket();
   }
 }
 
@@ -1776,9 +1869,9 @@ void setup() {
     preferences.begin("M5StackNS", false);
     if(preferences.getBool("SoftReset", false)) {
       // no startup sound after soft reset and remove the SoftReset key
-      lastSnoozeTime=preferences.getUInt("LastSnoozeTime", 0);
+      snoozeUntil=preferences.getLong64("SnoozeUntil", 0);
       preferences.remove("SoftReset");
-      preferences.remove("LastSnoozeTime");
+      preferences.remove("SnoozeUntil");
     } else {
       // normal startup so decide by M5NS.INI if to play startup sound
       if(cfg.snd_warning_at_startup) {
@@ -1835,14 +1928,17 @@ void setup() {
       w3srv.onNotFound(handleNotFound);
       w3srv.begin();
     }
+    udp.begin(WiFi.localIP(),udpPort);
     
     // test file with time stamps
     // msCountLog = millis()-6000;
 
     dispPage = cfg.default_page;
     setPageIconPos(dispPage);
+
     // stat startup time
     msStart = millis();
+
     // update glycemia now
     msCount = msStart-16000;
 }
@@ -1851,7 +1947,7 @@ void setup() {
 void loop(){
   if(!cfg.disable_web_server)
     w3srv.handleClient();
-  delay(20);
+  delay(10);
   buttons_test();
 
   // update glycemia every 15s
@@ -1862,14 +1958,14 @@ void loop(){
     readNightscout(cfg.url, cfg.token, &ns);
     draw_page();
     msCount = millis();  
-    Serial.print("msCount = "); Serial.println(msCount);
+    // Serial.print("msCount = "); Serial.println(msCount);
   } else {
     if((cfg.restart_at_logged_errors>0) && (err_log_count>=cfg.restart_at_logged_errors)) {
       Serial.println("Restarting on number of logged errors...");
       delay(500);
       preferences.begin("M5StackNS", false);
       preferences.putBool("SoftReset", true);
-      preferences.putUInt("LastSnoozeTime", lastSnoozeTime);
+      preferences.putLong64("SnoozeUntil", snoozeUntil);
       preferences.end();
       ESP.restart();
     }
@@ -1883,7 +1979,7 @@ void loop(){
         delay(500);
         preferences.begin("M5StackNS", false);
         preferences.putBool("SoftReset", true);
-        preferences.putUInt("LastSnoozeTime", lastSnoozeTime);
+        preferences.putLong64("SnoozeUntil", snoozeUntil);
         preferences.end();
         ESP.restart();
       }
@@ -1912,6 +2008,7 @@ void loop(){
       }
     }
     if(dispPage==2) {
+      // update analog clock
       if(getLocalTime(&localTimeInfo)) {
         // sprintf(localTimeStr, "%02d:%02d:%02d", localTimeInfo.tm_hour, localTimeInfo.tm_min, localTimeInfo.tm_sec);
       } else {
@@ -2004,6 +2101,52 @@ void loop(){
     msCountLog = millis();  
   }  
   */
+
+   // if there's data available, read a packet
+  int packetSize = udp.parsePacket();
+  if(packetSize)
+  {
+    Serial.print("Received UDP packet of size ");
+    Serial.println(packetSize);
+    // read the packet into packetBufffer
+    udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
+    if(packetSize<UDP_TX_PACKET_MAX_SIZE)
+      packetBuffer[packetSize]=0;
+    /*
+    Serial.println("Contents:");
+    Serial.println(packetBuffer);
+    Serial.print("Remote IP: ");
+    Serial.print(udp.remoteIP());
+    Serial.print(":");
+    Serial.println(udp.remotePort());
+    Serial.print("Local IP: ");
+    Serial.println(WiFi.localIP());
+    */
+   
+    // send a reply, to the IP address and port that sent us the packet we received
+    /*
+    if((udp.remoteIP() != WiFi.localIP()) && (strncmp(packetBuffer, "Hello, M5NS here", 16)!=0)) {
+      Serial.println("Sending hello");
+      udp.beginPacket(udp.remoteIP(), udp.remotePort());
+      udp.print("Hello, M5NS here");
+      udp.endPacket();
+    }
+    */
+    if((WiFi.localIP()!=udp.remoteIP()) && (strncmp(packetBuffer, "M5_Nightscout SNOOZE: USR=", 26)==0)) {
+      Serial.println("Correct UDP packet, lets check CRC and info");
+      int urlCRC = calcCRC(cfg.url);
+      int urlCRC_rcvd;
+      unsigned long snzUntl;
+      int sr = sscanf(packetBuffer, "M5_Nightscout SNOOZE: USR=%d, SnoozeUntil=%lu", &urlCRC_rcvd, &snzUntl);
+      // Serial.printf("scanf res = %d\r\n", sr);
+      // Serial.printf("urlCRC = %d, urlCRC reveived = %d\r\n", urlCRC, urlCRC_rcvd);
+      Serial.printf("We should SNOOZE until %lu\r\n", snzUntl);
+      if((sr=2) && (urlCRC==urlCRC_rcvd)) {
+        snoozeUntil = snzUntl;
+        handleAlarmsInfoLine(&ns);
+      }
+    }
+  }
 
   // Serial.println("M5.update() and loop again");
   M5.update();

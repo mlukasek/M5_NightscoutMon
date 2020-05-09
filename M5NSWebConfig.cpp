@@ -228,7 +228,8 @@ void handleRoot() {
       message += cfg.wlanssid[i];
       if(cfg.wlanpass[i][0]!=0) {
         message += "', PASS='";
-        message += cfg.wlanpass[i];
+        for(int j=0; j<strlen(cfg.wlanpass[i]); j++)
+          message += "*";
         message += "'</b> <a href=\"edititem?param=wlans\">[edit]</a><br />\r\n";
       } else {
         message += "', no password (open)</b> <a href=\"edititem?param=wlans\">[edit]</a><br />\r\n";
@@ -585,7 +586,7 @@ void handleEditConfigItem() {
       for(int i=0; i<10; i++) {
         message += "[wlan"; message += i; message += "] ";
         message += "SSID: <input type=\"text\" name=\"wlanssid" + String(i) + "\" value=\"" + String(cfg.wlanssid[i]) + "\" size=\"12\" maxlength=\"32\"> , \r\n";
-        message += "PASS: <input type=\"text\" name=\"wlanpass" + String(i) + "\" value=\"" + String(cfg.wlanpass[i]) + "\" size=\"12\" maxlength=\"64\">\r\n";
+        message += "PASS: <input type=\"password\" name=\"wlanpass" + String(i) + "\" value=\"" + String(cfg.wlanpass[i]) + "\" size=\"12\" maxlength=\"64\">\r\n";
         if(i==0)
           message += " Do not use this [wlan0] row unless necessary, reserved for autoconfig.\r\n";
         message += "<br />\r\n";
@@ -720,7 +721,13 @@ void handleGetEditConfigItem() {
       tmpStr = String(w3srv.argName(i));
       tmpStr.remove(0, 8);
       int nr = tmpStr.toInt();
-      message += "WLAN PASS [" + tmpStr + "] = " + String(w3srv.arg(i)) + " (" + String(w3srv.arg(i)).length() + ")<br />\r\n";
+      
+      // message += "WLAN PASS [" + tmpStr + "] = " + String(w3srv.arg(i)) + " (" + String(w3srv.arg(i)).length() + ")<br />\r\n";
+
+      message += "WLAN PASS [" + tmpStr + "] = ";
+      for(int j=0; j< String(w3srv.arg(i)).length(); j++)
+        message += "*";
+      message += " (" + String(w3srv.arg(i).length()) + ")<br />\r\n";
       strncpy(cfg.wlanpass[nr], String(w3srv.arg(i)).c_str(), 64);
     }
   }
