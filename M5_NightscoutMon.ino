@@ -926,8 +926,13 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
           ns->delta_interpolated = delta["interpolated"]; // false
           ns->delta_mean5MinsAgo = delta["mean5MinsAgo"]; // 69
           ns->delta_mgdl = delta["mgdl"]; // -4
-          ns->delta_scaled = delta["scaled"]; // -0.2
-          strncpy(ns->delta_display, delta["display"] | "", 16); // "-0.2"
+          ns->delta_scaled = ns->delta_mgdl/18.0;
+            if(cfg.show_mgdl) {
+              sprintf(ns->delta_display, "%+d", ns->delta_mgdl);
+            } else {
+              sprintf(ns->delta_display, "%+.1f", ns->delta_scaled);
+            }
+            
           // Serial.println("DELTA OK");
           
           JsonObject loop_obj;
