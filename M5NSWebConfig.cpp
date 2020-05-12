@@ -173,13 +173,13 @@ void handleRoot() {
   message += "Show COB+IOB: <b>"; message += cfg.show_COB_IOB?"YES":"NO"; message += "</b> <a href=\"switch?param=show_COB_IOB\">[change]</a><br />\r\n";
   message += "Snooze timeout: <b>"; message += cfg.snooze_timeout; message += " minutes</b> <a href=\"edititem?param=alarmTiming\">[edit]</a><br />\r\n";
   message += "Repeat alarm/warning every <b>"; message += cfg.alarm_repeat; message += " minutes</b> <a href=\"edititem?param=alarmTiming\">[edit]</a><br />\r\n";
-  message += "<font color=\"#BB9900\">Display yellow bellow <b>"; message += String(cfg.yellow_low*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=dispColors\">[edit]</a><br />\r\n";
+  message += "<font color=\"#BB9900\">Display yellow below <b>"; message += String(cfg.yellow_low*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=dispColors\">[edit]</a><br />\r\n";
   message += "<font color=\"#BB9900\">Display yellow above <b>"; message += String(cfg.yellow_high*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=dispColors\">[edit]</a><br />\r\n";
-  message += "<font color=\"Red\">Display red bellow <b>"; message += String(cfg.red_low*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=dispColors\">[edit]</a><br />\r\n";
+  message += "<font color=\"Red\">Display red below <b>"; message += String(cfg.red_low*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=dispColors\">[edit]</a><br />\r\n";
   message += "<font color=\"Red\">Display red above <b>"; message += String(cfg.red_high*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=dispColors\">[edit]</a><br />\r\n";
-  message += "<font color=\"Teal\">Warning sound bellow <b>"; message += String(cfg.snd_warning*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=sndAlarms\">[edit]</a><br />\r\n";
+  message += "<font color=\"Teal\">Warning sound below <b>"; message += String(cfg.snd_warning*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=sndAlarms\">[edit]</a><br />\r\n";
   message += "<font color=\"Teal\">Warning sound above <b>"; message += String(cfg.snd_warning_high*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=sndAlarms\">[edit]</a><br />\r\n";
-  message += "<font color=\"Teal\">Alarm sound bellow <b>"; message += String(cfg.snd_alarm*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=sndAlarms\">[edit]</a><br />\r\n";
+  message += "<font color=\"Teal\">Alarm sound below <b>"; message += String(cfg.snd_alarm*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=sndAlarms\">[edit]</a><br />\r\n";
   message += "<font color=\"Teal\">Alarm sound above <b>"; message += String(cfg.snd_alarm_high*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=sndAlarms\">[edit]</a><br />\r\n";
   message += "<font color=\"Teal\">Warning sound when no reading for <b>"; message += cfg.snd_no_readings; message += " minutes</b></font> <a href=\"edititem?param=sndAlarms\">[edit]</a><br />\r\n";
   message += "<font color=\"Teal\">Play test warning sound during startup: <b>"; message += cfg.snd_warning_at_startup?"YES":"NO"; message += "</b></font> <a href=\"switch?param=snd_warning_at_startup\">[change]</a><br />\r\n";
@@ -541,13 +541,13 @@ void handleEditConfigItem() {
       message += "minutes (0 = as fast as it goes)<br>\r\n";
     }
     if(String(w3srv.arg(0)).equals("dispColors")) {
-      message += "<font color=\"#BB9900\">Display yellow bellow \r\n";
+      message += "<font color=\"#BB9900\">Display yellow below \r\n";
       message += "<input type=\"text\" name=\"yellow_low\" value=\"" + String(cfg.yellow_low*mult, decpl) + "\" size=\"5\" maxlength=\"5\"> \r\n";
       message += " " + sgvUnits + "</font><br>\r\n";
       message += "<font color=\"#BB9900\">Display yellow above \r\n";
       message += "<input type=\"text\" name=\"yellow_high\" value=\"" + String(cfg.yellow_high*mult, decpl) + "\" size=\"5\" maxlength=\"5\"> \r\n";
       message += " " + sgvUnits + "</font><br><br>\r\n";
-      message += "<font color=\"Red\">Display red bellow \r\n";
+      message += "<font color=\"Red\">Display red below \r\n";
       message += "<input type=\"text\" name=\"red_low\" value=\"" + String(cfg.red_low*mult, decpl) + "\" size=\"5\" maxlength=\"5\"> \r\n";
       message += " " + sgvUnits + "</font><br>\r\n";
       message += "<font color=\"Red\">Display red above \r\n";
@@ -555,13 +555,13 @@ void handleEditConfigItem() {
       message += " " + sgvUnits + "</font><br>\r\n";
     }
     if(String(w3srv.arg(0)).equals("sndAlarms")) {
-      message += "Warning sound bellow \r\n";
+      message += "Warning sound below \r\n";
       message += "<input type=\"text\" name=\"snd_warning\" value=\"" + String(cfg.snd_warning*mult, decpl) + "\" size=\"5\" maxlength=\"5\"> \r\n";
       message += " " + sgvUnits + "<br>\r\n";
       message += "Warning sound above \r\n";
       message += "<input type=\"text\" name=\"snd_warning_high\" value=\"" + String(cfg.snd_warning_high*mult, decpl) + "\" size=\"5\" maxlength=\"5\"> \r\n";
       message += " " + sgvUnits + "<br><br>\r\n";
-      message += "Alarm sound bellow \r\n";
+      message += "Alarm sound below \r\n";
       message += "<input type=\"text\" name=\"snd_alarm\" value=\"" + String(cfg.snd_alarm*mult, decpl) + "\" size=\"5\" maxlength=\"5\"> \r\n";
       message += " " + sgvUnits + "<br>\r\n";
       message += "Alarm sound above \r\n";
