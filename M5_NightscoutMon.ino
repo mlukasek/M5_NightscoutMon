@@ -48,7 +48,7 @@
 #include <Wire.h>     //The DHT12 uses I2C comunication.
 DHT12 dht12;          //Preset scale CELSIUS and ID 0x5c.
 
-String M5NSversion("2020041201");
+String M5NSversion("2020051202");
 
 // The UDP library class
 WiFiUDP udp;
