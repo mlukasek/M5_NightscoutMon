@@ -1282,7 +1282,7 @@ void draw_page() {
         }
         M5.Lcd.drawString(tmpstr, 0, 72, GFXFF);
 
-        // show BIG delta bellow the name
+        // show BIG delta below the name
         M5.Lcd.setFreeFont(FSSB24);
         // strcpy(ns.delta_display, "+8.9");
         if(ns.delta_mgdl>7)
@@ -1293,7 +1293,7 @@ void draw_page() {
         M5.Lcd.setFreeFont(FSSB12);
 
       } else {
-        // show BIG delta bellow the name
+        // show BIG delta below the name
         M5.Lcd.setFreeFont(FSSB24);
         M5.Lcd.setTextColor(TFT_LIGHTGREY, BLACK);
         M5.Lcd.setTextSize(1);
