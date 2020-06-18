@@ -175,7 +175,7 @@ There is a Facebook group [M5STACK NIGHTSCOUT](https://www.facebook.com/groups/6
 ### VSCode & Platform.IO Development
 
 * You can use VSCode & Platform.IO besides Arduino IDE for development.
-* For development use free [Visual Studio Code](https://https://code.visualstudio.com/)
+* For development use free [Visual Studio Code](https://code.visualstudio.com/)
 * Install Platform.IO addon in VSCode:
   * open `Extensions` from left sidebar
   * search for `Platform.IO` in extension search bar
