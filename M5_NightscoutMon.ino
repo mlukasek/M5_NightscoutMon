@@ -692,9 +692,10 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
           }
         }
         // json.replace("\\n"," ");
-        // invalid Unicode character defined by Ascensia Diabetes Care Bluetooth Glucose Meter
+        // invalid Unicode character defined by Ascensia Diabetes Care Bluetooth Glucose Meter or Medtronic
         // ArduinoJSON does not accept any unicode surrogate pairs like \u0032 or \u0000
         json.replace("\\u0000"," ");
+        json.replace("\\u000b"," ");
         json.replace("\\u0032"," ");
         // Serial.println(json);
         // const size_t capacity = JSON_ARRAY_SIZE(10) + 10*JSON_OBJECT_SIZE(19) + 3840;
@@ -719,14 +720,20 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
         // Serial.println(json);
         Serial.print("Free Heap = "); Serial.println(ESP.getFreeHeap());
         DeserializationError JSONerr = deserializeJson(JSONdoc, json);
-        Serial.println("JSON deserialized OK");
+        if(JSONerr) {
+          Serial.printf("JSON DeserializationError %s\r\n", JSONerr.c_str());
+        } else {
+          Serial.println("JSON deserialized OK");
+        }
         JsonArray arr=JSONdoc.as<JsonArray>();
         Serial.print("JSON array size = "); Serial.println(arr.size());
         if (JSONerr || (ns->is_Sugarmate==0 && arr.size()==0)) {   //Check for errors in parsing
           if(JSONerr) {
             err=1001; // "JSON parsing failed"
+            // Serial.println("JSON parsing failed");
           } else {
             err=1002; // "No data from Nightscout"
+            // Serial.println("No data from Nightscout");
           }
           addErrorLog(err);
         } else {
@@ -905,6 +912,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
         DeserializationError propJSONerr = deserializeJson(JSONdoc, propjson);
         if(propJSONerr) {
           err=1003; // "JSON2 parsing failed"
+          Serial.println("JSON parsing failed");
           addErrorLog(err);
         } else {
           Serial.println("Deserialized the second JSON and OK");
