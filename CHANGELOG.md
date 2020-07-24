@@ -2,6 +2,16 @@
 
 ## Revisions
 
+
+### 24 July 2020
+
+* Added SHT30 compatibility, so now temperature and humidity works with newer version of BTC TICKER stand and ENV.II Unit.  
+
+### 12 May 2020
+
+* Delta displayed in correct M5NS.INI units regardles from Nightscout settings. (romkuru)  
+* Corrected "bellow->below" typo in web interface. (guydavies)  
+
 ### 12 April 2020
 
 * WiFi passwords are now hidden on all web pages and forms.  

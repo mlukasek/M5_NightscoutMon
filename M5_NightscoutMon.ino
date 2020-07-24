@@ -45,8 +45,10 @@
 #include "M5NSconfig.h"
 #include "M5NSWebConfig.h"
 #include "DHT12.h"
+#include "SHT3X.h"
 #include <Wire.h>     //The DHT12 uses I2C comunication.
-DHT12 dht12;          //Preset scale CELSIUS and ID 0x5c.
+DHT12 dht12;
+SHT3X sht30;
 
 String M5NSversion("2020051202");
 
@@ -1571,16 +1573,35 @@ void draw_page() {
         M5.Lcd.drawString(String(sensorDifMin)+" min", 34, 53, GFXFF);
       }
 
-      // draw temperature
+      // get temperature and humidity
       float tmprc=dht12.readTemperature(cfg.temperature_unit);
+      float humid=dht12.readHumidity();
+      if(tmprc==float(0.01) || tmprc==float(0.02) || tmprc==float(0.03)) { // dht12 error, lets try sht30
+        if(sht30.get()==0){
+          tmprc = sht30.cTemp;
+          humid = sht30.humidity;
+          switch(cfg.temperature_unit) {
+            case 2: //K
+              tmprc += 273.15;
+              break;
+            case 3: //F
+              tmprc = tmprc * 1.8 + 32.0;
+              break;
+          }
+        } else {
+          tmprc = float(0.04);
+          humid = float(0.04);
+        }
+      }
+      // display temperature
       // Serial.print("tmprc="); Serial.println(tmprc);
-      if(tmprc!=float(0.01) && tmprc!=float(0.02) && tmprc!=float(0.03)) { // not an error
+      M5.Lcd.fillRect(0, 180, 88, 30, TFT_BLACK);
+      if(tmprc!=float(0.01) && tmprc!=float(0.02) && tmprc!=float(0.03) && tmprc!=float(0.04)) { // not an error
         M5.Lcd.setTextDatum(BL_DATUM);
         M5.Lcd.setFreeFont(FSS12); // CF_RT24
         M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
         String tmprcStr=String(tmprc, 1);
         int tw=M5.Lcd.textWidth(tmprcStr);
-        M5.Lcd.fillRect(0, 180, 88, 30, TFT_BLACK);
         M5.Lcd.drawString(tmprcStr, 7, 210, GFXFF);
         M5.Lcd.setFreeFont(FSS9);
         int ow=M5.Lcd.textWidth("o");
@@ -1600,15 +1621,14 @@ void draw_page() {
       }
       
       // display humidity
-      float humid=dht12.readHumidity();
       // Serial.print("humid="); Serial.println(humid);
-      if(humid!=float(0.01) && humid!=float(0.02) && humid!=float(0.03)) { // not an error
+      M5.Lcd.fillRect(250, 185, 70, 25, TFT_BLACK);
+      if(humid!=float(0.01) && humid!=float(0.02) && humid!=float(0.03) && humid!=float(0.04)) { // not an error
         M5.Lcd.setTextDatum(BR_DATUM);
         M5.Lcd.setFreeFont(FSS12);
         M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
         String humidStr=String(humid, 0);
         humidStr += "%";
-        M5.Lcd.fillRect(250, 185, 70, 25, TFT_BLACK);
         M5.Lcd.drawString(humidStr, 310, 210, GFXFF);
       }
 
