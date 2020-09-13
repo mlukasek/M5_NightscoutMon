@@ -162,7 +162,6 @@ Battery icon feature works only on newer M5Stack units. Here are my battery meas
 | white 2/3 battery icon                   | 1 h 55 min |
 | yellow 1/3 battery icon                  | 1 h 48 min |
 | red empty battery icon                   |     14 min |
-| extended battery total 7:49 hrs:min      |       time |
 
 ### Installation and support
 
