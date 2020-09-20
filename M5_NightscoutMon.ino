@@ -25,8 +25,18 @@
     Sulka Haro (Nightscout API queries help)
 */
 
+// edit (comment or uncomment) M5CORE2 definition in "compiledef.h" to compile for M5Stack BASIC or CORE2
+// comment #define M5CORE2 line in file "compiledef.h" for M5Stack BASIC, choose board "M5Stack-Core-ESP32", library "M5Stack" is required
+// uncomment #define M5CORE2 definition to file "compiledef.h" for M5Stack CORE2, choose board "M5Stack-Core2", library "M5Core2" is required
+#include "compiledef.h"
+
 #include <Arduino.h>
-#include <M5Stack.h>
+#ifdef M5CORE2
+  #include <M5Core2.h>
+  #include <driver/i2s.h>
+#else
+  #include <M5Stack.h>
+#endif
 #include <Preferences.h>
 // #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -50,7 +60,16 @@
 DHT12 dht12;
 SHT3X sht30;
 
-String M5NSversion("2020051202");
+String M5NSversion("2020092001");
+
+#ifdef M5CORE2
+  #define CONFIG_I2S_BCK_PIN 12
+  #define CONFIG_I2S_LRCK_PIN 0
+  #define CONFIG_I2S_DATA_PIN 2
+  #define CONFIG_I2S_DATA_IN_PIN 34
+  #define Speak_I2S_NUMBER I2S_NUM_0
+  #define MODE_SPK 1
+#endif
 
 // The UDP library class
 WiFiUDP udp;
@@ -136,7 +155,7 @@ int snoozeMult = 0;
 unsigned long lastButtonMillis = 0;
 int udpSendSnoozeRetries = 0;
 
-static uint8_t music_data[25000]; // 5s in sample rate 5000 samp/s
+static int16_t music_data[25000]; // 5s in sample rate 5000 samp/s
 
 struct NSinfo ns;
 
@@ -175,6 +194,16 @@ void setPageIconPos(int page) {
       icon_ypos[2] = 0;
       break;
   }
+}
+
+void lcdSetBrightness(uint8_t brightness) {
+  if( brightness>100 )
+    brightness = 100;
+  #ifdef M5CORE2
+      M5.Axp.SetLcdVoltage(2500+brightness*8);
+  #else
+      M5.Lcd.setBrightness(brightness);
+  #endif 
 }
 
 void addErrorLog(int code){
@@ -217,7 +246,7 @@ uint16_t calcCRC(char* str)
 
 void startupLogo() {
     // static uint8_t brightness, pre_brightness;
-    M5.Lcd.setBrightness(0);
+    lcdSetBrightness(0);
     if(cfg.bootPic[0]==0) {
       // M5.Lcd.pushImage(0, 0, 320, 240, (uint16_t *)gImage_logoM5);
       M5.Lcd.drawString("M5 Stack", 120, 60, GFXFF);
@@ -226,8 +255,10 @@ void startupLogo() {
     } else {
       M5.Lcd.drawJpgFile(SD, cfg.bootPic);
     }
-    M5.Lcd.setBrightness(100);
-    M5.update();
+    lcdSetBrightness(100);
+    #ifndef M5CORE2  // no .update() on M5Stack CORE2
+      M5.update();
+    #endif
     // M5.Speaker.playMusic(m5stack_startup_music,25000);
     /*
     int avg=0;
@@ -241,7 +272,7 @@ void startupLogo() {
     play_music_data(10000, 100);
 
     for(int i=0; i>=100; i++) {
-        M5.Lcd.setBrightness(i);
+        lcdSetBrightness(i);
         delay(2);
     }
     */
@@ -257,6 +288,61 @@ void printLocalTime() {
   M5.Lcd.println(&localTimeInfo, "%A, %B %d %Y %H:%M:%S");
 }
 
+#ifdef M5CORE2
+
+// audio functions for Core2
+
+bool InitI2SSpeakOrMic(int mode)
+{
+    esp_err_t err = ESP_OK;
+
+    i2s_driver_uninstall(Speak_I2S_NUMBER);
+    i2s_config_t i2s_config = {
+        .mode = (i2s_mode_t)(I2S_MODE_MASTER),
+        .sample_rate = 11025,
+        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT, // is fixed at 12bit, stereo, MSB
+        .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,
+        .communication_format = I2S_COMM_FORMAT_I2S,
+        .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
+        .dma_buf_count = 2,
+        .dma_buf_len = 128,
+    };
+    i2s_config.mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX);
+    i2s_config.use_apll = false;
+    i2s_config.tx_desc_auto_clear = true;
+    err += i2s_driver_install(Speak_I2S_NUMBER, &i2s_config, 0, NULL);
+    i2s_pin_config_t tx_pin_config;
+
+    tx_pin_config.bck_io_num = CONFIG_I2S_BCK_PIN;
+    tx_pin_config.ws_io_num = CONFIG_I2S_LRCK_PIN;
+    tx_pin_config.data_out_num = CONFIG_I2S_DATA_PIN;
+    tx_pin_config.data_in_num = CONFIG_I2S_DATA_IN_PIN;
+    err += i2s_set_pin(Speak_I2S_NUMBER, &tx_pin_config);
+    err += i2s_set_clk(Speak_I2S_NUMBER, 11025, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_MONO);
+
+    return true;
+}
+
+void play_tone(uint16_t frequency, uint32_t duration, uint8_t volume) {
+  size_t bytes_written = 0;
+  Serial.print("start fill music data "); Serial.println(millis());
+  uint32_t data_length = duration * 11;
+  if( data_length > 22050 )
+    data_length = 22050;
+  float interval = 2*M_PI*float(frequency)/float(11025);
+  float volMul = volume/100.0;
+  for (uint32_t i=0;i<data_length;i++) {
+    music_data[i]=32767.0*sin(interval*i)*volMul; // 16383.0+ /(101-volume)
+  }
+  music_data[data_length-1]=32767;
+  Serial.print("finish fill music data, start play "); Serial.println(millis());
+  i2s_write(Speak_I2S_NUMBER, music_data, data_length*2, &bytes_written, portMAX_DELAY);
+  Serial.print("finish play "); Serial.println(millis());
+}   
+
+#else 
+
+// this function is for original M5Stack only, as Core2 uses DMA to I2S
 void play_music_data(uint32_t data_length, uint8_t volume) {
   uint8_t vol;
   if( volume>100 )
@@ -264,28 +350,28 @@ void play_music_data(uint32_t data_length, uint8_t volume) {
   else
     vol=101-volume;
   if(vol != 101) {
-    ledcSetup(TONE_PIN_CHANNEL, 0, 13);
-    ledcAttachPin(SPEAKER_PIN, TONE_PIN_CHANNEL);
-    delay(10);
-    for(int i=0; i<data_length; i++) {
-      dacWrite(SPEAKER_PIN, music_data[i]/vol);
-      delayMicroseconds(194); // 200 = 1 000 000 microseconds / sample rate 5000
-    }
-    /* takes too long
-    // slowly set DAC to zero from the last value
-    for(int t=music_data[data_length-1]; t>=0; t--) {
-      dacWrite(SPEAKER_PIN, t);
-      delay(2);
-    } */
-    for(int t = music_data[data_length - 1] / vol; t >= 0; t--) {
-      dacWrite(SPEAKER_PIN, t);
-      delay(2);
-    }
-    // dacWrite(SPEAKER_PIN, 0);
-    // delay(10);
-    ledcAttachPin(SPEAKER_PIN, TONE_PIN_CHANNEL);
-    ledcWriteTone(TONE_PIN_CHANNEL, 0);
-    CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
+      ledcSetup(TONE_PIN_CHANNEL, 0, 13);
+      ledcAttachPin(SPEAKER_PIN, TONE_PIN_CHANNEL);
+      delay(10);
+      for(int i=0; i<data_length; i++) {
+        dacWrite(SPEAKER_PIN, music_data[i]/vol);
+        delayMicroseconds(194); // 200 = 1 000 000 microseconds / sample rate 5000
+      }
+      /* takes too long
+      // slowly set DAC to zero from the last value
+      for(int t=music_data[data_length-1]; t>=0; t--) {
+        dacWrite(SPEAKER_PIN, t);
+        delay(2);
+      } */
+      for(int t = music_data[data_length - 1] / vol; t >= 0; t--) {
+        dacWrite(SPEAKER_PIN, t);
+        delay(2);
+      }
+      // dacWrite(SPEAKER_PIN, 0);
+      // delay(10);
+      ledcAttachPin(SPEAKER_PIN, TONE_PIN_CHANNEL);
+      ledcWriteTone(TONE_PIN_CHANNEL, 0);
+      CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
   }
 }
 
@@ -301,6 +387,8 @@ void play_tone(uint16_t frequency, uint32_t duration, uint8_t volume) {
   // Serial.print("finish fill music data "); Serial.println(millis());
   play_music_data(data_length, volume);
 }    
+
+#endif
 
 void sndAlarm() {
     for(int j=0; j<6; j++) {
@@ -335,8 +423,38 @@ void drawIcon(int16_t x, int16_t y, const uint8_t *bitmap, uint16_t color) {
   }
 }
 
+void waitBtnRelease() {
+  #ifdef M5CORE2
+      // wait release
+      TouchPoint_t pos;
+      pos = M5.Touch.getPressPoint();
+      while((pos.x != -1) || (pos.y != -1)) {
+        pos = M5.Touch.getPressPoint();
+        delay(20);
+      }
+  #endif        
+}
+
 void buttons_test() {
-  if(M5.BtnA.wasPressed()) {
+
+  bool btnA_wasPressed = false;
+  bool btnB_wasPressed = false;
+  bool btnC_wasPressed = false;
+
+  #ifdef M5CORE2
+    TouchPoint_t pos;
+    pos = M5.Touch.getPressPoint();
+    // Serial.printf("Touch point: %d : %d\r\n", pos.x, pos.y);
+    btnA_wasPressed = (pos.x >= 0) && (pos.x < 109) && (pos.y > 210); // 240 is bellow display, but we have displayed icons on the last line
+    btnB_wasPressed = (pos.x >= 109) && (pos.x <= 218) && (pos.y > 210);
+    btnC_wasPressed = (pos.x > 218) && (pos.y > 210);
+  #else
+    btnA_wasPressed = M5.BtnA.wasPressed();
+    btnB_wasPressed = M5.BtnB.wasPressed();
+    btnC_wasPressed = M5.BtnC.wasPressed();
+  #endif
+
+  if(btnA_wasPressed) {
     // M5.Lcd.printf("A");
     Serial.printf("A");
     // play_tone(1000, 10, 1);
@@ -348,7 +466,12 @@ void buttons_test() {
         lcdBrightness = cfg.brightness3;
       else
         lcdBrightness = cfg.brightness1;
-    M5.Lcd.setBrightness(lcdBrightness);
+    lcdSetBrightness(lcdBrightness);
+    #ifdef M5CORE2
+      waitBtnRelease();
+    #else
+      M5.update();
+    #endif
     // addErrorLog(500);
     /* UDP send test
     IPAddress broadcastIp = ~WiFi.subnetMask() | WiFi.gatewayIP();
@@ -360,7 +483,7 @@ void buttons_test() {
     */
   }
 
-  if(M5.BtnB.wasPressed()) {
+  if(btnB_wasPressed) {
     // M5.Lcd.printf("B");
     Serial.printf("B");
     /*
@@ -418,37 +541,45 @@ void buttons_test() {
     }
     udpSendSnoozeRetries = UDP_SEND_RETRIES;
     lastButtonMillis = millis();
-    M5.update();
+    #ifdef M5CORE2
+      waitBtnRelease();
+    #else
+      M5.update();
+    #endif
   } 
-  
-  if(M5.BtnC.wasPressed()) {
+
+  if(btnC_wasPressed) {
     // M5.Lcd.printf("C");
     Serial.printf("C");
-    unsigned long btnCPressTime = millis();
-    long pwrOffTimeout = 4000;
-    int lastDispTime = pwrOffTimeout/1000;
     int longPress = 0;
-    char tmpstr[32];
-    while(M5.BtnC.read()) {
-      M5.Lcd.setTextSize(1);
-      M5.Lcd.setFreeFont(FSSB12);
-      // M5.Lcd.fillRect(110, 220, 100, 20, TFT_RED);
-      // M5.Lcd.fillRect(0, 220, 320, 20, TFT_RED);
-      M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-      int timeToPwrOff = (pwrOffTimeout - (millis()-btnCPressTime))/1000;
-      if((lastDispTime!=timeToPwrOff) && (millis()-btnCPressTime>800)) {
-        longPress = 1;
-        sprintf(tmpstr, "OFF in %1d   ", timeToPwrOff);
-        M5.Lcd.drawString(tmpstr, 210, 220, GFXFF);
-        lastDispTime=timeToPwrOff;
+    #ifndef M5CORE2   // long press check only on real buttons, M5CORE2 has its own power button with long press to power off
+      unsigned long btnCPressTime = millis();
+      long pwrOffTimeout = 4000;
+      int lastDispTime = pwrOffTimeout/1000;
+      char tmpstr[32];
+      while(M5.BtnC.read()) {
+        M5.Lcd.setTextSize(1);
+        M5.Lcd.setFreeFont(FSSB12);
+        // M5.Lcd.fillRect(110, 220, 100, 20, TFT_RED);
+        // M5.Lcd.fillRect(0, 220, 320, 20, TFT_RED);
+        M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+        int timeToPwrOff = (pwrOffTimeout - (millis()-btnCPressTime))/1000;
+        if((lastDispTime!=timeToPwrOff) && (millis()-btnCPressTime>800)) {
+          longPress = 1;
+          sprintf(tmpstr, "OFF in %1d   ", timeToPwrOff);
+          M5.Lcd.drawString(tmpstr, 210, 220, GFXFF);
+          lastDispTime=timeToPwrOff;
+        }
+        if(timeToPwrOff<=0) {
+          // play_tone(3000, 100, 1);
+          M5.Power.setWakeupButton(BUTTON_C_PIN);
+          M5.Power.powerOFF();
+        }
+        #ifndef M5CORE2  // no .update() on M5Stack CORE2
+          M5.update();
+        #endif
       }
-      if(timeToPwrOff<=0) {
-        // play_tone(3000, 100, 1);
-        M5.Power.setWakeupButton(BUTTON_C_PIN);
-        M5.Power.powerOFF();
-      }
-      M5.update();
-    }
+    #endif
     if(longPress) {
       M5.Lcd.fillRect(210, 220, 110, 20, TFT_BLACK);
       drawIcon(246, 220, (uint8_t*)door_icon16x16, TFT_LIGHTGREY);
@@ -467,6 +598,11 @@ void buttons_test() {
       music_data[i]=alarmSndData[i];
     }
     play_music_data(25000, 10); */
+    #ifdef M5CORE2
+      waitBtnRelease();
+    #else
+      M5.update();
+    #endif
   }
 }
 
@@ -532,34 +668,52 @@ void wifi_connect() {
 
 int8_t getBatteryLevel()
 {
-  Wire.beginTransmission(0x75);
-  Wire.write(0x78);
-  if (Wire.endTransmission(false) == 0
-   && Wire.requestFrom(0x75, 1)) {
-    int8_t bdata=Wire.read();
-    /* 
-    // write battery info to logfile.txt
-    File fileLog = SD.open("/logfile.txt", FILE_WRITE);    
-    if(!fileLog) {
-      Serial.println("Cannot write to logfile.txt");
-    } else {
-      int pos = fileLog.seek(fileLog.size());
-      struct tm timeinfo;
-      getLocalTime(&timeinfo);
-      fileLog.print(asctime(&timeinfo));
-      fileLog.print("   Battery level: "); fileLog.println(bdata, HEX);
-      fileLog.close();
-      Serial.print("Log file written: "); Serial.print(asctime(&timeinfo));
+  #ifdef M5CORE2
+    float dta;
+    int8_t batLev = 0;
+    dta = M5.Axp.GetBatVoltage();
+    if(dta>4.1)
+      batLev = 100;
+    else
+      if(dta>3.9)
+        batLev = 75;
+        else
+          if(dta>3.75)
+            batLev = 50;
+          else
+            if(dta>3.6)
+              batLev = 25;
+    Serial.printf("Battery %4.2f V = %d%%\r\n", dta, batLev);
+    return batLev;
+  #else
+    Wire.beginTransmission(0x75);
+    Wire.write(0x78);
+    if ((Wire.endTransmission(false)==0) && Wire.requestFrom(0x75, 1)) {
+      int8_t bdata=Wire.read();
+      /* 
+      // write battery info to logfile.txt
+      File fileLog = SD.open("/logfile.txt", FILE_WRITE);    
+      if(!fileLog) {
+        Serial.println("Cannot write to logfile.txt");
+      } else {
+        int pos = fileLog.seek(fileLog.size());
+        struct tm timeinfo;
+        getLocalTime(&timeinfo);
+        fileLog.print(asctime(&timeinfo));
+        fileLog.print("   Battery level: "); fileLog.println(bdata, HEX);
+        fileLog.close();
+        Serial.print("Log file written: "); Serial.print(asctime(&timeinfo));
+      }
+      */
+      switch (bdata & 0xF0) {
+        case 0xE0: return 25;
+        case 0xC0: return 50;
+        case 0x80: return 75;
+        case 0x00: return 100;
+        default: return 0;
+      }
     }
-    */
-    switch (bdata & 0xF0) {
-      case 0xE0: return 25;
-      case 0xC0: return 50;
-      case 0x80: return 75;
-      case 0x00: return 100;
-      default: return 0;
-    }
-  }
+  #endif
   return -1;
 }
 
@@ -1136,10 +1290,17 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
                 M5.Lcd.drawString(infoStr, 0, 220, GFXFF);
                 break;
               case 1: // button function icons
-                drawIcon(58, 220, (uint8_t*)sun_icon16x16, TFT_LIGHTGREY);
-                drawIcon(153, 220, (uint8_t*)clock_icon16x16, TFT_LIGHTGREY);
-                // drawIcon(153, 220, (uint8_t*)timer_icon16x16, TFT_LIGHTGREY);
-                drawIcon(246, 220, (uint8_t*)door_icon16x16, TFT_LIGHTGREY);
+                #ifdef M5CORE2
+                  drawIcon(45, 220, (uint8_t*)sun_icon16x16, TFT_LIGHTGREY);
+                  drawIcon(150, 220, (uint8_t*)clock_icon16x16, TFT_LIGHTGREY);
+                  // drawIcon(153, 220, (uint8_t*)timer_icon16x16, TFT_LIGHTGREY);
+                  drawIcon(256, 220, (uint8_t*)door_icon16x16, TFT_LIGHTGREY);
+                #else
+                  drawIcon(58, 220, (uint8_t*)sun_icon16x16, TFT_LIGHTGREY);
+                  drawIcon(153, 220, (uint8_t*)clock_icon16x16, TFT_LIGHTGREY);
+                  // drawIcon(153, 220, (uint8_t*)timer_icon16x16, TFT_LIGHTGREY);
+                  drawIcon(246, 220, (uint8_t*)door_icon16x16, TFT_LIGHTGREY);
+                #endif
                 break;
               case 2: // loop + basal information
               case 3: // openaps + basal information
@@ -1573,64 +1734,69 @@ void draw_page() {
         M5.Lcd.drawString(String(sensorDifMin)+" min", 34, 53, GFXFF);
       }
 
-      // get temperature and humidity
-      float tmprc=dht12.readTemperature(cfg.temperature_unit);
-      float humid=dht12.readHumidity();
-      if(tmprc==float(0.01) || tmprc==float(0.02) || tmprc==float(0.03)) { // dht12 error, lets try sht30
-        if(sht30.get()==0){
-          tmprc = sht30.cTemp;
-          humid = sht30.humidity;
+      #ifdef M5CORE2
+        // no temeperature and humidity readings (yet)
+      #else
+        // get temperature and humidity
+        float tmprc=dht12.readTemperature(cfg.temperature_unit);
+        float humid=dht12.readHumidity();
+        if(tmprc==float(0.01) || tmprc==float(0.02) || tmprc==float(0.03)) { // dht12 error, lets try sht30
+          if(sht30.get()==0){
+            tmprc = sht30.cTemp;
+            humid = sht30.humidity;
+            switch(cfg.temperature_unit) {
+              case 2: //K
+                tmprc += 273.15;
+                break;
+              case 3: //F
+                tmprc = tmprc * 1.8 + 32.0;
+                break;
+            }
+          } else {
+            tmprc = float(0.04);
+            humid = float(0.04);
+          }
+        }
+        // display temperature
+        // Serial.print("tmprc="); Serial.println(tmprc);
+        M5.Lcd.fillRect(0, 180, 88, 30, TFT_BLACK);
+        if(tmprc!=float(0.01) && tmprc!=float(0.02) && tmprc!=float(0.03) && tmprc!=float(0.04)) { // not an error
+          M5.Lcd.setTextDatum(BL_DATUM);
+          M5.Lcd.setFreeFont(FSS12); // CF_RT24
+          M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+          String tmprcStr=String(tmprc, 1);
+          int tw=M5.Lcd.textWidth(tmprcStr);
+          M5.Lcd.drawString(tmprcStr, 7, 210, GFXFF);
+          M5.Lcd.setFreeFont(FSS9);
+          int ow=M5.Lcd.textWidth("o");
+          M5.Lcd.drawString("o", 7+tw+2, 199, GFXFF);
+          M5.Lcd.setFreeFont(FSS12);
           switch(cfg.temperature_unit) {
-            case 2: //K
-              tmprc += 273.15;
+            case 1:
+              M5.Lcd.drawString("C", 7+tw+ow+4, 210, GFXFF);
               break;
-            case 3: //F
-              tmprc = tmprc * 1.8 + 32.0;
+            case 2:
+              M5.Lcd.drawString("K", 7+tw+ow+4, 210, GFXFF);
+              break;
+            case 3:
+              M5.Lcd.drawString("F", 7+tw+ow+4, 210, GFXFF);
               break;
           }
-        } else {
-          tmprc = float(0.04);
-          humid = float(0.04);
         }
-      }
-      // display temperature
-      // Serial.print("tmprc="); Serial.println(tmprc);
-      M5.Lcd.fillRect(0, 180, 88, 30, TFT_BLACK);
-      if(tmprc!=float(0.01) && tmprc!=float(0.02) && tmprc!=float(0.03) && tmprc!=float(0.04)) { // not an error
-        M5.Lcd.setTextDatum(BL_DATUM);
-        M5.Lcd.setFreeFont(FSS12); // CF_RT24
-        M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-        String tmprcStr=String(tmprc, 1);
-        int tw=M5.Lcd.textWidth(tmprcStr);
-        M5.Lcd.drawString(tmprcStr, 7, 210, GFXFF);
-        M5.Lcd.setFreeFont(FSS9);
-        int ow=M5.Lcd.textWidth("o");
-        M5.Lcd.drawString("o", 7+tw+2, 199, GFXFF);
-        M5.Lcd.setFreeFont(FSS12);
-        switch(cfg.temperature_unit) {
-          case 1:
-            M5.Lcd.drawString("C", 7+tw+ow+4, 210, GFXFF);
-            break;
-          case 2:
-            M5.Lcd.drawString("K", 7+tw+ow+4, 210, GFXFF);
-            break;
-          case 3:
-            M5.Lcd.drawString("F", 7+tw+ow+4, 210, GFXFF);
-            break;
+        
+        // display humidity
+        // Serial.print("humid="); Serial.println(humid);
+        M5.Lcd.fillRect(250, 185, 70, 25, TFT_BLACK);
+        if(humid!=float(0.01) && humid!=float(0.02) && humid!=float(0.03) && humid!=float(0.04)) { // not an error
+          M5.Lcd.setTextDatum(BR_DATUM);
+          M5.Lcd.setFreeFont(FSS12);
+          M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+          String humidStr=String(humid, 0);
+          humidStr += "%";
+          M5.Lcd.drawString(humidStr, 310, 210, GFXFF);
         }
-      }
-      
-      // display humidity
-      // Serial.print("humid="); Serial.println(humid);
-      M5.Lcd.fillRect(250, 185, 70, 25, TFT_BLACK);
-      if(humid!=float(0.01) && humid!=float(0.02) && humid!=float(0.03) && humid!=float(0.04)) { // not an error
-        M5.Lcd.setTextDatum(BR_DATUM);
-        M5.Lcd.setFreeFont(FSS12);
-        M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-        String humidStr=String(humid, 0);
-        humidStr += "%";
-        M5.Lcd.drawString(humidStr, 310, 210, GFXFF);
-      }
+
+      #endif
 
       // draw clock
       float sx = 0, sy = 1, mx = 1, my = 0, hx = -1, hy = 0;    // Saved H, M, S x & y multipliers
@@ -1812,7 +1978,14 @@ void draw_page() {
 // the setup routine runs once when M5Stack starts up
 void setup() {
     // initialize the M5Stack object
-    M5.begin();
+    #ifdef M5CORE2
+      M5.begin(true, true, true, true);
+      M5.Axp.SetSpkEnable(true);
+      InitI2SSpeakOrMic(MODE_SPK);
+    #else
+      M5.begin();
+    #endif
+
     // prevent button A "ghost" random presses
     Wire.begin();
     SD.begin();
@@ -1820,7 +1993,7 @@ void setup() {
     // M5.Speaker.mute();
 
     // Lcd display
-    M5.Lcd.setBrightness(100);
+    lcdSetBrightness(100);
     M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setCursor(0, 0);
@@ -1894,7 +2067,7 @@ void setup() {
     }
     M5.Lcd.setRotation(cfg.display_rotation);
     lcdBrightness = cfg.brightness1;
-    M5.Lcd.setBrightness(lcdBrightness);
+    lcdSetBrightness(lcdBrightness);
     
     startupLogo();
     yield();
@@ -1921,11 +2094,11 @@ void setup() {
     delay(1000);
     M5.Lcd.fillScreen(BLACK);
 
-    M5.Lcd.setBrightness(lcdBrightness);
+    lcdSetBrightness(lcdBrightness);
     wifi_connect();
     yield();
 
-    M5.Lcd.setBrightness(lcdBrightness);
+    lcdSetBrightness(lcdBrightness);
     M5.Lcd.fillScreen(BLACK);
     
     // fill dummy values to error log
@@ -2182,5 +2355,7 @@ void loop(){
   }
 
   // Serial.println("M5.update() and loop again");
-  M5.update();
+  #ifndef M5CORE2  // no .update() on M5Stack CORE2
+    M5.update();
+  #endif
 }

@@ -1,4 +1,11 @@
-#include <M5Stack.h>
+#include "compiledef.h"
+
+#ifdef M5CORE2
+  #include <M5Core2.h>
+#else
+  #include <M5Stack.h>
+#endif
+
 #include <Preferences.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -348,7 +355,9 @@ void handleUpdate() {
         M5.Lcd.println("UPDATED SUCCESSFULLY");
         M5.Lcd.println("Restarting ...");
 
-        M5.update();
+        #ifndef M5CORE2  // no .update() on M5Stack CORE2
+          M5.update();
+        #endif
         delay(1000);
         ESP.restart();
         break;
@@ -366,7 +375,9 @@ void handleUpdate() {
     M5.Lcd.setTextColor(YELLOW);
     M5.Lcd.println("NOTHING TO UPDATE");
   }
-  M5.update();
+  #ifndef M5CORE2  // no .update() on M5Stack CORE2
+    M5.update();
+  #endif
   delay(2000);
   M5.Lcd.fillScreen(BLACK);
   draw_page();

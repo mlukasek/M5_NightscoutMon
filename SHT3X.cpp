@@ -27,7 +27,7 @@ byte SHT3X::get()
   delay(500);
 
   // Request 6 bytes of data
-  Wire.requestFrom(_address, 6);
+  Wire.requestFrom(_address, 6u);
 
   // Read 6 bytes of data
   // cTemp msb, cTemp lsb, cTemp crc, humidity msb, humidity lsb, humidity crc

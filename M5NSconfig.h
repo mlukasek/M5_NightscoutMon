@@ -1,7 +1,12 @@
 #ifndef _M5NSCONFIG_H
 #define _M5NSCONFIG_H
 
-#include <M5Stack.h>
+#include "compiledef.h"
+#ifdef M5CORE2
+  #include <M5Core2.h>
+#else
+  #include <M5Stack.h>
+#endif
 #include "IniFile.h"
 
 struct tConfig {
