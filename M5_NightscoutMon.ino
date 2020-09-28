@@ -25,13 +25,16 @@
     Sulka Haro (Nightscout API queries help)
 */
 
-// edit (comment or uncomment) M5CORE2 definition in "compiledef.h" to compile for M5Stack BASIC or CORE2
-// comment #define M5CORE2 line in file "compiledef.h" for M5Stack BASIC, choose board "M5Stack-Core-ESP32", library "M5Stack" is required
-// uncomment #define M5CORE2 definition to file "compiledef.h" for M5Stack CORE2, choose board "M5Stack-Core2", library "M5Core2" is required
-#include "compiledef.h"
+// Official M5Stack Arduino board definitions are required, please add board from following location:
+// https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
+// 
+// Only following boards are supported in this code:
+// M5Stack Arduino / M5Stack-Core-ESP32
+// M5Stack Arduino / M5Stack-Core2
+
 
 #include <Arduino.h>
-#ifdef M5CORE2
+#ifdef ARDUINO_M5STACK_Core2
   #include <M5Core2.h>
   #include <driver/i2s.h>
 #else
@@ -60,9 +63,9 @@
 DHT12 dht12;
 SHT3X sht30;
 
-String M5NSversion("2020092001");
+String M5NSversion("2020092801");
 
-#ifdef M5CORE2
+#ifdef ARDUINO_M5STACK_Core2
   #define CONFIG_I2S_BCK_PIN 12
   #define CONFIG_I2S_LRCK_PIN 0
   #define CONFIG_I2S_DATA_PIN 2
@@ -155,7 +158,11 @@ int snoozeMult = 0;
 unsigned long lastButtonMillis = 0;
 int udpSendSnoozeRetries = 0;
 
-static int16_t music_data[25000]; // 5s in sample rate 5000 samp/s
+#ifdef ARDUINO_M5STACK_Core2
+  static int16_t music_data[25000]; // 2s in sample rate 11025 samp/s
+#else
+  static uint8_t music_data[25000]; // 5s in sample rate 5000 samp/s
+#endif
 
 struct NSinfo ns;
 
@@ -199,7 +206,7 @@ void setPageIconPos(int page) {
 void lcdSetBrightness(uint8_t brightness) {
   if( brightness>100 )
     brightness = 100;
-  #ifdef M5CORE2
+  #ifdef ARDUINO_M5STACK_Core2
       M5.Axp.SetLcdVoltage(2500+brightness*8);
   #else
       M5.Lcd.setBrightness(brightness);
@@ -256,7 +263,7 @@ void startupLogo() {
       M5.Lcd.drawJpgFile(SD, cfg.bootPic);
     }
     lcdSetBrightness(100);
-    #ifndef M5CORE2  // no .update() on M5Stack CORE2
+    #ifndef ARDUINO_M5STACK_Core2  // no .update() on M5Stack CORE2
       M5.update();
     #endif
     // M5.Speaker.playMusic(m5stack_startup_music,25000);
@@ -288,7 +295,7 @@ void printLocalTime() {
   M5.Lcd.println(&localTimeInfo, "%A, %B %d %Y %H:%M:%S");
 }
 
-#ifdef M5CORE2
+#ifdef ARDUINO_M5STACK_Core2
 
 // audio functions for Core2
 
@@ -340,7 +347,7 @@ void play_tone(uint16_t frequency, uint32_t duration, uint8_t volume) {
   Serial.print("finish play "); Serial.println(millis());
 }   
 
-#else 
+#else    // M5Stack BASIC audio functions
 
 // this function is for original M5Stack only, as Core2 uses DMA to I2S
 void play_music_data(uint32_t data_length, uint8_t volume) {
@@ -424,7 +431,7 @@ void drawIcon(int16_t x, int16_t y, const uint8_t *bitmap, uint16_t color) {
 }
 
 void waitBtnRelease() {
-  #ifdef M5CORE2
+  #ifdef ARDUINO_M5STACK_Core2
       // wait release
       TouchPoint_t pos;
       pos = M5.Touch.getPressPoint();
@@ -441,7 +448,7 @@ void buttons_test() {
   bool btnB_wasPressed = false;
   bool btnC_wasPressed = false;
 
-  #ifdef M5CORE2
+  #ifdef ARDUINO_M5STACK_Core2
     TouchPoint_t pos;
     pos = M5.Touch.getPressPoint();
     // Serial.printf("Touch point: %d : %d\r\n", pos.x, pos.y);
@@ -467,7 +474,7 @@ void buttons_test() {
       else
         lcdBrightness = cfg.brightness1;
     lcdSetBrightness(lcdBrightness);
-    #ifdef M5CORE2
+    #ifdef ARDUINO_M5STACK_Core2
       waitBtnRelease();
     #else
       M5.update();
@@ -541,7 +548,7 @@ void buttons_test() {
     }
     udpSendSnoozeRetries = UDP_SEND_RETRIES;
     lastButtonMillis = millis();
-    #ifdef M5CORE2
+    #ifdef ARDUINO_M5STACK_Core2
       waitBtnRelease();
     #else
       M5.update();
@@ -552,7 +559,7 @@ void buttons_test() {
     // M5.Lcd.printf("C");
     Serial.printf("C");
     int longPress = 0;
-    #ifndef M5CORE2   // long press check only on real buttons, M5CORE2 has its own power button with long press to power off
+    #ifndef ARDUINO_M5STACK_Core2   // long press check only on real buttons, ARDUINO_M5STACK_Core2 has its own power button with long press to power off
       unsigned long btnCPressTime = millis();
       long pwrOffTimeout = 4000;
       int lastDispTime = pwrOffTimeout/1000;
@@ -575,7 +582,7 @@ void buttons_test() {
           M5.Power.setWakeupButton(BUTTON_C_PIN);
           M5.Power.powerOFF();
         }
-        #ifndef M5CORE2  // no .update() on M5Stack CORE2
+        #ifndef ARDUINO_M5STACK_Core2  // no .update() on M5Stack CORE2
           M5.update();
         #endif
       }
@@ -598,7 +605,7 @@ void buttons_test() {
       music_data[i]=alarmSndData[i];
     }
     play_music_data(25000, 10); */
-    #ifdef M5CORE2
+    #ifdef ARDUINO_M5STACK_Core2
       waitBtnRelease();
     #else
       M5.update();
@@ -668,7 +675,7 @@ void wifi_connect() {
 
 int8_t getBatteryLevel()
 {
-  #ifdef M5CORE2
+  #ifdef ARDUINO_M5STACK_Core2
     float dta;
     int8_t batLev = 0;
     dta = M5.Axp.GetBatVoltage();
@@ -1290,7 +1297,7 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
                 M5.Lcd.drawString(infoStr, 0, 220, GFXFF);
                 break;
               case 1: // button function icons
-                #ifdef M5CORE2
+                #ifdef ARDUINO_M5STACK_Core2
                   drawIcon(45, 220, (uint8_t*)sun_icon16x16, TFT_LIGHTGREY);
                   drawIcon(150, 220, (uint8_t*)clock_icon16x16, TFT_LIGHTGREY);
                   // drawIcon(153, 220, (uint8_t*)timer_icon16x16, TFT_LIGHTGREY);
@@ -1734,7 +1741,7 @@ void draw_page() {
         M5.Lcd.drawString(String(sensorDifMin)+" min", 34, 53, GFXFF);
       }
 
-      #ifdef M5CORE2
+      #ifdef ARDUINO_M5STACK_Core2
         // no temeperature and humidity readings (yet)
       #else
         // get temperature and humidity
@@ -1978,7 +1985,7 @@ void draw_page() {
 // the setup routine runs once when M5Stack starts up
 void setup() {
     // initialize the M5Stack object
-    #ifdef M5CORE2
+    #ifdef ARDUINO_M5STACK_Core2
       M5.begin(true, true, true, true);
       M5.Axp.SetSpkEnable(true);
       InitI2SSpeakOrMic(MODE_SPK);
@@ -1999,6 +2006,12 @@ void setup() {
     M5.Lcd.setCursor(0, 0);
     M5.Lcd.setTextSize(2);
     yield();
+
+# ifdef ARDUINO_M5STACK_Core2
+ Serial.println("M5Stack CORE2 code starting");
+# else
+ Serial.println("M5Stack BASIC code starting");
+# endif
 
     Serial.print("Free Heap: "); Serial.println(ESP.getFreeHeap());
 
@@ -2355,7 +2368,7 @@ void loop(){
   }
 
   // Serial.println("M5.update() and loop again");
-  #ifndef M5CORE2  // no .update() on M5Stack CORE2
+  #ifndef ARDUINO_M5STACK_Core2  // no .update() on M5Stack CORE2
     M5.update();
   #endif
 }

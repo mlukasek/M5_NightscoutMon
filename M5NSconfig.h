@@ -1,8 +1,7 @@
 #ifndef _M5NSCONFIG_H
 #define _M5NSCONFIG_H
 
-#include "compiledef.h"
-#ifdef M5CORE2
+#ifdef ARDUINO_M5STACK_Core2
   #include <M5Core2.h>
 #else
   #include <M5Stack.h>
