@@ -32,6 +32,7 @@
 // M5Stack Arduino / M5Stack-Core-ESP32
 // M5Stack Arduino / M5Stack-Core2
 
+// #define MDPENABLE 1    // uncomment this line to enable Micro Dot pHAT support (connect 4 wires 5V, GND, SCL=G22, SDA=G21)
 
 #include <Arduino.h>
 #ifdef ARDUINO_M5STACK_Core2
@@ -57,13 +58,18 @@
 #include "IniFile.h"
 #include "M5NSconfig.h"
 #include "M5NSWebConfig.h"
+#include <Wire.h>     //The DHT12 uses I2C comunication.
 #include "DHT12.h"
 #include "SHT3X.h"
-#include <Wire.h>     //The DHT12 uses I2C comunication.
+#ifdef MDPENABLE
+  #include "microdot.h"
+  MicroDot MD;
+#endif
+
 DHT12 dht12;
 SHT3X sht30;
 
-String M5NSversion("2020092801");
+String M5NSversion("2020110701");
 
 #ifdef ARDUINO_M5STACK_Core2
   #define CONFIG_I2S_BCK_PIN 12
@@ -1324,6 +1330,30 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
       }
     }
   }
+#ifdef MDPENABLE
+  // update Micro Dot pHAT display
+  sprintf(tmpStr, "%4.1f", ns->sensSgv);
+  MD.writeDigit(1, tmpStr[0]);
+  MD.writeDigit(2, tmpStr[1]);
+  MD.writeDigit(3, tmpStr[3] | 0x80);
+  if(ns->delta_scaled>9.9) {
+    MD.writeDigit(4, '+');
+    MD.writeDigit(5, '9');
+    MD.writeDigit(6, '9' | 0x80);
+  } else {
+    if(ns->delta_scaled>9.9) {
+      MD.writeDigit(4, '+');
+      MD.writeDigit(5, '9');
+      MD.writeDigit(6, '9' | 0x80);
+    } else {
+      sprintf(tmpStr, "%+4.1f", ns->delta_scaled);
+      MD.writeDigit(4, tmpStr[0]);
+      MD.writeDigit(5, tmpStr[1]);
+      MD.writeDigit(6, tmpStr[3]+0x80);
+    }
+  }
+#endif  
+  // update snooze on other M5Stacks in local network
   if(udpSendSnoozeRetries>0) {
     udpSendSnoozeRetries--;
     IPAddress broadcastIp = ~WiFi.subnetMask() | WiFi.gatewayIP(); // broadcast to local subnet
@@ -1996,7 +2026,10 @@ void setup() {
     // prevent button A "ghost" random presses
     Wire.begin();
     SD.begin();
-    
+#ifdef MDPENABLE    
+    MD.begin();
+    MD.writeString("*M5NS*");
+#endif    
     // M5.Speaker.mute();
 
     // Lcd display
