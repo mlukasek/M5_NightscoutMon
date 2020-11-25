@@ -1332,15 +1332,26 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
   }
 #ifdef MDPENABLE
   // update Micro Dot pHAT display
-  sprintf(tmpStr, "%4.1f", ns->sensSgv);
-  MD.writeDigit(1, tmpStr[0]);
-  MD.writeDigit(2, tmpStr[1]);
-  MD.writeDigit(3, tmpStr[3] | 0x80);
-  if(ns->delta_scaled>9.9) {
-    MD.writeDigit(4, '+');
-    MD.writeDigit(5, '9');
-    MD.writeDigit(6, '9' | 0x80);
+  if(cfg.show_mgdl==1) {
+    sprintf(tmpStr, "%3.0f", ns->sensSgv*18);
+    MD.writeDigit(1, tmpStr[0]);
+    MD.writeDigit(2, tmpStr[1]);
+    MD.writeDigit(3, tmpStr[2]);
+    if(ns->delta_scaled*18>99) {
+      MD.writeDigit(4, '+');
+      MD.writeDigit(5, '9');
+      MD.writeDigit(6, '9');
+    } else {
+      sprintf(tmpStr, "%+3.0f", ns->delta_scaled*18);
+      MD.writeDigit(4, tmpStr[0]);
+      MD.writeDigit(5, tmpStr[1]);
+      MD.writeDigit(6, tmpStr[2]);
+    }
   } else {
+    sprintf(tmpStr, "%4.1f", ns->sensSgv);
+    MD.writeDigit(1, tmpStr[0]);
+    MD.writeDigit(2, tmpStr[1]);
+    MD.writeDigit(3, tmpStr[3] | 0x80);
     if(ns->delta_scaled>9.9) {
       MD.writeDigit(4, '+');
       MD.writeDigit(5, '9');
@@ -1349,7 +1360,7 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
       sprintf(tmpStr, "%+4.1f", ns->delta_scaled);
       MD.writeDigit(4, tmpStr[0]);
       MD.writeDigit(5, tmpStr[1]);
-      MD.writeDigit(6, tmpStr[3]+0x80);
+      MD.writeDigit(6, tmpStr[3] | 0x80);
     }
   }
 #endif  
