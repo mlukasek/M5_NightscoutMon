@@ -947,9 +947,13 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
             time_t tmptime = JSONdoc["x"]; // time in milliseconds since 1970
             if(ns->sensTime != tmptime) {
               for(int i=9; i>0; i--) { // add new value and shift buffer
-               ns->last10sgv[i]=ns->last10sgv[i-1];
+                ns->last10sgv[i]=ns->last10sgv[i-1];
               }
               ns->last10sgv[0] = ns->sensSgv;
+              if(strstr(JSONdoc["units"],"mg/dL") != NULL) { // Units are mg/dL, but last10sgv is in mmol/L -> convert
+                ns->last10sgv[0]/=18.0;
+              }
+
               ns->sensTime = tmptime;
             }
             ns->rawtime = (long long)ns->sensTime * (long long)1000; // possibly not needed, but to make the structure values complete
