@@ -71,6 +71,7 @@ temperature_unit = 1                ; 1 = CELSIUS, 2 = KELVIN, 3 = FAHRENHEIT. C
 display_rotation = 1                ; 1 = buttons down (default, can be omitted), 3 = buttons up, 
                                     ; 5 = mirror buttons up, 7 = mirror buttons down  
 date_format = 0                     ; 0 = dd.mm. (default, can be omitted), 1 = MM/DD
+time_format = 0                     ; 0 = 24 Hours (default, can be omitted), 1 = 12-hour AM/PM
 brightness1 = 50                    ; the first (default) brightness value
 brightness2 = 100                   ; the second brightness value
 brightness3 = 10                    ; the third brightness value
@@ -86,10 +87,31 @@ snd_alarm = 3.0            ; strong alarm will sound every 5 min when under this
 snd_warning_high = 14.0    ; softer high beep sound will beep every 5 mins when over this value
 snd_alarm_high = 20.0      ; strong alarm will sound every 5 min when over this value
 snd_no_readings = 20       ; softer high beep sound will beep every 5 mins when time in minutes when last data was read is over this value
+snd_loop_error = 1         ; 0 = no loop error alarm, 1 = stronger sound alarm to loop error
 snd_warning_at_startup = 1 ; play test warning sound with its volume during startup (1 = play, 0 =  do not play)
 snd_alarm_at_startup = 0   ; play test alarm sound with its volume during startup (1 = play, 0 =  do not play)
 warning_volume = 20        ; volume of warning sound in range 0-100 (0=no sound, 1=silent, 100=max volume)
 alarm_volume = 100         ; volume of alarm sound in range 0-100 (0=no sound, 1=silent, 100=max volume)
+
+;;;;;;;;;; there are supported some external devices, take care and know what you are doing when you connect it
+
+LED_strip_mode = 0         ; external RGB LED strip or internal M5Stack Fire RGB LED support
+                           ; 0 = off, 1 = visualize sound, 2 = show warnings and alarms, 3 = light always
+LED_strip_pin = 15         ; pin that controls LEDs, 15 = M5Stack Fire internal pin
+                           ; 21 = red PORT A connector (not recommended, collides with I2C, first LEDs will blink occassionaly
+                           ; 26 = black PORT B connector, 17 = blue PORT C connector
+LED_strip_count = 10       ; 10 = number of M5Stack Fire internal LEDs,
+                           ; 15 = 10 cm strip, 29 = 20 cm strip, 72 = 50 cm strip, 144 = 100 cm strip, 288 = 200 cm strip
+LED_strip_brightness = 10  ; 1-100% brightness intesity (100 = max.) 
+                           ; for more than 10 LEDs use 10%, 5% or even less otherwise loaded current will reset the M5Stack
+
+vibration_mode = 0         ; VIBRATION MOTOR UNIT ; 0 = off, 1 = ON (vibrate during sound)
+vibration_pin = 26         ; pin that controls VIBRATION UNIT motor, 26 = M5Stack Fire PORT B connector, 17 = blue PORT C connector
+                           ; do not connect vibration motor to red PORT A, it will rotate always as it will be in collision with I2C
+vibration_strength = 512   ; 10 bit PWM value for VIBRATION UNIT motor control, 512 = 1/2 of max. power, do not use more, full power will reset M5Stack
+                           ; recommended range is 256-512
+
+micro_dot_pHAT = 0         ; 0 = off, 1 = ON (display SGV and DELTA on I2C Pimoroni Micro Dot pHAT connected to I2C pins 21+22)
 
 ;;;;;;;;;;  you can connect up to 9 WiFi access points, no need to setup all, one is enough
 
