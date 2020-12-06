@@ -6,6 +6,7 @@
 #else
   #include <M5Stack.h>
 #endif
+
 #include "IniFile.h"
 
 struct tConfig {
@@ -33,16 +34,27 @@ struct tConfig {
   float snd_alarm = 3.0;
   float snd_warning_high = 14;
   float snd_alarm_high = 20;
-  int snd_no_readings = 20; 
+  int snd_no_readings = 20;
+  int snd_loop_error = 1; 
   int snd_warning_at_startup = 1;
   int snd_alarm_at_startup =0;
   char warning_music[64];
   int warning_volume = 30;
   char alarm_music[64];
   int alarm_volume = 100;
+  int LED_strip_mode = 0; // 0 = off, 1 = visualize sound, 2 = show warnings and alarms, 3 = light always
+  int LED_strip_pin = 15; // pin that controls LEDs, 15 = M5Stack Fire internal pin, 21 = red PORT A connector, 26 = black PORT B connector
+  int LED_strip_count = 10; // 10 = number of M5Stack Fire internal pins,
+                            // 15 = 10 cm strip, 29 = 20 cm strip, 72 = 50 cm strip, 144 = 100 cm strip, 288 = 200 cm strip
+  int LED_strip_brightness = 10; // 1-100 brightness intesity (100 = max.), take care of max. power consumption
+  int vibration_mode = 0; // 0 = off, 1 = ON (vibrate during sound)
+  int vibration_pin = 26; // pin that controls VIBRATION UNIT motor, 26 = M5Stack Fire PORT B connector
+  int vibration_strength = 512; // 10 bit PWM value for VIBRATION UNIT motor control, 512 = 1/2 of max. power, do not use more, full power resets M5Stack
+  int micro_dot_pHAT = 0; // 0 = off, 1 = ON (display SGV and DELTA on I2C Pimoroni Micro Dot pHAT coonected to pins 21+22)
   int info_line = 1; // 0 = sensor info, 1 = button function icons, 2 = loop info + basal
-  uint8_t brightness1, brightness2, brightness3;
+  int brightness1, brightness2, brightness3;
   int date_format = 0; // 0 = dd.mm., 1 = MM/DD
+  int time_format = 0; // 0 = 24 Hours, 1 = am/pm
   int display_rotation = 1; // 1 = buttons down, 3 = buttons up, 5 = mirror buttons up, 7 = mirror buttons down
   int invert_display = -1; // -1 = not defined, no not call M5.Lcd.invertDisplay(), 0 or 1 call M5.Lcd.invertDisplay(parameter value)
   int temperature_unit = 1; // 1 = CELSIUS, 2 = KELVIN, 3= FAHRENHEIT

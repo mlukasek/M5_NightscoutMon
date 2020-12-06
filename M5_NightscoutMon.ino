@@ -32,8 +32,6 @@
 // M5Stack Arduino / M5Stack-Core-ESP32
 // M5Stack Arduino / M5Stack-Core2
 
-// #define MDPENABLE 1    // uncomment this line to enable Micro Dot pHAT support (connect 4 wires 5V, GND, SCL=G22, SDA=G21)
-
 #include <Arduino.h>
 #ifdef ARDUINO_M5STACK_Core2
   #include <M5Core2.h>
@@ -54,22 +52,26 @@
 // #include <util/eu_dst.h>
 #define ARDUINOJSON_USE_LONG_LONG 1
 #include <ArduinoJson.h>
+
+#include <Adafruit_NeoPixel.h>
+Adafruit_NeoPixel pixels(10, 15, NEO_GRB + NEO_KHZ800);
+
 #include "Free_Fonts.h"
 #include "IniFile.h"
 #include "M5NSconfig.h"
 #include "M5NSWebConfig.h"
+
 #include <Wire.h>     //The DHT12 uses I2C comunication.
 #include "DHT12.h"
-#include "SHT3X.h"
-#ifdef MDPENABLE
-  #include "microdot.h"
-  MicroDot MD;
-#endif
-
 DHT12 dht12;
+
+#include "SHT3X.h"
 SHT3X sht30;
 
-String M5NSversion("2020110701");
+#include "microdot.h"
+MicroDot MD;
+
+String M5NSversion("2020120602");
 
 #ifdef ARDUINO_M5STACK_Core2
   #define CONFIG_I2S_BCK_PIN 12
@@ -79,6 +81,10 @@ String M5NSversion("2020110701");
   #define Speak_I2S_NUMBER I2S_NUM_0
   #define MODE_SPK 1
 #endif
+
+#define VIBfreq 10000
+#define VIBchannel 14
+#define VIBresolution 10
 
 // The UDP library class
 WiFiUDP udp;
@@ -348,9 +354,9 @@ void play_tone(uint16_t frequency, uint32_t duration, uint8_t volume) {
     music_data[i]=32767.0*sin(interval*i)*volMul; // 16383.0+ /(101-volume)
   }
   music_data[data_length-1]=32767;
-  Serial.print("finish fill music data, start play "); Serial.println(millis());
+  // Serial.print("finish fill music data, start play "); Serial.println(millis());
   i2s_write(Speak_I2S_NUMBER, music_data, data_length*2, &bytes_written, portMAX_DELAY);
-  Serial.print("finish play "); Serial.println(millis());
+  // Serial.print("finish play "); Serial.println(millis());
 }   
 
 #else    // M5Stack BASIC audio functions
@@ -398,27 +404,66 @@ void play_tone(uint16_t frequency, uint32_t duration, uint8_t volume) {
     music_data[i]=127+126*sin(interval*i);
   }
   // Serial.print("finish fill music data "); Serial.println(millis());
+  if(cfg.vibration_mode != 0) {
+    ledcSetup(VIBchannel, VIBfreq, VIBresolution);
+    ledcAttachPin(cfg.vibration_pin, VIBchannel);
+    delay(10);
+    ledcWrite(VIBchannel, cfg.vibration_strength);
+  }
   play_music_data(data_length, volume);
+  if(cfg.vibration_mode != 0) {
+    ledcSetup(VIBchannel, VIBfreq, VIBresolution);
+    ledcAttachPin(cfg.vibration_pin, VIBchannel);
+    delay(10);
+    if(duration<180) // minimum vibration lenght is 200 ms
+      delay(180-duration);
+    ledcWrite(VIBchannel, 0);
+  }
 }    
 
 #endif
 
 void sndAlarm() {
-    for(int j=0; j<6; j++) {
-      if( cfg.dev_mode )
-        play_tone(660, 400, 1);
-      else
-        play_tone(660, 400, cfg.alarm_volume);
-      delay(200);
+  for(int j=0; j<6; j++) {
+    if(cfg.LED_strip_mode != 0) {
+      int maxint = 255;
+      maxint *= cfg.LED_strip_brightness;
+      maxint /= 100;
+      pixels.fill(pixels.Color(maxint, 0, 0));
+      pixels.show();
     }
+    if( cfg.dev_mode )
+      play_tone(660, 400, 1);
+    else
+      play_tone(660, 400, cfg.alarm_volume);
+    if(cfg.LED_strip_mode != 0) {
+      pixels.clear();
+      pixels.show();
+    }
+    delay(200);
+  }
 }
 
 void sndWarning() {
   for(int j=0; j<3; j++) {
+    if(cfg.LED_strip_mode != 0) {
+      int maxint = 255;
+      maxint *= cfg.LED_strip_brightness;
+      maxint /= 100;
+      int lessint = 192;
+      lessint *= cfg.LED_strip_brightness;
+      lessint /= 100;
+      pixels.fill(pixels.Color(maxint, lessint, 0));
+      pixels.show();
+    }
     if( cfg.dev_mode )
       play_tone(3000, 100, 1);
     else
       play_tone(3000, 100, cfg.warning_volume);
+    if(cfg.LED_strip_mode != 0) {
+      pixels.clear();
+      pixels.show();
+    }
     delay(300);
   }
 }
@@ -541,8 +586,13 @@ void buttons_test() {
     }
     if(snoozeMult==0)
       strcpy(tmpStr, "OFF");
-    else
+    else {
       sprintf(tmpStr, "%i", (snoozeRemaining+59)/60);
+      if(cfg.LED_strip_mode==2) {
+        pixels.clear();
+        pixels.show();
+      }     
+    }
     int txw=M5.Lcd.textWidth(tmpStr);
     Serial.print("Set SNOOZE: "); Serial.print(tmpStr); Serial.print(", snoozeUntil-now = "); Serial.println(snoozeRemaining);
     M5.Lcd.drawString(tmpStr, 159-txw/2, 220, GFXFF);
@@ -699,34 +749,25 @@ int8_t getBatteryLevel()
     Serial.printf("Battery %4.2f V = %d%%\r\n", dta, batLev);
     return batLev;
   #else
-    Wire.beginTransmission(0x75);
-    Wire.write(0x78);
-    if ((Wire.endTransmission(false)==0) && Wire.requestFrom(0x75, 1)) {
-      int8_t bdata=Wire.read();
-      /* 
-      // write battery info to logfile.txt
-      File fileLog = SD.open("/logfile.txt", FILE_WRITE);    
-      if(!fileLog) {
-        Serial.println("Cannot write to logfile.txt");
-      } else {
-        int pos = fileLog.seek(fileLog.size());
-        struct tm timeinfo;
-        getLocalTime(&timeinfo);
-        fileLog.print(asctime(&timeinfo));
-        fileLog.print("   Battery level: "); fileLog.println(bdata, HEX);
-        fileLog.close();
-        Serial.print("Log file written: "); Serial.print(asctime(&timeinfo));
-      }
-      */
-      switch (bdata & 0xF0) {
-        case 0xE0: return 25;
-        case 0xC0: return 50;
-        case 0x80: return 75;
-        case 0x00: return 100;
-        default: return 0;
-      }
+    int8_t bl = M5.Power.getBatteryLevel();
+    /* 
+    // write battery info to logfile.txt
+    File fileLog = SD.open("/logfile.txt", FILE_WRITE);    
+    if(!fileLog) {
+      Serial.println("Cannot write to logfile.txt");
+    } else {
+      int pos = fileLog.seek(fileLog.size());
+      struct tm timeinfo;
+      getLocalTime(&timeinfo);
+      fileLog.print(asctime(&timeinfo));
+      fileLog.print("   Battery level: "); fileLog.println(bdata, HEX);
+      fileLog.close();
+      Serial.print("Log file written: "); Serial.print(asctime(&timeinfo));
     }
+    */
+    return bl;
   #endif
+
   return -1;
 }
 
@@ -1129,6 +1170,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
           ns->loop_display_symbol = tmpstr[0];
           strncpy(ns->loop_display_code, loop_display["code"] | "N/A", 16); // "enacted"
           strncpy(ns->loop_display_label, loop_display["label"] | "N/A", 16); // "Enacted"
+          // strncpy(ns->loop_display_label, "Error", 16); // "Enacted"
           // Serial.println("LOOP OK");
 
           JsonObject basal = JSONdoc["basal"];
@@ -1163,6 +1205,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
 
 void drawBatteryStatus(int16_t x, int16_t y) {
   int8_t battLevel = getBatteryLevel();
+  pixels.show();
   // Serial.print("Battery level: "); Serial.println(battLevel);
   M5.Lcd.fillRect(x, y, 16, 17, TFT_BLACK);
   if(battLevel!=-1) {
@@ -1221,6 +1264,13 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
   }
   M5.Lcd.setTextSize(1);
   M5.Lcd.setFreeFont(FSSB12);
+  // prapare intensity variables for LED strip brightness
+  int maxint = 255;
+  maxint *= cfg.LED_strip_brightness;
+  maxint /= 100;
+  int lessint = 192;
+  lessint *= cfg.LED_strip_brightness;
+  lessint /= 100;
   // Serial.print("sensSgv="); Serial.print(sensSgv); Serial.print(", cfg.snd_alarm="); Serial.println(cfg.snd_alarm); 
   if((ns->sensSgv<=cfg.snd_alarm) && (ns->sensSgv>=0.1)) {
     // red alarm state
@@ -1233,6 +1283,15 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
     if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
         sndAlarm();
         lastAlarmTime = mktime(&timeinfo);
+        if(cfg.LED_strip_mode>=2) {
+          pixels.fill(pixels.Color(maxint, 0, 0));
+          pixels.show();
+        }
+    } else {
+      if(cfg.LED_strip_mode==1 || cfg.LED_strip_mode==2) {
+        pixels.clear();
+        pixels.show();
+      }     
     }
   } else {
     if((ns->sensSgv<=cfg.snd_warning) && (ns->sensSgv>=0.1)) {
@@ -1246,6 +1305,15 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
       if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
         sndWarning();
         lastAlarmTime = mktime(&timeinfo);
+        if(cfg.LED_strip_mode>=2) {
+          pixels.fill(pixels.Color(maxint, lessint, 0));
+          pixels.show();
+        }
+      } else {
+        if(cfg.LED_strip_mode==1 || cfg.LED_strip_mode==2) {
+          pixels.clear();
+          pixels.show();
+        }     
       }
     } else {
       if( ns->sensSgv>=cfg.snd_alarm_high ) {
@@ -1257,8 +1325,17 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
         int stw=M5.Lcd.textWidth(tmpStr);
         M5.Lcd.drawString(tmpStr, 159-stw/2, 220, GFXFF);
         if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
-            sndAlarm();
-            lastAlarmTime = mktime(&timeinfo);
+          sndAlarm();
+          lastAlarmTime = mktime(&timeinfo);
+          if(cfg.LED_strip_mode>=2) {
+            pixels.fill(pixels.Color(maxint, 0, 0));
+            pixels.show();
+          }
+        } else {
+          if(cfg.LED_strip_mode==1 || cfg.LED_strip_mode==2) {
+            pixels.clear();
+            pixels.show();
+          }     
         }
       } else {
         if( ns->sensSgv>=cfg.snd_warning_high ) {
@@ -1272,10 +1349,19 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
           if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
             sndWarning();
             lastAlarmTime = mktime(&timeinfo);
+            if(cfg.LED_strip_mode>=2) {
+              pixels.fill(pixels.Color(maxint, lessint, 0));
+              pixels.show();
+            }
+          } else {
+            if(cfg.LED_strip_mode==1 || cfg.LED_strip_mode==2) {
+              pixels.clear();
+              pixels.show();
+            }     
           }
         } else {
           if( sensorDifMin>=cfg.snd_no_readings ) {
-            // yellow warning state
+            // LONG TIME NO READINGS -> yellow warning state
             // M5.Lcd.fillRect(110, 220, 100, 20, TFT_YELLOW);
             Serial.println("WARNING NO READINGS");
             M5.Lcd.fillRect(0, 220, 320, 20, TFT_YELLOW);
@@ -1285,89 +1371,134 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
             if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
               sndWarning();
               lastAlarmTime = mktime(&timeinfo);
+              if(cfg.LED_strip_mode>=2) {
+                pixels.fill(pixels.Color(maxint, lessint, 0));
+                pixels.show();
+              }
+            } else {
+              if(cfg.LED_strip_mode==1 || cfg.LED_strip_mode==2) {
+                pixels.clear();
+                pixels.show();
+              }     
             }
           } else {
-            // normal glycemia state
-            M5.Lcd.fillRect(0, 220, 320, 20, TFT_BLACK);
-            M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-            // draw info line
-            char infoStr[64];
-            switch( cfg.info_line ) {
-              case 0: // sensor information
-                strcpy(infoStr, ns->sensDev);
-                if(strcmp(infoStr,"MIAOMIAO")==0) {
-                  if(ns->is_xDrip) {
-                    strcpy(infoStr,"xDrip MiaoMiao + Libre");
-                  } else {
-                    strcpy(infoStr,"Spike MiaoMiao + Libre");
-                  }
+            if( strstr(ns->loop_display_label,"Err" )>0 ) {
+              // LOOP ERROR -> red alarm state
+              // M5.Lcd.fillRect(110, 220, 100, 20, TFT_RED);
+              Serial.println("LOOP ERROR");
+              M5.Lcd.fillRect(0, 220, 320, 20, TFT_RED);
+              M5.Lcd.setTextColor(TFT_BLACK, TFT_RED);
+              int stw=M5.Lcd.textWidth(tmpStr);
+              M5.Lcd.drawString(tmpStr, 159-stw/2, 220, GFXFF);
+              M5.Lcd.drawString("LOOP", 2, 220, GFXFF);
+              M5.Lcd.drawString("ERR", 267, 220, GFXFF);
+              if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
+                sndAlarm();
+                lastAlarmTime = mktime(&timeinfo);
+                if(cfg.LED_strip_mode>=2) {
+                  pixels.fill(pixels.Color(maxint, 0, 0));
+                  pixels.show();
                 }
-                if(strcmp(infoStr,"Tomato")==0)
-                  strcat(infoStr," MiaoMiao + Libre");
-                M5.Lcd.drawString(infoStr, 0, 220, GFXFF);
-                break;
-              case 1: // button function icons
-                #ifdef ARDUINO_M5STACK_Core2
-                  drawIcon(45, 220, (uint8_t*)sun_icon16x16, TFT_LIGHTGREY);
-                  drawIcon(150, 220, (uint8_t*)clock_icon16x16, TFT_LIGHTGREY);
-                  // drawIcon(153, 220, (uint8_t*)timer_icon16x16, TFT_LIGHTGREY);
-                  drawIcon(256, 220, (uint8_t*)door_icon16x16, TFT_LIGHTGREY);
-                #else
-                  drawIcon(58, 220, (uint8_t*)sun_icon16x16, TFT_LIGHTGREY);
-                  drawIcon(153, 220, (uint8_t*)clock_icon16x16, TFT_LIGHTGREY);
-                  // drawIcon(153, 220, (uint8_t*)timer_icon16x16, TFT_LIGHTGREY);
-                  drawIcon(246, 220, (uint8_t*)door_icon16x16, TFT_LIGHTGREY);
-                #endif
-                break;
-              case 2: // loop + basal information
-              case 3: // openaps + basal information
-                strcpy(infoStr, "L: ");
-                strlcat(infoStr, ns->loop_display_label, 64);
-                M5.Lcd.drawString(infoStr, 0, 220, GFXFF);
-                strcpy(infoStr, "B: ");
-                strlcat(infoStr, ns->basal_display, 64);
-                M5.Lcd.drawString(infoStr, 160, 220, GFXFF);
-                break;
+              } else {
+                if(cfg.LED_strip_mode==1 || cfg.LED_strip_mode==2) {
+                  pixels.clear();
+                  pixels.show();
+                }     
+              }
+            } else {
+              // normal glycemia state
+              M5.Lcd.fillRect(0, 220, 320, 20, TFT_BLACK);
+              M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+              if(cfg.LED_strip_mode==3) {
+                pixels.fill(pixels.Color(0, maxint, 0));
+                pixels.show();
+              } else {
+                if(cfg.LED_strip_mode==1 || cfg.LED_strip_mode==2) {
+                  pixels.clear();
+                  pixels.show();
+                }
+              }
+              // draw info line
+              char infoStr[64];
+              switch( cfg.info_line ) {
+                case 0: // sensor information
+                  strcpy(infoStr, ns->sensDev);
+                  if(strcmp(infoStr,"MIAOMIAO")==0) {
+                    if(ns->is_xDrip) {
+                      strcpy(infoStr,"xDrip MiaoMiao + Libre");
+                    } else {
+                      strcpy(infoStr,"Spike MiaoMiao + Libre");
+                    }
+                  }
+                  if(strcmp(infoStr,"Tomato")==0)
+                    strcat(infoStr," MiaoMiao + Libre");
+                  M5.Lcd.drawString(infoStr, 0, 220, GFXFF);
+                  break;
+                case 1: // button function icons
+                  #ifdef ARDUINO_M5STACK_Core2
+                    drawIcon(45, 220, (uint8_t*)sun_icon16x16, TFT_LIGHTGREY);
+                    drawIcon(150, 220, (uint8_t*)clock_icon16x16, TFT_LIGHTGREY);
+                    // drawIcon(153, 220, (uint8_t*)timer_icon16x16, TFT_LIGHTGREY);
+                    drawIcon(256, 220, (uint8_t*)door_icon16x16, TFT_LIGHTGREY);
+                  #else
+                    drawIcon(58, 220, (uint8_t*)sun_icon16x16, TFT_LIGHTGREY);
+                    drawIcon(153, 220, (uint8_t*)clock_icon16x16, TFT_LIGHTGREY);
+                    // drawIcon(153, 220, (uint8_t*)timer_icon16x16, TFT_LIGHTGREY);
+                    drawIcon(246, 220, (uint8_t*)door_icon16x16, TFT_LIGHTGREY);
+                  #endif
+                  break;
+                case 2: // loop + basal information
+                case 3: // openaps + basal information
+                  strcpy(infoStr, "L: ");
+                  strlcat(infoStr, ns->loop_display_label, 64);
+                  M5.Lcd.drawString(infoStr, 0, 220, GFXFF);
+                  strcpy(infoStr, "B: ");
+                  strlcat(infoStr, ns->basal_display, 64);
+                  M5.Lcd.drawString(infoStr, 160, 220, GFXFF);
+                  break;
+              }
             }
           }
         }
       }
     }
   }
-#ifdef MDPENABLE
-  // update Micro Dot pHAT display
-  if(cfg.show_mgdl==1) {
-    sprintf(tmpStr, "%3.0f", ns->sensSgv*18);
-    MD.writeDigit(1, tmpStr[0]);
-    MD.writeDigit(2, tmpStr[1]);
-    MD.writeDigit(3, tmpStr[2]);
-    if(ns->delta_scaled*18>99) {
-      MD.writeDigit(4, '+');
-      MD.writeDigit(5, '9');
-      MD.writeDigit(6, '9');
+
+  if(cfg.micro_dot_pHAT != 0) {
+    // update Micro Dot pHAT display
+    if(cfg.show_mgdl==1) {
+      sprintf(tmpStr, "%3.0f", ns->sensSgv*18);
+      MD.writeDigit(1, tmpStr[0]);
+      MD.writeDigit(2, tmpStr[1]);
+      MD.writeDigit(3, tmpStr[2]);
+      if(ns->delta_scaled*18>99) {
+        MD.writeDigit(4, '+');
+        MD.writeDigit(5, '9');
+        MD.writeDigit(6, '9');
+      } else {
+        sprintf(tmpStr, "%+3.0f", ns->delta_scaled*18);
+        MD.writeDigit(4, tmpStr[0]);
+        MD.writeDigit(5, tmpStr[1]);
+        MD.writeDigit(6, tmpStr[2]);
+      }
     } else {
-      sprintf(tmpStr, "%+3.0f", ns->delta_scaled*18);
-      MD.writeDigit(4, tmpStr[0]);
-      MD.writeDigit(5, tmpStr[1]);
-      MD.writeDigit(6, tmpStr[2]);
-    }
-  } else {
-    sprintf(tmpStr, "%4.1f", ns->sensSgv);
-    MD.writeDigit(1, tmpStr[0]);
-    MD.writeDigit(2, tmpStr[1]);
-    MD.writeDigit(3, tmpStr[3] | 0x80);
-    if(ns->delta_scaled>9.9) {
-      MD.writeDigit(4, '+');
-      MD.writeDigit(5, '9');
-      MD.writeDigit(6, '9' | 0x80);
-    } else {
-      sprintf(tmpStr, "%+4.1f", ns->delta_scaled);
-      MD.writeDigit(4, tmpStr[0]);
-      MD.writeDigit(5, tmpStr[1]);
-      MD.writeDigit(6, tmpStr[3] | 0x80);
+      sprintf(tmpStr, "%4.1f", ns->sensSgv);
+      MD.writeDigit(1, tmpStr[0]);
+      MD.writeDigit(2, tmpStr[1]);
+      MD.writeDigit(3, tmpStr[3] | 0x80);
+      if(ns->delta_scaled>9.9) {
+        MD.writeDigit(4, '+');
+        MD.writeDigit(5, '9');
+        MD.writeDigit(6, '9' | 0x80);
+      } else {
+        sprintf(tmpStr, "%+4.1f", ns->delta_scaled);
+        MD.writeDigit(4, tmpStr[0]);
+        MD.writeDigit(5, tmpStr[1]);
+        MD.writeDigit(6, tmpStr[3] | 0x80);
+      }
     }
   }
-#endif  
+
   // update snooze on other M5Stacks in local network
   if(udpSendSnoozeRetries>0) {
     udpSendSnoozeRetries--;
@@ -1423,7 +1554,7 @@ void draw_page() {
       // M5.Lcd.fillRect(230, 110, 90, 100, TFT_BLACK);
       
       // readNightscout(cfg.url, cfg.token, &ns);
-
+  
       M5.Lcd.setFreeFont(FSSB12);
       M5.Lcd.setTextSize(1);
       M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
@@ -1433,31 +1564,55 @@ void draw_page() {
       // char timeStr[30];
       // sprintf(timeStr, "%02d:%02d:%02d", sensTm.tm_hour, sensTm.tm_min, sensTm.tm_sec);
       // M5.Lcd.drawString(timeStr, 0, 72, GFXFF);
-      char datetimeStr[30];
+      char dateStr[16];
+      char timeStr[16];
+      char datetimeStr[32];
       struct tm timeinfo;
       if(cfg.show_current_time) {
         if(getLocalTime(&timeinfo)) {
           // sprintf(datetimeStr, "%02d:%02d:%02d  %d.%d.  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, timeinfo.tm_mday, timeinfo.tm_mon+1);  
-          // timeinfo.tm_mday=24; timeinfo.tm_mon=11;
-          switch(cfg.date_format) {
+          switch(cfg.time_format) {
             case 1:
-              sprintf(datetimeStr, "%02d:%02d  %d/%d  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_mon+1, timeinfo.tm_mday);
+              // sprintf(datetimeStr, "%02d:%02d  %d/%d  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_mon+1, timeinfo.tm_mday);
+              strftime(timeStr, 15, "%I:%M%p", &timeinfo);
+              timeStr[strlen(timeStr)-1] = 0;
+              strcat(timeStr, " ");
               break;
             default:
-              sprintf(datetimeStr, "%02d:%02d  %d.%d.  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_mday, timeinfo.tm_mon+1);  
+              // sprintf(datetimeStr, "%02d:%02d  %d.%d.  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_mday, timeinfo.tm_mon+1);
+              strftime(timeStr, 15, "%H:%M ", &timeinfo);
           }
+          switch(cfg.date_format) {
+            case 1:
+              // sprintf(datetimeStr, "%02d:%02d  %d/%d  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_mon+1, timeinfo.tm_mday);
+              // timeinfo.tm_mday=25;
+              strftime(dateStr, 15, "%m/%d  ", &timeinfo);
+              break;
+            default:
+              // sprintf(datetimeStr, "%02d:%02d  %d.%d.  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_mday, timeinfo.tm_mon+1);
+              // timeinfo.tm_mday=25;
+              strftime(dateStr, 15, "%e.%m.  ", &timeinfo);
+          }
+          strcpy(datetimeStr, timeStr);
+          strcat(datetimeStr, dateStr);
         } else {
           // strcpy(datetimeStr, "??:??:??");
           strcpy(datetimeStr, "??:??");
         }
       } else {
         // sprintf(datetimeStr, "%02d:%02d:%02d  %d.%d.  ", sensTm.tm_hour, sensTm.tm_min, sensTm.tm_sec, sensTm.tm_mday, sensTm.tm_mon+1);
-        sprintf(datetimeStr, "%02d:%02d  %d.%d.  ", ns.sensTm.tm_hour, ns.sensTm.tm_min, ns.sensTm.tm_mday, ns.sensTm.tm_mon+1);
+          switch(cfg.date_format) {
+            case 1:
+              sprintf(datetimeStr, "%02d:%02d  %d/%d.  ", ns.sensTm.tm_hour, ns.sensTm.tm_min, ns.sensTm.tm_mon+1, ns.sensTm.tm_mday);
+              break;
+            default:
+              sprintf(datetimeStr, "%02d:%02d  %d.%d.  ", ns.sensTm.tm_hour, ns.sensTm.tm_min, ns.sensTm.tm_mday, ns.sensTm.tm_mon+1);
+          }
       }
       M5.Lcd.drawString(datetimeStr, 0, 0, GFXFF);
 
       drawBatteryStatus(icon_xpos[2], icon_ypos[2]);
-      
+
       if(err_log_ptr>0) {
         M5.Lcd.fillRect(icon_xpos[0], icon_ypos[0], 16, 16, BLACK);
         if(err_log_ptr>5)
@@ -1847,7 +2002,6 @@ void draw_page() {
           humidStr += "%";
           M5.Lcd.drawString(humidStr, 310, 210, GFXFF);
         }
-
       #endif
 
       // draw clock
@@ -2036,15 +2190,12 @@ void setup() {
       InitI2SSpeakOrMic(MODE_SPK);
     #else
       M5.begin();
+      M5.Power.begin();
     #endif
 
     // prevent button A "ghost" random presses
     Wire.begin();
     SD.begin();
-#ifdef MDPENABLE    
-    MD.begin();
-    MD.writeString("*M5NS*");
-#endif    
     // M5.Speaker.mute();
 
     // Lcd display
@@ -2055,11 +2206,11 @@ void setup() {
     M5.Lcd.setTextSize(2);
     yield();
 
-# ifdef ARDUINO_M5STACK_Core2
- Serial.println("M5Stack CORE2 code starting");
-# else
- Serial.println("M5Stack BASIC code starting");
-# endif
+    # ifdef ARDUINO_M5STACK_Core2
+      Serial.println("M5Stack CORE2 code starting");
+    # else
+      Serial.println("M5Stack BASIC code starting");
+    # endif
 
     Serial.print("Free Heap: "); Serial.println(ESP.getFreeHeap());
 
@@ -2094,7 +2245,7 @@ void setup() {
     readConfiguration(iniFilename, &cfg);
     // strcpy(cfg.url, "https://sugarmate.io/api/v1/xxxxxx/latest.json");
     // strcpy(cfg.url, "user.herokuapp.com"); 
-    // cfg.dev_mode = 1;
+    // cfg.dev_mode = 0;
     // cfg.show_mgdl = 1;
     // cfg.sgv_only = 1;
     // cfg.default_page = 2;
@@ -2109,17 +2260,53 @@ void setup() {
     // cfg.warning_volume = 0;
     // cfg.snd_warning_at_startup = 1;
     // cfg.snd_alarm_at_startup = 1;
-    // strcpy(cfg.deviceName, "M5NIGHTSCOUTMONITOR");
+    // strcpy(cfg.deviceName, "M5D");
 
     // cfg.alarm_repeat = 1;
     // cfg.snooze_timeout = 2;
     // cfg.brightness1 = 0;
     // cfg.temperature_unit = 3;
     // cfg.date_format = 1;
+    // cfg.time_format = 1;
     // cfg.display_rotation = 7;
     // cfg.invert_display = 1;
     // cfg.info_line = 2;
+    // cfg.vibration_mode = 1;
+    // cfg.vibration_strength = 256;
+    // cfg.LED_strip_mode = 3;
+    // cfg.LED_strip_pin = 17; // 15 // 21  // 17
+    // cfg.LED_strip_count = 72; // 72
+    // cfg.LED_strip_brightness = 2; // 1
 
+    #ifdef ARDUINO_M5STACK_Core2
+      cfg.vibration_mode = 0; // no vibration on Core2 for now
+      cfg.LED_strip_mode = 0; // no LED strip on Core2 for now
+      cfg.LED_strip_pin = 14; // just for sure
+      cfg.LED_strip_count = 10; // just for sure
+      cfg.LED_strip_brightness = 2; // just for sure
+      cfg.micro_dot_pHAT = 0; // no Micro Dot pHAT on Core2 for now
+    #endif
+    
+    if(cfg.vibration_mode != 0) {
+      ledcSetup(VIBchannel, VIBfreq, VIBresolution);
+      ledcAttachPin(cfg.vibration_pin, VIBchannel);
+    }
+
+    if(cfg.micro_dot_pHAT != 0) {
+      MD.begin();
+      MD.writeString("*M5NS*");
+    }
+
+    pixels.begin();
+    pixels.clear(); // clear M5Stack Fire internal LEDs
+    pixels.show();
+    if(cfg.LED_strip_mode != 0) { 
+      pixels.setPin(cfg.LED_strip_pin);
+      pixels.updateLength(cfg.LED_strip_count);
+      pixels.clear();
+      pixels.show();
+    }
+    
     if(cfg.invert_display != -1) {
       M5.Lcd.invertDisplay(cfg.invert_display);
       Serial.print("Calling M5.Lcd.invertDisplay("); Serial.print(cfg.invert_display); Serial.println(")");
@@ -2152,7 +2339,32 @@ void setup() {
     }
     preferences.end();
 
-    delay(1000);
+    if(cfg.LED_strip_mode != 0) {
+      int maxint = 255;
+      maxint *= cfg.LED_strip_brightness;
+      maxint /= 100;
+      int lessint = 192;
+      lessint *= cfg.LED_strip_brightness;
+      lessint /= 100;
+      if(cfg.LED_strip_count>2) {
+        for(int i=0; i<cfg.LED_strip_count-3; i++) {
+          pixels.setPixelColor(i, pixels.Color(maxint, 0, 0));   
+          pixels.setPixelColor(i+1, pixels.Color(maxint, lessint, 0));   
+          pixels.setPixelColor(i+2, pixels.Color(0, maxint, 0));
+          pixels.setPixelColor(i+3, pixels.Color(0, 0, maxint));
+          pixels.show();
+          delay(1500/(cfg.LED_strip_count-3));
+          pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+        }
+      }
+      pixels.fill(pixels.Color(maxint, lessint, 0));
+      pixels.show();
+      delay(300);
+      pixels.clear();
+      pixels.show();
+    } else
+      delay(1000);
+      
     M5.Lcd.fillScreen(BLACK);
 
     lcdSetBrightness(lcdBrightness);
@@ -2226,6 +2438,9 @@ void loop(){
     draw_page();
     msCount = millis();  
     // Serial.print("msCount = "); Serial.println(msCount);
+    if(cfg.LED_strip_mode != 0) { 
+      pixels.show();
+    }
   } else {
     if((cfg.restart_at_logged_errors>0) && (err_log_count>=cfg.restart_at_logged_errors)) {
       Serial.println("Restarting on number of logged errors...");
@@ -2257,13 +2472,32 @@ void loop(){
       M5.Lcd.setTextSize(1);
       M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
       if(getLocalTime(&localTimeInfo)) {
-        switch(cfg.date_format) {
-          case 1:
-            sprintf(localTimeStr, "%02d:%02d  %d/%d  ", localTimeInfo.tm_hour, localTimeInfo.tm_min, localTimeInfo.tm_mon+1, localTimeInfo.tm_mday);
-            break;
-          default:
-            sprintf(localTimeStr, "%02d:%02d  %d.%d.  ", localTimeInfo.tm_hour, localTimeInfo.tm_min, localTimeInfo.tm_mday, localTimeInfo.tm_mon+1);
-        }
+          char timeStr[16];
+          char dateStr[16];
+          switch(cfg.time_format) {
+            case 1:
+              // sprintf(datetimeStr, "%02d:%02d  %d/%d  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_mon+1, timeinfo.tm_mday);
+              strftime(timeStr, 15, "%I:%M%p", &localTimeInfo);
+              timeStr[strlen(timeStr)-1] = 0;
+              strcat(timeStr, " ");
+              break;
+            default:
+              // sprintf(datetimeStr, "%02d:%02d  %d.%d.  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_mday, timeinfo.tm_mon+1);
+              strftime(timeStr, 15, "%H:%M ", &localTimeInfo);
+          }
+          switch(cfg.date_format) {
+            case 1:
+              // sprintf(datetimeStr, "%02d:%02d  %d/%d  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_mon+1, timeinfo.tm_mday);
+             // localTimeInfo.tm_mday=25;
+             strftime(dateStr, 15, "%m/%d  ", &localTimeInfo);
+              break;
+            default:
+              // localTimeInfo.tm_mday=25;
+              // sprintf(datetimeStr, "%02d:%02d  %d.%d.  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_mday, timeinfo.tm_mon+1);
+              strftime(dateStr, 15, "%e.%m.  ", &localTimeInfo);
+          }
+          strcpy(localTimeStr, timeStr);
+          strcat(localTimeStr, dateStr);
       } else {
         strcpy(localTimeStr, "??:??");
         lastMin = 61;
