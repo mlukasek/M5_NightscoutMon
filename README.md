@@ -86,7 +86,8 @@ snd_warning = 3.7          ; softer high beep sound will beep every 5 mins when 
 snd_alarm = 3.0            ; strong alarm will sound every 5 min when under this value
 snd_warning_high = 14.0    ; softer high beep sound will beep every 5 mins when over this value
 snd_alarm_high = 20.0      ; strong alarm will sound every 5 min when over this value
-snd_no_readings = 20       ; softer high beep sound will beep every 5 mins when time in minutes when last data was read is over this value
+snd_no_readings = 20       ; softer high beep sound will beep every 5 mins when time in minutes when last data was read 
+                           ; is over this value
 snd_loop_error = 1         ; 0 = no loop error alarm, 1 = stronger sound alarm to loop error
 snd_warning_at_startup = 1 ; play test warning sound with its volume during startup (1 = play, 0 =  do not play)
 snd_alarm_at_startup = 0   ; play test alarm sound with its volume during startup (1 = play, 0 =  do not play)
@@ -108,8 +109,8 @@ LED_strip_brightness = 10  ; 1-100% brightness intesity (100 = max.)
 vibration_mode = 0         ; VIBRATION MOTOR UNIT ; 0 = off, 1 = ON (vibrate during sound)
 vibration_pin = 26         ; pin that controls VIBRATION UNIT motor, 26 = M5Stack Fire PORT B connector, 17 = blue PORT C connector
                            ; do not connect vibration motor to red PORT A, it will rotate always as it will be in collision with I2C
-vibration_strength = 512   ; 10 bit PWM value for VIBRATION UNIT motor control, 512 = 1/2 of max. power, do not use more, full power will reset M5Stack
-                           ; recommended range is 256-512
+vibration_strength = 512   ; 10 bit PWM value for VIBRATION UNIT motor control, 512 = 1/2 of max. power, do not use more, full power
+                           ; will reset the M5Stack, recommended range is 256-512
 
 micro_dot_pHAT = 0         ; 0 = off, 1 = ON (display SGV and DELTA on I2C Pimoroni Micro Dot pHAT connected to I2C pins 21+22)
 
