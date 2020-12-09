@@ -71,7 +71,7 @@ SHT3X sht30;
 #include "microdot.h"
 MicroDot MD;
 
-String M5NSversion("2020120602");
+String M5NSversion("2020120901");
 
 #ifdef ARDUINO_M5STACK_Core2
   #define CONFIG_I2S_BCK_PIN 12
@@ -991,9 +991,13 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
                 ns->last10sgv[i]=ns->last10sgv[i-1];
               }
               ns->last10sgv[0] = ns->sensSgv;
-              if(strstr(JSONdoc["units"],"mg/dL") != NULL) { // Units are mg/dL, but last10sgv is in mmol/L -> convert
+              // char jdunits[100];
+              // strcpy(jdunits, JSONdoc["units"]);
+              // Serial.print("JSONdoc[units] = "); Serial.println(jdunits);
+              // if(strstr(JSONdoc["units"],"mg/dL") != NULL) { // Units are mg/dL, but last10sgv is in mmol/L -> convert 
+                // should be converted always, as "value" seems to be always in mg/dL
                 ns->last10sgv[0]/=18.0;
-              }
+              // }
 
               ns->sensTime = tmptime;
             }
