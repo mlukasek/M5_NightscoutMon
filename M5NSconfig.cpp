@@ -347,8 +347,18 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
     Serial.println(cfg->snd_no_readings);
   }
   else {
-    Serial.println("NO snd_no_readings defined");
+    Serial.println("NO snd_no_readings defined -> 20 minutes");
     cfg->snd_no_readings = 20;
+  }
+
+  if (ini.getValue("config", "snd_loop_error", buffer, bufferLen)) {
+    Serial.print("snd_loop_error = ");
+    cfg->snd_loop_error = atoi(buffer);
+    Serial.println(cfg->snd_loop_error);
+  }
+  else {
+    Serial.println("NO snd_loop_error defined -> 1 = ALARM ON");
+    cfg->snd_loop_error = 1;
   }
 
   if (ini.getValue("config", "snd_warning_at_startup", buffer, bufferLen)) {
@@ -411,6 +421,86 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
     cfg->alarm_volume = 100;
   }
 
+  if (ini.getValue("config", "LED_strip_mode", buffer, bufferLen)) {
+    Serial.print("LED_strip_mode = ");
+    cfg->LED_strip_mode = atoi(buffer);
+    Serial.println(cfg->LED_strip_mode);
+  }
+  else {
+    Serial.println("NO LED_strip_mode defined = no LED strip used");
+    cfg->LED_strip_mode = 0;
+  }
+
+  if (ini.getValue("config", "LED_strip_pin", buffer, bufferLen)) {
+    Serial.print("LED_strip_pin = ");
+    cfg->LED_strip_pin = atoi(buffer);
+    Serial.println(cfg->LED_strip_pin);
+  }
+  else {
+    Serial.println("NO LED_strip_pin defined = M5Stack Fire internal pin");
+    cfg->LED_strip_pin = 15;
+  }
+
+  if (ini.getValue("config", "LED_strip_count", buffer, bufferLen)) {
+    Serial.print("LED_strip_count = ");
+    cfg->LED_strip_count = atoi(buffer);
+    Serial.println(cfg->LED_strip_count);
+  }
+  else {
+    Serial.println("NO LED_strip_count defined = 10 M5Stack Fire internal LEDs");
+    cfg->LED_strip_count = 10;
+  }
+
+  if (ini.getValue("config", "LED_strip_brightness", buffer, bufferLen)) {
+    Serial.print("LED_strip_brightness = ");
+    cfg->LED_strip_brightness = atoi(buffer);
+    Serial.println(cfg->LED_strip_brightness);
+  }
+  else {
+    Serial.println("NO LED_strip_brightness defined -> 10");
+    cfg->LED_strip_brightness = 10;
+  }
+
+  if (ini.getValue("config", "vibration_mode", buffer, bufferLen)) {
+    Serial.print("vibration_mode = ");
+    cfg->vibration_mode = atoi(buffer);
+    Serial.println(cfg->vibration_mode);
+  }
+  else {
+    Serial.println("NO vibration_mode defined = no vibrations");
+    cfg->vibration_mode = 0;
+  }
+
+  if (ini.getValue("config", "vibration_pin", buffer, bufferLen)) {
+    Serial.print("vibration_pin = ");
+    cfg->vibration_pin = atoi(buffer);
+    Serial.println(cfg->vibration_pin);
+  }
+  else {
+    Serial.println("NO vibration_pin defined -> 26 = M5Stack Fire PORT B connector");
+    cfg->vibration_pin = 26;
+  }
+
+  if (ini.getValue("config", "vibration_strength", buffer, bufferLen)) {
+    Serial.print("vibration_strength = ");
+    cfg->vibration_strength = atoi(buffer);
+    Serial.println(cfg->vibration_strength);
+  }
+  else {
+    Serial.println("NO vibration_strength defined -> 512 = 1/2 power = reasonable maximum");
+    cfg->vibration_strength = 512;
+  }
+
+  if (ini.getValue("config", "micro_dot_pHAT", buffer, bufferLen)) {
+    Serial.print("micro_dot_pHAT = ");
+    cfg->micro_dot_pHAT = atoi(buffer);
+    Serial.println(cfg->micro_dot_pHAT);
+  }
+  else {
+    Serial.println("NO micro_dot_pHAT defined -> 0 = Micro Dot pHAT OFF");
+    cfg->micro_dot_pHAT = 0;
+  }
+
   if (ini.getValue("config", "info_line", buffer, bufferLen)) {
     Serial.print("info_line = ");
     cfg->info_line = atoi(buffer);
@@ -464,6 +554,16 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
   else {
     Serial.println("NO date_format defined = 0 (dd.mm.)");
     cfg->date_format = 0;
+  }
+
+  if (ini.getValue("config", "time_format", buffer, bufferLen)) {
+    Serial.print("time_format = ");
+    cfg->time_format = atoi(buffer);
+    Serial.println(cfg->time_format);
+  }
+  else {
+    Serial.println("NO time_format defined = 0 (24 Hours)");
+    cfg->time_format = 0;
   }
 
   if (ini.getValue("config", "invert_display", buffer, bufferLen)) {

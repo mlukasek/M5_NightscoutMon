@@ -20,17 +20,29 @@
 #include "M5NSWebConfig.h"
 #include "externs.h"
 
+#ifdef ARDUINO_M5STACK_Core2
+  #define updateInfoURL "http://m5ns.goit.cz/update/core2/update.inf"
+  #define updateBinaryURL "http://m5ns.goit.cz/update/core2/M5_NightscoutMon.ino.bin"
+  #define updateNewsURL "http://m5ns.goit.cz/update/core2/whatsnew.txt"
+#else
+  #define updateInfoURL "http://m5ns.goit.cz/update/basic/update.inf"
+  #define updateBinaryURL "http://m5ns.goit.cz/update/basic/M5_NightscoutMon.ino.bin"
+  #define updateNewsURL "http://m5ns.goit.cz/update/basic/whatsnew.txt"
+#endif
+
 void handleRoot() {
   String webVer;
   String whatsNew;
   HTTPClient http;
   IPAddress ip = WiFi.localIP();
   char tmpStr[64];
+  char timeStr[20];
+  char dateStr[20];
 
   Serial.println("Serving root web page");
 
   if((WiFiMultiple.run() == WL_CONNECTED)) {
-    http.begin("http://m5ns.goit.cz/update/update.inf");
+    http.begin(updateInfoURL);
     http.setTimeout(5000);
     http.setConnectTimeout(5000);
     int httpCode = http.GET();
@@ -44,7 +56,7 @@ void handleRoot() {
       Serial.println("Error getting update.inf");
     }
     http.end();
-    http.begin("http://m5ns.goit.cz/update/whatsnew.txt");
+    http.begin(updateNewsURL);
     http.setTimeout(5000);
     http.setConnectTimeout(5000);
     httpCode = http.GET();
@@ -119,24 +131,46 @@ void handleRoot() {
   message += "Battery status: <b>"; message += getBatteryLevel(); message += "%</b><br />\r\n";
   struct tm timeinfo;
   if(getLocalTime(&timeinfo)) {
-    switch(cfg.date_format) {
+    switch(cfg.time_format) {
       case 1:
-        sprintf(tmpStr, "%d/%d/%d %02d:%02d:%02d", timeinfo.tm_mon+1, timeinfo.tm_mday, timeinfo.tm_year+1900, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        // sprintf(tmpStr, "%d/%d/%d %02d:%02d:%02d", timeinfo.tm_mon+1, timeinfo.tm_mday, timeinfo.tm_year+1900, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        strftime(timeStr, 19, "%I:%M:%S %p ", &timeinfo);
         break;
       default:
-        sprintf(tmpStr, "%d.%d.%d %02d:%02d:%02d", timeinfo.tm_mday, timeinfo.tm_mon+1, timeinfo.tm_year+1900, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        // sprintf(tmpStr, "%d.%d.%d %02d:%02d:%02d", timeinfo.tm_mday, timeinfo.tm_mon+1, timeinfo.tm_year+1900, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        strftime(timeStr, 19, "%H:%M:%S ", &timeinfo);
     }
+    switch(cfg.date_format) {
+      case 1:
+        strftime(dateStr, 19, "%m/%d/%Y ", &timeinfo);
+        break;
+      default:
+        strftime(dateStr, 19, "%e.%m.%Y  ", &timeinfo);
+    }
+    strcpy(tmpStr, dateStr);
+    strcat(tmpStr, timeStr);
   } else {
     strcpy(tmpStr, "??:??");
   }
   message += "Current time: <b>"; message += tmpStr; message += "</b><br />\r\n";
+  switch(cfg.time_format) {
+    case 1:
+      // sprintf(tmpStr, "%d/%d/%d %02d:%02d:%02d", ns.sensTm.tm_mon+1, ns.sensTm.tm_mday, ns.sensTm.tm_year+1900, ns.sensTm.tm_hour, ns.sensTm.tm_min, ns.sensTm.tm_sec);
+      strftime(timeStr, 15, "%I:%M:%S %p ", &ns.sensTm);
+      break;
+    default:
+      // sprintf(tmpStr, "%d.%d.%d %02d:%02d:%02d", ns.sensTm.tm_mday, ns.sensTm.tm_mon+1, ns.sensTm.tm_year+1900, ns.sensTm.tm_hour, ns.sensTm.tm_min, ns.sensTm.tm_sec);
+      strftime(timeStr, 15, "%H:%M:%S ", &ns.sensTm);
+  }
   switch(cfg.date_format) {
     case 1:
-        sprintf(tmpStr, "%d/%d/%d %02d:%02d:%02d", ns.sensTm.tm_mon+1, ns.sensTm.tm_mday, ns.sensTm.tm_year+1900, ns.sensTm.tm_hour, ns.sensTm.tm_min, ns.sensTm.tm_sec);
-        break;
-      default:
-        sprintf(tmpStr, "%d.%d.%d %02d:%02d:%02d", ns.sensTm.tm_mday, ns.sensTm.tm_mon+1, ns.sensTm.tm_year+1900, ns.sensTm.tm_hour, ns.sensTm.tm_min, ns.sensTm.tm_sec);
+      strftime(dateStr, 15, "%m/%d/%Y ", &ns.sensTm);
+      break;
+    default:
+      strftime(dateStr, 15, "%e.%m.%Y  ", &ns.sensTm);
   }
+  strcpy(tmpStr, dateStr);
+  strcat(tmpStr, timeStr);
   message += "Sensor time: <b>"; message += tmpStr; message += "</b><br />\r\n";
   if( cfg.show_mgdl ) {
     sprintf(tmpStr, "%3.0f mg/dL", ns.sensSgvMgDl);
@@ -187,6 +221,7 @@ void handleRoot() {
   message += "<font color=\"Teal\">Alarm sound below <b>"; message += String(cfg.snd_alarm*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=sndAlarms\">[edit]</a><br />\r\n";
   message += "<font color=\"Teal\">Alarm sound above <b>"; message += String(cfg.snd_alarm_high*mult, decpl); message += " "+sgvUnits; message += "</b></font> <a href=\"edititem?param=sndAlarms\">[edit]</a><br />\r\n";
   message += "<font color=\"Teal\">Warning sound when no reading for <b>"; message += cfg.snd_no_readings; message += " minutes</b></font> <a href=\"edititem?param=sndAlarms\">[edit]</a><br />\r\n";
+  message += "<font color=\"Teal\">Alarm sound on LOOP Error: <b>"; message += cfg.snd_loop_error?"YES":"NO"; message += "</b></font> <a href=\"switch?param=snd_loop_error\">[change]</a><br />\r\n";
   message += "<font color=\"Teal\">Play test warning sound during startup: <b>"; message += cfg.snd_warning_at_startup?"YES":"NO"; message += "</b></font> <a href=\"switch?param=snd_warning_at_startup\">[change]</a><br />\r\n";
   message += "<font color=\"Teal\">Play test alarm sound during startup: <b>"; message += cfg.snd_alarm_at_startup?"YES":"NO"; message += "</b></font> <a href=\"switch?param=snd_alarm_at_startup\">[change]</a><br />\r\n";
   message += "<font color=\"Teal\">Warning sound volume: <b>"; message += cfg.warning_volume; message += "%</b></font> <a href=\"edititem?param=sndAlarms\">[edit]</a><br />\r\n";
@@ -200,6 +235,7 @@ void handleRoot() {
   }
   message += "</b> <a href=\"switch?param=info_line\">[change]</a><br />\r\n";
   message += "Brightness settings steps: <b>";  message += cfg.brightness1; message += ", "; message += cfg.brightness2; message += ", "; message += cfg.brightness3; message += "</b> <a href=\"edititem?param=brightness\">[edit]</a><br />\r\n";
+  message += "Time format: <b>"; message += cfg.time_format?"AM/PM":"24 Hours"; message += "</b> <a href=\"switch?param=time_format\">[change]</a><br />\r\n";
   message += "Date format: <b>"; message += cfg.date_format?"MM/DD":"dd.mm."; message += "</b> <a href=\"switch?param=date_format\">[change]</a><br />\r\n";
   message += "Display rotation: <b>";
   switch(cfg.display_rotation) {
@@ -223,6 +259,21 @@ void handleRoot() {
     case 3: message += "Fahrenheit"; break;
   }
   message += "</b> <a href=\"switch?param=temperature_unit\">[change]</a><br />\r\n";
+  message += "LED strip mode: <b>";
+  switch(cfg.LED_strip_mode) {
+    case 0: message += "OFF"; break;
+    case 1: message += "visualize sound"; break;
+    case 2: message += "show warnings and alarms"; break;
+    case 3: message += "light always"; break;
+  }
+  message += "</b> <a href=\"switch?param=LED_strip_mode\">[change]</a><br />\r\n";
+  message += "LED strip pin: <b>"; message += cfg.LED_strip_pin; message += "</b> <a href=\"edititem?param=led_strip\">[edit]</a><br />\r\n";
+  message += "LED strip count: <b>"; message += cfg.LED_strip_count; message += "</b> <a href=\"edititem?param=led_strip\">[edit]</a><br />\r\n";
+  message += "LED strip brightness: <b>"; message += cfg.LED_strip_brightness; message += "%</b> <a href=\"edititem?param=led_strip\">[edit]</a><br />\r\n";
+  message += "Vibration motor unit: <b>"; message += cfg.vibration_mode?"YES":"NO"; message += "</b> <a href=\"switch?param=vibration_mode\">[change]</a><br />\r\n";
+  message += "Vibration motor pin: <b>"; message += cfg.vibration_pin; message += "</b> <a href=\"edititem?param=vibration_motor\">[edit]</a><br />\r\n";
+  message += "Vibration motor strength: <b>"; message += cfg.vibration_strength; message += "</b> <a href=\"edititem?param=vibration_motor\">[edit]</a><br />\r\n";
+  message += "Micro Dot pHAT on I2C port: <b>"; message += cfg.micro_dot_pHAT?"YES":"NO"; message += "</b> <a href=\"switch?param=micro_dot_pHAT\">[change]</a><br />\r\n";
   message += "Developer mode: <b>"; message += cfg.dev_mode?"Enabled":"Disabled"; message += "</b> <a href=\"switch?param=dev_mode\">[change]</a><br />\r\n";
   message += "Internal Web Server: <b>"; message += cfg.disable_web_server?"Disabled":"Enabled"; message += "</b><br />\r\n";
   
@@ -272,6 +323,10 @@ void handleRoot() {
   message += "</body>\r\n";
   message += "</html>\r\n";
   w3srv.send(200, "text/html", message);
+
+  if(cfg.LED_strip_mode != 0) { 
+    pixels.show();
+  }
 }
 
 void handleUpdate() {
@@ -306,7 +361,7 @@ void handleUpdate() {
   HTTPClient http;
   WiFiClient client;
   if((WiFiMultiple.run() == WL_CONNECTED)) {
-    http.begin("http://m5ns.goit.cz/update/update.inf");
+    http.begin(updateInfoURL);
     int httpCode = http.GET();
     if(httpCode > 0) {
       if(httpCode == HTTP_CODE_OK) {
@@ -331,7 +386,7 @@ void handleUpdate() {
     M5.Lcd.println("Updating the firmware... ");
     M5.Lcd.println();
     httpUpdate.rebootOnUpdate(false);
-    t_httpUpdate_return ret = httpUpdate.update(client, "http://m5ns.goit.cz/update/M5_NightscoutMon.ino.bin");
+    t_httpUpdate_return ret = httpUpdate.update(client, updateBinaryURL);
     //t_httpUpdate_return ret = httpUpdate.update(client, "server", 80, "file.bin");
 
     switch (ret) {
@@ -379,6 +434,9 @@ void handleUpdate() {
   delay(2000);
   M5.Lcd.fillScreen(BLACK);
   draw_page();
+  if(cfg.LED_strip_mode != 0) { 
+    pixels.show();
+  }
 }
 
 void handleSwitchConfig() {
@@ -426,6 +484,9 @@ void handleSwitchConfig() {
       if(String(w3srv.arg(i)).equals("show_COB_IOB")) {
         cfg.show_COB_IOB = !cfg.show_COB_IOB;
       }
+      if(String(w3srv.arg(i)).equals("snd_loop_error")) {
+        cfg.snd_loop_error = !cfg.snd_loop_error;
+      }
       if(String(w3srv.arg(i)).equals("snd_warning_at_startup")) {
         cfg.snd_warning_at_startup = !cfg.snd_warning_at_startup;
       }
@@ -436,6 +497,11 @@ void handleSwitchConfig() {
         cfg.info_line++;
         if(cfg.info_line>3)
           cfg.info_line = 0;
+      }
+      if(String(w3srv.arg(i)).equals("time_format")) {
+        cfg.time_format++;
+        if(cfg.time_format>1)
+          cfg.time_format = 0;
       }
       if(String(w3srv.arg(i)).equals("date_format")) {
         cfg.date_format++;
@@ -470,6 +536,30 @@ void handleSwitchConfig() {
         if(cfg.temperature_unit>3)
           cfg.temperature_unit = 1;
       }
+      if(String(w3srv.arg(i)).equals("LED_strip_mode")) {
+        cfg.LED_strip_mode++;
+        if(cfg.LED_strip_mode>3) {
+          cfg.LED_strip_mode = 0;
+          pixels.clear();
+          pixels.show();
+        }
+      }
+      if(String(w3srv.arg(i)).equals("vibration_mode")) {
+        cfg.vibration_mode++;
+        if(cfg.vibration_mode>1) {
+          cfg.vibration_mode = 0;
+        }
+      }
+      if(String(w3srv.arg(i)).equals("micro_dot_pHAT")) {
+        cfg.micro_dot_pHAT++;
+        if(cfg.micro_dot_pHAT>1) {
+          cfg.micro_dot_pHAT = 0;
+          MD.writeString("      ");
+        } else {
+          MD.begin();
+          MD.writeString("*M5NS*");
+        }
+      }
       if(String(w3srv.arg(i)).equals("dev_mode")) {
         cfg.dev_mode = !cfg.dev_mode;
       }
@@ -481,6 +571,9 @@ void handleSwitchConfig() {
 
   M5.Lcd.fillScreen(BLACK);
   draw_page();
+  if(cfg.LED_strip_mode != 0) { 
+    pixels.show();
+  }
 }
 
 void handleEditConfigItem() {
@@ -590,6 +683,21 @@ void handleEditConfigItem() {
       message += "Step 2: <input type=\"text\" name=\"brightness2\" value=\"" + String(cfg.brightness2) + "\" size=\"3\" maxlength=\"3\"> %<br />\r\n";
       message += "Step 3: <input type=\"text\" name=\"brightness3\" value=\"" + String(cfg.brightness3) + "\" size=\"3\" maxlength=\"3\"> %<br />\r\n";
     }
+    if(String(w3srv.arg(0)).equals("led_strip")) {
+      message += "RGB LED strip setup:<br />\r\n";
+      message += "LED strip pin: <input type=\"text\" name=\"LED_strip_pin\" value=\"" + String(cfg.LED_strip_pin) + "\" size=\"3\" maxlength=\"3\"> <br />\r\n";
+      message += "15 = M5Stack Fire internal, 21 = red PORT A connector (not recommended, collides with I2C, first LED will blink), 26 = black PORT B connector, 17 = blue PORT C connector<br />\r\n";
+      message += "LED strip count: <input type=\"text\" name=\"LED_strip_count\" value=\"" + String(cfg.LED_strip_count) + "\" size=\"3\" maxlength=\"3\"> <br />\r\n";
+      message += "LED strip brightness: <input type=\"text\" name=\"LED_strip_brightness\" value=\"" + String(cfg.LED_strip_brightness) + "\" size=\"3\" maxlength=\"3\"> %<br />\r\n";
+      message += "1-100%, for more than 10 LEDs use 10%, 5% or even less otherwise load current will crash the M5Stack<br />\r\n";
+    }
+    if(String(w3srv.arg(0)).equals("vibration_motor")) {
+      message += "Vibration motor unit setup:<br />\r\n";
+      message += "Vibration motor pin: <input type=\"text\" name=\"vibration_pin\" value=\"" + String(cfg.vibration_pin) + "\" size=\"3\" maxlength=\"3\"> <br />\r\n";
+      message += "26 = black PORT B connector, 17 = blue PORT C connector, DO NOT USE pin 21 = red PORT A connector (collides with I2C) <br />\r\n";
+      message += "Vibration motor strength: <input type=\"text\" name=\"vibration_strength\" value=\"" + String(cfg.vibration_strength) + "\" size=\"3\" maxlength=\"3\"> <br />\r\n";
+      message += "0-1023, recommended range is 256-512, hig values can crash the M5Stack due to load current <br />\r\n";
+    }
     if(String(w3srv.arg(0)).equals("wlans")) {
       message += "Wifi LAN SSIDs + passwords:<br />\r\n";
       for(int i=0; i<10; i++) {
@@ -610,6 +718,9 @@ void handleEditConfigItem() {
   message += "</body>\r\n";
   message += "</html>\r\n";
   w3srv.send(200, "text/html", message);
+  if(cfg.LED_strip_mode != 0) { 
+    pixels.show();
+  }
 }
 
 void handleGetEditConfigItem() {
@@ -719,6 +830,33 @@ void handleGetEditConfigItem() {
       }
       cfg.brightness3 = String(w3srv.arg(i)).toInt();
     }
+    if(String(w3srv.argName(i)).equals("LED_strip_pin")) {
+      int oldpin = cfg.LED_strip_pin;
+      cfg.LED_strip_pin = String(w3srv.arg(i)).toInt();
+      if(oldpin != cfg.LED_strip_pin) {
+        pixels.clear();
+        pixels.show();
+        pixels.setPin(cfg.LED_strip_pin);
+      }
+    }
+    if(String(w3srv.argName(i)).equals("LED_strip_count")) {
+      int oldcnt = cfg.LED_strip_count;
+      cfg.LED_strip_count = String(w3srv.arg(i)).toInt();
+      if(oldcnt != cfg.LED_strip_count) {
+        pixels.clear();
+        pixels.show();
+        pixels.updateLength(cfg.LED_strip_count);
+      }
+    }
+    if(String(w3srv.argName(i)).equals("LED_strip_brightness")) {
+      cfg.LED_strip_brightness = String(w3srv.arg(i)).toInt();
+    }
+    if(String(w3srv.argName(i)).equals("vibration_pin")) {
+      cfg.vibration_pin = String(w3srv.arg(i)).toInt();
+    }
+    if(String(w3srv.argName(i)).equals("vibration_strength")) {
+      cfg.vibration_strength = String(w3srv.arg(i)).toInt();
+    }
     if(String(w3srv.argName(i)).startsWith("wlanssid")) {
       tmpStr = String(w3srv.argName(i));
       tmpStr.remove(0, 8);
@@ -746,6 +884,9 @@ void handleGetEditConfigItem() {
 
   M5.Lcd.fillScreen(BLACK);
   draw_page();
+  if(cfg.LED_strip_mode != 0) { 
+    pixels.show();
+  }
 }
 
 void handleSaveConfig() {
@@ -839,6 +980,7 @@ void handleSaveConfig() {
     dstFil.print("snd_warning_high = "); dstFil.print(String(cfg.snd_warning_high*mult, decpl)); dstFil.print("\r\n");
     dstFil.print("snd_alarm_high = "); dstFil.print(String(cfg.snd_alarm_high*mult, decpl)); dstFil.print("\r\n");
     dstFil.print("snd_no_readings = "); dstFil.print(cfg.snd_no_readings); dstFil.print("\r\n");
+    dstFil.print("snd_loop_error = "); dstFil.print(cfg.snd_loop_error); dstFil.print("\r\n");
     dstFil.print("snd_warning_at_startup = "); dstFil.print(cfg.snd_warning_at_startup); dstFil.print("\r\n");
     dstFil.print("snd_alarm_at_startup = "); dstFil.print(cfg.snd_alarm_at_startup); dstFil.print("\r\n");
     dstFil.print("\r\n");
@@ -852,11 +994,20 @@ void handleSaveConfig() {
     dstFil.print("sgv_only = "); dstFil.print(cfg.sgv_only); dstFil.print("\r\n");
     dstFil.print("info_line = "); dstFil.print(cfg.info_line); dstFil.print("\r\n");
     dstFil.print("date_format = "); dstFil.print(cfg.date_format); dstFil.print("\r\n");
+    dstFil.print("time_format = "); dstFil.print(cfg.time_format); dstFil.print("\r\n");
     dstFil.print("display_rotation = "); dstFil.print(cfg.display_rotation); dstFil.print("\r\n");
     if(cfg.invert_display!=-1) {
       dstFil.print("invert_display = "); dstFil.print(cfg.invert_display); dstFil.print("\r\n");
     }
     dstFil.print("temperature_unit = "); dstFil.print(cfg.temperature_unit); dstFil.print("\r\n");
+    dstFil.print("LED_strip_mode = "); dstFil.print(cfg.LED_strip_mode); dstFil.print("\r\n");
+    dstFil.print("LED_strip_pin = "); dstFil.print(cfg.LED_strip_pin); dstFil.print("\r\n");
+    dstFil.print("LED_strip_count = "); dstFil.print(cfg.LED_strip_count); dstFil.print("\r\n");
+    dstFil.print("LED_strip_brightness = "); dstFil.print(cfg.LED_strip_brightness); dstFil.print("\r\n");
+    dstFil.print("vibration_mode = "); dstFil.print(cfg.vibration_mode); dstFil.print("\r\n");
+    dstFil.print("vibration_pin = "); dstFil.print(cfg.vibration_pin); dstFil.print("\r\n");
+    dstFil.print("vibration_strength = "); dstFil.print(cfg.vibration_strength); dstFil.print("\r\n");
+    dstFil.print("micro_dot_pHAT = "); dstFil.print(cfg.micro_dot_pHAT); dstFil.print("\r\n");
     dstFil.print("disable_web_server = "); dstFil.print(cfg.disable_web_server); dstFil.print("\r\n");
     dstFil.print("\r\n");
     dstFil.print("developer_mode = "); dstFil.print(cfg.dev_mode); dstFil.print("\r\n");
@@ -880,6 +1031,9 @@ void handleSaveConfig() {
   delay(100);
   M5.Lcd.fillScreen(BLACK);
   draw_page();
+  if(cfg.LED_strip_mode != 0) { 
+    pixels.show();
+  }
 }
 
 void handleNotFound() {
