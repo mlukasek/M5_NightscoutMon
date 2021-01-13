@@ -1126,6 +1126,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
         // invalid Unicode character defined by Ascensia Diabetes Care Bluetooth Glucose Meter
         // ArduinoJSON does not accept any unicode surrogate pairs like \u0032 or \u0000
         propjson.replace("\\u0000"," ");
+        propjson.replace("\\u000b"," ");
         propjson.replace("\\u0032"," ");
         DeserializationError propJSONerr = deserializeJson(JSONdoc, propjson);
         if(propJSONerr) {
