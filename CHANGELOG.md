@@ -3,8 +3,25 @@
 ## Revisions
 
 
+### 31 January 2021
+
+* Added SHT30 compatibility, so now temperature and humidity works with newer version of BTC TICKER stand and ENV.II Unit.  
+
+### 6 December 2020
+
+* Mini graph corrected for Sugarmate users.  
+* Alarm sound to loop error is now possible.  
+* Support for 12-hour AM/PM time format.  
+* Vibration motor unit support for hearing impaired.  
+* Flexible RGB LED strip or M5Stack Fire internal RGB LEDs support.  
+* Micro Dot pHAT support.  
+* Core2 online update possibility (on next update, now you have to use M5Burner or build from sources).  
+
 ### 24 July 2020
 
+* Delta displayed in correct M5NS.INI units regardles from Nightscout settings. (romkuru)  
+* Corrected "bellow->below" typo in web interface. (guydavies)  
+* Replacing Unicode TAB character "/u000b" defined by Medtronic by space to correctly parse JSON without enabling Unicode.  
 * Added SHT30 compatibility, so now temperature and humidity works with newer version of BTC TICKER stand and ENV.II Unit.  
 
 ### 12 May 2020
