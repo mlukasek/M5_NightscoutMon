@@ -71,7 +71,7 @@ SHT3X sht30;
 #include "microdot.h"
 MicroDot MD;
 
-String M5NSversion("2020120901");
+String M5NSversion("2021013101");
 
 #ifdef ARDUINO_M5STACK_Core2
   #define CONFIG_I2S_BCK_PIN 12
@@ -391,6 +391,9 @@ void play_music_data(uint32_t data_length, uint8_t volume) {
       ledcAttachPin(SPEAKER_PIN, TONE_PIN_CHANNEL);
       ledcWriteTone(TONE_PIN_CHANNEL, 0);
       CLEAR_PERI_REG_MASK(RTC_IO_PAD_DAC1_REG, RTC_IO_PDAC1_XPD_DAC | RTC_IO_PDAC1_DAC_XPD_FORCE);
+  } else {
+    // silence must make a delay for duration
+    delay(data_length/5);
   }
 }
 
