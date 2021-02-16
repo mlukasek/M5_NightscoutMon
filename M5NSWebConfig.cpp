@@ -1,3 +1,7 @@
+#ifndef ARDUINO_M5STACK_Core2
+#define ARDUINO_M5STACK_Core2
+#endif
+
 #ifdef ARDUINO_M5STACK_Core2
   #include <M5Core2.h>
 #else
