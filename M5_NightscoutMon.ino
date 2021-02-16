@@ -33,6 +33,11 @@
 // M5Stack Arduino / M5Stack-Core2
 
 #include <Arduino.h>
+
+#ifndef ARDUINO_M5STACK_Core2
+#define ARDUINO_M5STACK_Core2
+#endif
+
 #ifdef ARDUINO_M5STACK_Core2
   #include <M5Core2.h>
   #include <driver/i2s.h>
@@ -987,7 +992,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
             // Sugarmate values
             strcpy(ns->sensDev, "Sugarmate");
             ns->is_xDrip = 0;
-            ns->sensSgv = JSONdoc["value"]; // get value of sensor measurement
+            ns->sensSgv = JSONdoc["mmol"]; // get value of sensor measurement
             time_t tmptime = JSONdoc["x"]; // time in milliseconds since 1970
             if(ns->sensTime != tmptime) {
               for(int i=9; i>0; i--) { // add new value and shift buffer
@@ -999,7 +1004,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
               // Serial.print("JSONdoc[units] = "); Serial.println(jdunits);
               // if(strstr(JSONdoc["units"],"mg/dL") != NULL) { // Units are mg/dL, but last10sgv is in mmol/L -> convert 
                 // should be converted always, as "value" seems to be always in mg/dL
-                ns->last10sgv[0]/=18.0;
+                //ns->last10sgv[0]/=18.0;
               // }
 
               ns->sensTime = tmptime;
@@ -1016,9 +1021,9 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
               sprintf(ns->delta_display, "%+.1f", ns->delta_scaled);
             }
           }
-          ns->sensSgvMgDl = ns->sensSgv;
+          ns->sensSgvMgDl = ns->sensSgv*18;
           // internally we work in mmol/L
-          ns->sensSgv/=18.0;
+          //ns->sensSgv/=18.0;
           
           localtime_r(&ns->sensTime, &ns->sensTm);
           
@@ -1784,9 +1789,9 @@ void draw_page() {
     case 1: {
       // readNightscout(cfg.url, cfg.token, &ns);
       
-      uint16_t glColor = TFT_GREEN;
+      uint16_t glColor = TFT_DARKGREEN;
       if(ns.sensSgv<cfg.yellow_low || ns.sensSgv>cfg.yellow_high) {
-        glColor=TFT_YELLOW; // warning is YELLOW
+        glColor=TFT_ORANGE; // warning is YELLOW
       }
       if(ns.sensSgv<cfg.red_low || ns.sensSgv>cfg.red_high) {
         glColor=TFT_RED; // alert is RED
@@ -1812,10 +1817,10 @@ void draw_page() {
       } else {
         if(ns.sensSgv<10) {
           sprintf(sensSgvStr, "%3.1f", ns.sensSgv);
-          M5.Lcd.setFreeFont(FSSB24);
+          M5.Lcd.setFreeFont(FSB24);
         } else {
           sprintf(sensSgvStr, "%4.1f", ns.sensSgv);
-          M5.Lcd.setFreeFont(FSSB18);
+          M5.Lcd.setFreeFont(FSB18);
         }
       }
       M5.Lcd.drawString(sensSgvStr, 160, 120, GFXFF);
@@ -1824,7 +1829,7 @@ void draw_page() {
       M5.Lcd.setFreeFont(FSSB24);
       M5.Lcd.setTextSize(1);
       M5.Lcd.setTextDatum(TL_DATUM);
-      M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+      M5.Lcd.setTextColor(TFT_DARKGREY, TFT_BLACK);
 
       char datetimeStr[30];
       struct tm timeinfo;
@@ -1839,7 +1844,7 @@ void draw_page() {
       }
       M5.Lcd.drawString(datetimeStr, 0, 0, GFXFF);
       
-      M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+      M5.Lcd.setTextColor(TFT_DARKGREY, TFT_BLACK);
       M5.Lcd.drawString(ns.delta_display, 180, 0, GFXFF);
 
       int ay=0;
@@ -1857,8 +1862,30 @@ void draw_page() {
       if(ns.arrowAngle!=180)
         drawArrow(280, ay, 10, ns.arrowAngle+85, 28, 28, glColor);
  
+       // calculate sensor time difference
+      int sensorDifSec=0;
+      if(!getLocalTime(&timeinfo)){
+        sensorDifSec=24*60*60; // too much
+      } else {
+        Serial.print("Local time: "); Serial.print(timeinfo.tm_hour); Serial.print(":"); Serial.print(timeinfo.tm_min); Serial.print(":"); Serial.print(timeinfo.tm_sec); Serial.print(" DST "); Serial.println(timeinfo.tm_isdst);
+        sensorDifSec=difftime(mktime(&timeinfo), ns.sensTime);
+      }
+      // display time since last valid data
+      unsigned int sensorDifMin = (sensorDifSec+30)/60;
+      uint16_t tdColor = TFT_DARKGREY;
+      M5.Lcd.fillRoundRect(273, 175, 45, 45, 10, tdColor);
+      M5.Lcd.setTextSize(1);
+      M5.Lcd.setFreeFont(FSSB18);
+      M5.Lcd.setTextDatum(MC_DATUM);
+      M5.Lcd.setTextColor(TFT_BLACK, tdColor);
+      if(sensorDifMin>99) {
+        M5.Lcd.drawString("Err min", 34, 53, GFXFF);
+      } else {
+        M5.Lcd.drawString(String(sensorDifMin)+"'", 297, 197, GFXFF);
+      }
+
       handleAlarmsInfoLine(&ns);
-      drawBatteryStatus(icon_xpos[2], icon_ypos[2]);
+      //drawBatteryStatus(icon_xpos[2], icon_ypos[2]);
       drawLogWarningIcon();
     }
     break;
