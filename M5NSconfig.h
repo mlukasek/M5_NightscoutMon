@@ -60,6 +60,7 @@ struct tConfig {
   int temperature_unit = 1; // 1 = CELSIUS, 2 = KELVIN, 3= FAHRENHEIT
   int dev_mode = 0; // developer mode, do not use, does strange things and changes often ;-)
   int disable_web_server = 0; // 1 = disable internal web server
+  bool is_task_bootstrapping = 1; //  0 = task is normal display
   char wlanssid[10][32];
   char wlanpass[10][64];
 } ;
