@@ -12,6 +12,7 @@
 
 ### Contents
 [What is this good for?](#m5stack-nightscout-monitor-1)  
+[Wiki documentation](https://github.com/mlukasek/M5_NightscoutMon/wiki)  
 [Latest software revisions (CHANGELOG) **WHAT IS NEW**](CHANGELOG.md)  
 [Syntax of M5NS.INI configuration file](#the-syntax-of-m5nsini-configuration-file)  
 [Display](#display)  
@@ -193,7 +194,7 @@ Battery icon feature works only on newer M5Stack units. Here are my battery meas
 
 Installation can be done by download or git clone the code to the Arduino IDE environment. You have to download ESP32 board and M5Stack libraries, Arduino JSON library and build it to you M5Stack.
 
-Another easier possibility is to download latest [M5Burner release](https://github.com/mlukasek/M5_NightscoutMon/releases). It is Windows executable with binary M5Stack firmware included. Just unzip it, start the M5Burner.exe, choose COM port where your M5Stack is connected and burn the firmware. Simple. Remember to add you microSD card with M5NS.INI configuration file.
+Another easier possibility is to download latest [M5Burner release](https://github.com/mlukasek/M5_NightscoutMon/releases). It is Windows executable with binary M5Stack firmware included. Just unzip it, start the M5Burner.exe, choose COM port where your M5Stack is connected and burn the firmware. Simple. Remember to add you microSD card with M5NS.INI configuration file. See the [wiki](https://github.com/mlukasek/M5_NightscoutMon/wiki) for details.
 
 There is a Facebook group [M5STACK NIGHTSCOUT](https://www.facebook.com/groups/606295776549008/) where you can get support and installation guides in several languages prepared by members of the M5Stack Nightscout community. Please check the [Files section](https://www.facebook.com/groups/606295776549008/files/) first and search the group before asking questions. A lot of questions have been answered already. Big thanks to Patrick Sonnerat, Didier Frétigné, Peter Leimbach and more...
 
