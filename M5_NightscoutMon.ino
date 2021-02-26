@@ -702,18 +702,44 @@ void listNetworks() {
 }
 */
 
+const char * CONSONANTS = "bcdfghjklmnpqrstvwxyz";
+const char * VOWELS = "aeiouy";
+int passLen = 8;
+
+void generate_ssid_passphrase (char * buffer) {
+  char passphrase[passLen+1];
+  int max_consonants;
+  int max_vowels;
+  max_consonants = strlen(CONSONANTS);
+  max_vowels = strlen(VOWELS);
+  randomSeed(analogRead(0));
+  passphrase[0] = CONSONANTS[random(0, max_consonants)];
+  passphrase[1] = VOWELS[random(0, max_vowels)];
+  passphrase[2] = VOWELS[random(0, max_vowels)];
+  passphrase[3] = CONSONANTS[random(0, max_consonants)];
+  passphrase[4] = VOWELS[random(0, max_vowels)];
+  passphrase[5] = VOWELS[random(0, max_vowels)];
+  passphrase[6] = CONSONANTS[random(0, max_consonants)];
+  passphrase[7] = VOWELS[random(0, max_vowels)];
+  passphrase[8] = VOWELS[random(0, max_vowels)];
+  passphrase[9] = '\0';
+  strcpy(buffer, passphrase);
+}
+
 void wifi_connect() {
+  char ssid_passphrase[80];
   if (is_task_bootstrapping) {
+    // offer access point to join for configuration purposes
+    WiFi.enableAP(true);
     WiFi.mode(WIFI_AP);
-    // TODO.bewest: get ip, gateway, subnet, and passphrase from cfg,
-    // aka calculate in readConfiguration.
     IPAddress ip(192, 168, 0, 1);
     IPAddress gateway(192, 168, 0, 1);
     IPAddress subnet(255, 255, 255, 0);
-		// TODO.bewest: set random password
-    char ssid_passphrase[] = "sdf01213";
+		// set random password
+    generate_ssid_passphrase(ssid_passphrase);
     WiFi.softAP(cfg.deviceName, ssid_passphrase);
     WiFi.softAPConfig(ip, gateway, subnet);
+    delay(250);
     WiFi.begin( );
   } else {
     WiFi.mode(WIFI_STA);
@@ -749,31 +775,44 @@ void wifi_connect() {
 
   Serial.println("");
   M5.Lcd.println("");
-  Serial.print("WiFi connected to SSID "); Serial.println(WiFi.SSID());
-  M5.Lcd.print("WiFi SSID "); M5.Lcd.println(WiFi.SSID());
-  Serial.println("IP address: ");
-  M5.Lcd.println("IP address: ");
-  Serial.println(WiFi.localIP());
-  M5.Lcd.println(WiFi.localIP());
+  Serial.print("WiFi connected to SSID ");
+  if (is_task_bootstrapping) {
+    Serial.println(cfg.deviceName);
+    M5.Lcd.print("WiFi SSID: "); M5.Lcd.println(cfg.deviceName);
+    Serial.print("SSID Passphrase: "); Serial.println(ssid_passphrase);
+    M5.Lcd.print("SSID Passphrase: "); M5.Lcd.println(ssid_passphrase);
+    M5.Lcd.print("Join WiFi & Visit URL:\nhttp://");
+    M5.Lcd.print(cfg.deviceName);
+    M5.Lcd.print(".local\n");
+  } else {
 
-  configTime(cfg.timeZone, cfg.dst, ntpServer, "time.nist.gov", "time.google.com");
-  delay(1000);
-  Serial.print("Waiting for time.");
-  int i = 0;
-  while(!getLocalTime(&localTimeInfo)) {
-    Serial.print(".");
+    Serial.println(WiFi.SSID());
+    M5.Lcd.print("WiFi SSID: "); M5.Lcd.println(WiFi.SSID());
+    Serial.println("IP address: ");
+    M5.Lcd.println("IP address: ");
+    Serial.println(WiFi.localIP());
+    M5.Lcd.println(WiFi.localIP());
+
+    configTime(cfg.timeZone, cfg.dst, ntpServer, "time.nist.gov", "time.google.com");
     delay(1000);
-    i++;
-    if (i > MAX_TIME_RETRY) {
-      Serial.print("Gave up waiting for time to have a valid value.");
-      break;
+    Serial.print("Waiting for time.");
+    int i = 0;
+    while(!getLocalTime(&localTimeInfo)) {
+      Serial.print(".");
+      delay(1000);
+      i++;
+      if (i > MAX_TIME_RETRY) {
+        Serial.print("Gave up waiting for time to have a valid value.");
+        break;
+      }
     }
-  }
-  Serial.println();
-  printLocalTime();
+    Serial.println();
+    printLocalTime();
 
-  Serial.println("Connection done");
-  M5.Lcd.println("Connection done");
+    Serial.println("Connection done");
+    M5.Lcd.println("Connection done");
+  }
+
 }
 
 int8_t getBatteryLevel()
@@ -2233,6 +2272,7 @@ void draw_page() {
   }
 }
 
+
 // the setup routine runs once when M5Stack starts up
 void setup() {
     // initialize the M5Stack object
@@ -2369,7 +2409,14 @@ void setup() {
     lcdBrightness = cfg.brightness1;
     lcdSetBrightness(lcdBrightness);
     
-    startupLogo();
+    // btnA_wasPressed = M5.BtnA.wasPressed();
+    if (M5.BtnA.isPressed( )) {
+      cfg.is_task_bootstrapping = 1;
+    }
+
+    if (!cfg.is_task_bootstrapping) {
+      startupLogo();
+    }
     yield();
 
     // cfg.is_task_bootstrapping
@@ -2377,7 +2424,9 @@ void setup() {
     // preferences.getBool("NeedsBootstrap", false)
     // recall from memory
     preferences.begin("M5StackNS", false);
-    is_task_bootstrapping = preferences.getBool("NeedsBootstrap", false);
+    // preferences.putBool("NeedsBootstrap", cfg.is_task_bootstrapping);
+    // is_task_bootstrapping = preferences.getBool("NeedsBootstrap", false);
+    is_task_bootstrapping = cfg.is_task_bootstrapping
     if(preferences.getBool("SoftReset", false)) {
       // no startup sound after soft reset and remove the SoftReset key
       snoozeUntil=preferences.getLong64("SnoozeUntil", 0);
@@ -2428,8 +2477,10 @@ void setup() {
     wifi_connect();
     yield();
 
-    lcdSetBrightness(lcdBrightness);
-    M5.Lcd.fillScreen(BLACK);
+    if (!is_task_bootstrapping) {
+      lcdSetBrightness(lcdBrightness);
+      M5.Lcd.fillScreen(BLACK);
+    }
     
     // fill dummy values to error log
     /*
@@ -2481,12 +2532,10 @@ void setup() {
 
 // the loop routine runs over and over again forever
 void loop(){
-  if(!cfg.disable_web_server)
+  if(!cfg.disable_web_server || is_task_bootstrapping)
     w3srv.handleClient();
   delay(10);
-  if (is_task_bootstrapping) {
-    Serial.println("bootstrapping...");
-  } else {
+  if (!is_task_bootstrapping) {
     buttons_test();
 
     // update glycemia every 15s, fetch new data and draw page
