@@ -2426,7 +2426,7 @@ void setup() {
     preferences.begin("M5StackNS", false);
     // preferences.putBool("NeedsBootstrap", cfg.is_task_bootstrapping);
     // is_task_bootstrapping = preferences.getBool("NeedsBootstrap", false);
-    is_task_bootstrapping = cfg.is_task_bootstrapping
+    is_task_bootstrapping = cfg.is_task_bootstrapping;
     if(preferences.getBool("SoftReset", false)) {
       // no startup sound after soft reset and remove the SoftReset key
       snoozeUntil=preferences.getLong64("SnoozeUntil", 0);

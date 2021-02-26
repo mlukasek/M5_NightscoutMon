@@ -42,6 +42,7 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
   const size_t bufferLen = 80;
   char buffer[bufferLen];
     
+  File dstFil;
   IniFile ini(iniFilename); //(uint8_t)"/M5NS.INI"
   
   if (!ini.open()) {
@@ -50,8 +51,22 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
     Serial.println(" does not exist");
     M5.Lcd.println("No INI file");
     // Cannot do anything else
-    while (1)
-      ;
+    dstFil = SD.open("/M5NS.INI", FILE_WRITE);
+    if(!dstFil) {
+      Serial.println("Error opening M5NS.INI for write");
+      while (1)
+        ;
+    } else {
+      Serial.println("Writing configuration to M5NS.INI");
+      dstFil.print("[config]\r\n");
+      dstFil.flush();
+      dstFil.close();
+      if (!ini.open()) {
+        Serial.println("Error retrying opening M5NS.INI for write");
+        while (1)
+          ;
+      }
+    }
   }
   Serial.println("Ini file exists");
 

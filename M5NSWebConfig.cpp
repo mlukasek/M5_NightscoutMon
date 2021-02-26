@@ -1043,6 +1043,7 @@ void handleSaveConfig() {
     #ifndef ARDUINO_M5STACK_Core2  // no .update() on M5Stack CORE2
       M5.update();
     #endif
+    WiFi.softAPdisconnect(true);
     delay(1000);
     ESP.restart();
   } else {
