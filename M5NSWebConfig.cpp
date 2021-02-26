@@ -277,6 +277,7 @@ void handleRoot() {
   message += "Developer mode: <b>"; message += cfg.dev_mode?"Enabled":"Disabled"; message += "</b> <a href=\"switch?param=dev_mode\">[change]</a><br />\r\n";
   message += "Internal Web Server: <b>"; message += cfg.disable_web_server?"Disabled":"Enabled"; message += "</b> <a href=\"switch?param=disable_web_server\">[change]</a><br />\r\n";
   
+
   for(int i=0; i<10; i++) {
     if(cfg.wlanssid[i][0] != 0) {
       message += "[wlan"; message += i; message += "] <b>";
@@ -291,6 +292,9 @@ void handleRoot() {
         message += "', no password (open)</b> <a href=\"edititem?param=wlans\">[edit]</a><br />\r\n";
       }
     }
+  }
+  if (cfg.wlans_defined_count < 1) {
+    message += "WiFi Configuration <b>(none)</b> <a href=\"edititem?param=wlans\">[edit]</a><br />\r\n";
   }
 /*
   char warning_music[64];
@@ -587,6 +591,7 @@ void handleEditConfigItem() {
   String sgvUnits = cfg.show_mgdl?"mg/dL":"mmol/L";
   int decpl = cfg.show_mgdl?0:1;
   int mult = cfg.show_mgdl?18:1;
+  int numSsids = WiFi.scanNetworks( );
 
   String message = "<!DOCTYPE HTML>\r\n";
   message += "<html>\r\n";
@@ -707,9 +712,19 @@ void handleEditConfigItem() {
     }
     if(String(w3srv.arg(0)).equals("wlans")) {
       message += "Wifi LAN SSIDs + passwords:<br />\r\n";
-      for(int i=0; i<10; i++) {
+      for(int i=1; i<10; i++) {
         message += "[wlan"; message += i; message += "] ";
-        message += "SSID: <input type=\"text\" name=\"wlanssid" + String(i) + "\" value=\"" + String(cfg.wlanssid[i]) + "\" size=\"12\" maxlength=\"32\"> , \r\n";
+        if (cfg.wlanssid[i][0] != 0) {
+          message += "SSID: <input type=\"text\" name=\"wlanssid" + String(i) + "\" value=\"" + String(cfg.wlanssid[i]) + "\" size=\"12\" maxlength=\"32\"> , \r\n";
+        } else {
+          message += "<select name=\"wlanssid" + String(i) + "\">\n";
+          message += "<option selected=\"default\" value=\"\">none</option>";
+          for (int j=0; j<numSsids; j++) {
+            message += "<option value=\"" + String(WiFi.SSID(j)) + "\">" + String(WiFi.SSID(j)) + "</option>";
+          }
+          message += "</select>\n";
+
+        }
         message += "PASS: <input type=\"password\" name=\"wlanpass" + String(i) + "\" value=\"" + String(cfg.wlanpass[i]) + "\" size=\"12\" maxlength=\"64\">\r\n";
         if(i==0)
           message += " Do not use this [wlan0] row unless necessary, reserved for autoconfig.\r\n";
