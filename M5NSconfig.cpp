@@ -42,6 +42,7 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
   const size_t bufferLen = 80;
   char buffer[bufferLen];
     
+  File dstFil;
   IniFile ini(iniFilename); //(uint8_t)"/M5NS.INI"
   
   if (!ini.open()) {
@@ -50,8 +51,22 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
     Serial.println(" does not exist");
     M5.Lcd.println("No INI file");
     // Cannot do anything else
-    while (1)
-      ;
+    dstFil = SD.open("/M5NS.INI", FILE_WRITE);
+    if(!dstFil) {
+      Serial.println("Error opening M5NS.INI for write");
+      while (1)
+        ;
+    } else {
+      Serial.println("Writing configuration to M5NS.INI");
+      dstFil.print("[config]\r\n");
+      dstFil.flush();
+      dstFil.close();
+      if (!ini.open()) {
+        Serial.println("Error retrying opening M5NS.INI for write");
+        while (1)
+          ;
+      }
+    }
   }
   Serial.println("Ini file exists");
 
@@ -78,8 +93,10 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
     Serial.print("Could not read 'nightscout' from section 'config', error was ");
     printErrorMessage(ini.getError());
     M5.Lcd.println("No Nightscout URL in INI file");
-    while (1)
-      ;
+    // while (1);
+    // Go into bootstrapping mode.
+    cfg->is_task_bootstrapping = 1;
+    // cfg->url[0] = '\0';
   }
 
   // begin Peter Leimbach
@@ -613,6 +630,7 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
     if (ini.getValue(wlansection, "ssid", buffer, bufferLen)) {
       Serial.printf("[wlan%1d] ssid = %s\r\n", i, buffer);
       strlcpy(cfg->wlanssid[i], buffer, 32);
+      cfg->wlans_defined_count++;
     } else {
       Serial.printf("NO [wlan%1d] ssid\r\n", i);
       cfg->wlanssid[i][0] = 0;
@@ -625,6 +643,10 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
       Serial.printf("NO [wlan%1d] pass\r\n", i);
       cfg->wlanpass[i][0] = 0;
     }
+  }
+
+  if (cfg->wlans_defined_count < 1) {
+    cfg->is_task_bootstrapping = 1;
   }
 
 }

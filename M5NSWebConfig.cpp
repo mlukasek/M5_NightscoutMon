@@ -41,7 +41,7 @@ void handleRoot() {
 
   Serial.println("Serving root web page");
 
-  if((WiFiMultiple.run() == WL_CONNECTED)) {
+  if((WiFi.status() == WL_CONNECTED)) {
     http.begin(updateInfoURL);
     http.setTimeout(5000);
     http.setConnectTimeout(5000);
@@ -275,8 +275,9 @@ void handleRoot() {
   message += "Vibration motor strength: <b>"; message += cfg.vibration_strength; message += "</b> <a href=\"edititem?param=vibration_motor\">[edit]</a><br />\r\n";
   message += "Micro Dot pHAT on I2C port: <b>"; message += cfg.micro_dot_pHAT?"YES":"NO"; message += "</b> <a href=\"switch?param=micro_dot_pHAT\">[change]</a><br />\r\n";
   message += "Developer mode: <b>"; message += cfg.dev_mode?"Enabled":"Disabled"; message += "</b> <a href=\"switch?param=dev_mode\">[change]</a><br />\r\n";
-  message += "Internal Web Server: <b>"; message += cfg.disable_web_server?"Disabled":"Enabled"; message += "</b><br />\r\n";
+  message += "Internal Web Server: <b>"; message += cfg.disable_web_server?"Disabled":"Enabled"; message += "</b> <a href=\"switch?param=disable_web_server\">[change]</a><br />\r\n";
   
+
   for(int i=0; i<10; i++) {
     if(cfg.wlanssid[i][0] != 0) {
       message += "[wlan"; message += i; message += "] <b>";
@@ -291,6 +292,9 @@ void handleRoot() {
         message += "', no password (open)</b> <a href=\"edititem?param=wlans\">[edit]</a><br />\r\n";
       }
     }
+  }
+  if (cfg.wlans_defined_count < 1) {
+    message += "WiFi Configuration <b>(none)</b> <a href=\"edititem?param=wlans\">[edit]</a><br />\r\n";
   }
 /*
   char warning_music[64];
@@ -360,7 +364,7 @@ void handleUpdate() {
   String webVer;
   HTTPClient http;
   WiFiClient client;
-  if((WiFiMultiple.run() == WL_CONNECTED)) {
+  if((WiFi.status() == WL_CONNECTED)) {
     http.begin(updateInfoURL);
     int httpCode = http.GET();
     if(httpCode > 0) {
@@ -428,14 +432,16 @@ void handleUpdate() {
     M5.Lcd.setTextColor(YELLOW);
     M5.Lcd.println("NOTHING TO UPDATE");
   }
-  #ifndef ARDUINO_M5STACK_Core2  // no .update() on M5Stack CORE2
-    M5.update();
-  #endif
-  delay(2000);
-  M5.Lcd.fillScreen(BLACK);
-  draw_page();
-  if(cfg.LED_strip_mode != 0) { 
-    pixels.show();
+  if (!cfg.is_task_bootstrapping) {
+    #ifndef ARDUINO_M5STACK_Core2  // no .update() on M5Stack CORE2
+      M5.update();
+    #endif
+    delay(2000);
+    M5.Lcd.fillScreen(BLACK);
+    draw_page();
+    if(cfg.LED_strip_mode != 0) { 
+      pixels.show();
+    }
   }
 }
 
@@ -563,16 +569,21 @@ void handleSwitchConfig() {
       if(String(w3srv.arg(i)).equals("dev_mode")) {
         cfg.dev_mode = !cfg.dev_mode;
       }
+      if(String(w3srv.arg(i)).equals("disable_web_server")) {
+        cfg.disable_web_server = !cfg.disable_web_server;
+      }
     }
   }
   message += "</body>\r\n";
   message += "</html>\r\n";
   w3srv.send(200, "text/html", message);
 
-  M5.Lcd.fillScreen(BLACK);
-  draw_page();
-  if(cfg.LED_strip_mode != 0) { 
-    pixels.show();
+  if (!cfg.is_task_bootstrapping) {
+    M5.Lcd.fillScreen(BLACK);
+    draw_page();
+    if(cfg.LED_strip_mode != 0) { 
+      pixels.show();
+    }
   }
 }
 
@@ -580,6 +591,7 @@ void handleEditConfigItem() {
   String sgvUnits = cfg.show_mgdl?"mg/dL":"mmol/L";
   int decpl = cfg.show_mgdl?0:1;
   int mult = cfg.show_mgdl?18:1;
+  int numSsids = WiFi.scanNetworks( );
 
   String message = "<!DOCTYPE HTML>\r\n";
   message += "<html>\r\n";
@@ -700,9 +712,19 @@ void handleEditConfigItem() {
     }
     if(String(w3srv.arg(0)).equals("wlans")) {
       message += "Wifi LAN SSIDs + passwords:<br />\r\n";
-      for(int i=0; i<10; i++) {
+      for(int i=1; i<10; i++) {
         message += "[wlan"; message += i; message += "] ";
-        message += "SSID: <input type=\"text\" name=\"wlanssid" + String(i) + "\" value=\"" + String(cfg.wlanssid[i]) + "\" size=\"12\" maxlength=\"32\"> , \r\n";
+        if (cfg.wlanssid[i][0] != 0) {
+          message += "SSID: <input type=\"text\" name=\"wlanssid" + String(i) + "\" value=\"" + String(cfg.wlanssid[i]) + "\" size=\"12\" maxlength=\"32\"> , \r\n";
+        } else {
+          message += "<select name=\"wlanssid" + String(i) + "\">\n";
+          message += "<option selected=\"default\" value=\"\">none</option>";
+          for (int j=0; j<numSsids; j++) {
+            message += "<option value=\"" + String(WiFi.SSID(j)) + "\">" + String(WiFi.SSID(j)) + "</option>";
+          }
+          message += "</select>\n";
+
+        }
         message += "PASS: <input type=\"password\" name=\"wlanpass" + String(i) + "\" value=\"" + String(cfg.wlanpass[i]) + "\" size=\"12\" maxlength=\"64\">\r\n";
         if(i==0)
           message += " Do not use this [wlan0] row unless necessary, reserved for autoconfig.\r\n";
@@ -882,10 +904,12 @@ void handleGetEditConfigItem() {
   message += "</html>\r\n";
   w3srv.send(200, "text/html", message);
 
-  M5.Lcd.fillScreen(BLACK);
-  draw_page();
-  if(cfg.LED_strip_mode != 0) { 
-    pixels.show();
+  if (!cfg.is_task_bootstrapping) {
+    M5.Lcd.fillScreen(BLACK);
+    draw_page();
+    if(cfg.LED_strip_mode != 0) { 
+      pixels.show();
+    }
   }
 }
 
@@ -1027,12 +1051,22 @@ void handleSaveConfig() {
   Serial.println("New M5NS.INI should be saved");
 
   w3srv.send(200, "text/html", message);
-  
   delay(100);
-  M5.Lcd.fillScreen(BLACK);
-  draw_page();
-  if(cfg.LED_strip_mode != 0) { 
-    pixels.show();
+  
+
+  if (cfg.is_task_bootstrapping) {
+    #ifndef ARDUINO_M5STACK_Core2  // no .update() on M5Stack CORE2
+      M5.update();
+    #endif
+    WiFi.softAPdisconnect(true);
+    delay(1000);
+    ESP.restart();
+  } else {
+    M5.Lcd.fillScreen(BLACK);
+    draw_page();
+    if(cfg.LED_strip_mode != 0) { 
+      pixels.show();
+    }
   }
 }
 
