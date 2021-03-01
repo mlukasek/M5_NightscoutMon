@@ -300,7 +300,7 @@ void MicroDot::clear() {
     writeDigit(i+1, 32);
 }
 
-void MicroDot::writeString(char* buf) {
+void MicroDot::writeString(const char* buf) {
   for(int i=0; i<6; i++) {
     if(i<strlen(buf))
       writeDigit(i+1, buf[i]);

@@ -1,4 +1,5 @@
 #include "M5NSconfig.h"
+#include <Preferences.h>
 
 void printErrorMessage(uint8_t e, bool eol = true)
 {
@@ -38,12 +39,176 @@ void printErrorMessage(uint8_t e, bool eol = true)
     Serial.println();
 }
 
+void readConfigFromFlash(tConfig *cfg) {
+  Serial.println("Reading configuration from flash.");
+  Preferences prefs;
+  if( !prefs.begin("M5NSconfig", false) ) {
+    Serial.println("Error opening Preferences M5NSconfig");
+    M5.Lcd.println("No config in flash");
+    Serial.println("No configuration found in Preferences");
+  } else {
+    Serial.println("Reading configuration from Preferences M5NSconfig");
+    prefs.getString("nightscout", cfg->url, 128);
+    prefs.getString("token", cfg->token, 32);
+    prefs.getString("bootpic", cfg->bootPic, 64);
+    prefs.getString("user_name", cfg->userName, 32);
+    if(strlen(cfg->userName)==0)
+      strcpy(cfg->userName, " ");
+    prefs.getString("device_name", cfg->deviceName, 32);
+    if(strlen(cfg->deviceName)==0)
+      strcpy(cfg->deviceName, "M5NS");
+    cfg->timeZone = prefs.getInt("time_zone", 3600);
+    cfg->dst = prefs.getInt("dst", 0);
+    cfg->show_mgdl = prefs.getInt("show_mgdl", 0);
+    cfg->show_current_time = prefs.getInt("show_current_time", 1);
+    cfg->show_COB_IOB = prefs.getInt("show_COB_IOB", 0);
+    cfg->default_page = prefs.getInt("default_page", 0);
+    prefs.getString("restart_at_time", cfg->restart_at_time, 10);
+    if(strlen(cfg->restart_at_time)==0)
+      strcpy(cfg->restart_at_time, "03:30");
+    cfg->restart_at_logged_errors = prefs.getInt("restart_at_logged_errors", 30);
+    cfg->snooze_timeout = prefs.getInt("snooze_timeout", 30);
+    cfg->alarm_repeat = prefs.getInt("alarm_repeat", 5);
+    cfg->yellow_low = prefs.getFloat("yellow_low", 4.5);
+    cfg->yellow_high = prefs.getFloat("yellow_high", 9.0);
+    cfg->red_low = prefs.getFloat("red_low", 3.9);
+    cfg->red_high = prefs.getFloat("red_high", 11.0);
+    cfg->snd_warning = prefs.getFloat("snd_warning", 3.7);
+    cfg->snd_alarm = prefs.getFloat("snd_alarm", 3.0);
+    cfg->snd_warning_high = prefs.getFloat("snd_warning_high", 14.0);
+    cfg->snd_alarm_high = prefs.getFloat("snd_alarm_high", 20.0);
+    cfg->snd_no_readings = prefs.getInt("snd_no_readings", 20);
+    cfg->snd_loop_error = prefs.getInt("snd_loop_error", 1);
+    cfg->snd_warning_at_startup = prefs.getInt("snd_warning_at_startup", 1);
+    cfg->snd_alarm_at_startup = prefs.getInt("snd_alarm_at_startup", 0);
+    cfg->warning_volume = prefs.getInt("warning_volume", 30);
+    cfg->alarm_volume = prefs.getInt("alarm_volume", 100);
+    cfg->brightness1 = prefs.getInt("brightness1", 50);
+    cfg->brightness2 = prefs.getInt("brightness2", 100);
+    cfg->brightness3 = prefs.getInt("brightness3", 10);
+    cfg->sgv_only = prefs.getInt("sgv_only", 0);
+    cfg->info_line = prefs.getInt("info_line", 1);
+    cfg->date_format = prefs.getInt("date_format", 0);
+    cfg->time_format = prefs.getInt("time_format", 0);
+    cfg->display_rotation = prefs.getInt("display_rotation", 1);
+    cfg->invert_display = prefs.getInt("invert_display", -1);
+    cfg->temperature_unit = prefs.getInt("temperature_unit", 1);
+    cfg->LED_strip_mode = prefs.getInt("LED_strip_mode", 0);
+    cfg->LED_strip_pin = prefs.getInt("LED_strip_pin", 15);
+    cfg->LED_strip_count = prefs.getInt("LED_strip_count", 10);
+    cfg->LED_strip_brightness = prefs.getInt("LED_strip_brightness", 10);
+    cfg->vibration_mode = prefs.getInt("vibration_mode", 0);
+    cfg->vibration_pin = prefs.getInt("vibration_pin", 26);
+    cfg->vibration_strength = prefs.getInt("vibration_strength", 512);
+    cfg->micro_dot_pHAT = prefs.getInt("micro_dot_pHAT", 0);
+    cfg->disable_web_server = prefs.getInt("disable_web_server", 0);
+    cfg->dev_mode = prefs.getInt("developer_mode", 0);
+    char tmps[64];
+    int wlans_defined_count = 0;
+    for(int i=0; i<10; i++) {
+      sprintf(tmps, "SSID%01d", i);
+      if(prefs.getString(tmps, cfg->wlanssid[i], 32) > 0) {
+        // Serial.print("Getting key ["); Serial.print(tmps); Serial.println("]");
+        sprintf(tmps, "PASS%01d", i);
+        wlans_defined_count++;
+        if(prefs.getString(tmps, cfg->wlanpass[i], 64) > 0) {
+          // Serial.print("Getting key ["); Serial.print(tmps); Serial.println("]");
+        } else {
+          cfg->wlanpass[i][0] = 0;
+        }
+      } else {
+        cfg->wlanssid[i][0] = 0;
+      }
+    }
+    prefs.end();
+    if (wlans_defined_count < 1)
+      cfg->is_task_bootstrapping = 1;
+    Serial.println("New settings read from flash.");
+  }
+}
+
+void saveConfigToFlash(tConfig *cfg) {
+  Serial.println("Storing configuration to flash.");
+  Preferences prefs;
+  if( !prefs.begin("M5NSconfig", false) ) {
+    Serial.println("Error opening Preferences M5NSconfig");
+  } else {
+    Serial.println("Writing configuration to Preferences M5NSconfig");
+    prefs.clear();
+    prefs.putString("nightscout", cfg->url);
+    prefs.putString("token", cfg->token);
+    prefs.putString("bootpic", cfg->bootPic);
+    prefs.putString("user_name", cfg->userName);
+    prefs.putString("device_name", cfg->deviceName);
+    prefs.putInt("time_zone", cfg->timeZone);
+    prefs.putInt("dst", cfg->dst);
+    prefs.putInt("show_mgdl", cfg->show_mgdl);
+    prefs.putInt("show_current_time", cfg->show_current_time);
+    prefs.putInt("show_COB_IOB", cfg->show_COB_IOB);
+    prefs.putInt("default_page", cfg->default_page);
+    prefs.putString("restart_at_time", cfg->restart_at_time);
+    prefs.putInt("restart_at_logged_errors", cfg->restart_at_logged_errors);
+    prefs.putInt("snooze_timeout", cfg->snooze_timeout);
+    prefs.putInt("alarm_repeat", cfg->alarm_repeat);
+    prefs.putFloat("yellow_low", cfg->yellow_low);
+    prefs.putFloat("yellow_high", cfg->yellow_high);
+    prefs.putFloat("red_low", cfg->red_low);
+    prefs.putFloat("red_high", cfg->red_high);
+    prefs.putFloat("snd_warning", cfg->snd_warning);
+    prefs.putFloat("snd_alarm", cfg->snd_alarm);
+    prefs.putFloat("snd_warning_high", cfg->snd_warning_high);
+    prefs.putFloat("snd_alarm_high", cfg->snd_alarm_high);
+    prefs.putInt("snd_no_readings", cfg->snd_no_readings);
+    prefs.putInt("snd_loop_error", cfg->snd_loop_error);
+    prefs.putInt("snd_warning_at_startup", cfg->snd_warning_at_startup);
+    prefs.putInt("snd_alarm_at_startup", cfg->snd_alarm_at_startup);
+    prefs.putInt("warning_volume", cfg->warning_volume);
+    prefs.putInt("alarm_volume", cfg->alarm_volume);
+    prefs.putInt("brightness1", cfg->brightness1);
+    prefs.putInt("brightness2", cfg->brightness2);
+    prefs.putInt("brightness3", cfg->brightness3);
+    prefs.putInt("sgv_only", cfg->sgv_only);
+    prefs.putInt("info_line", cfg->info_line);
+    prefs.putInt("date_format", cfg->date_format);
+    prefs.putInt("time_format", cfg->time_format);
+    prefs.putInt("display_rotation", cfg->display_rotation);
+    prefs.putInt("invert_display", cfg->invert_display);
+    prefs.putInt("temperature_unit", cfg->temperature_unit);
+    prefs.putInt("LED_strip_mode", cfg->LED_strip_mode);
+    prefs.putInt("LED_strip_pin", cfg->LED_strip_pin);
+    prefs.putInt("LED_strip_count", cfg->LED_strip_count);
+    prefs.putInt("LED_strip_brightness", cfg->LED_strip_brightness);
+    prefs.putInt("vibration_mode", cfg->vibration_mode);
+    prefs.putInt("vibration_pin", cfg->vibration_pin);
+    prefs.putInt("vibration_strength", cfg->vibration_strength);
+    prefs.putInt("micro_dot_pHAT", cfg->micro_dot_pHAT);
+    prefs.putInt("disable_web_server", cfg->disable_web_server);
+    prefs.putInt("developer_mode", cfg->dev_mode);
+    char tmps[64];
+    for(int i=0; i<10; i++) {
+      if(cfg->wlanssid[i][0] != 0) {
+        sprintf(tmps, "SSID%01d", i);
+        // Serial.print("Storing key ["); Serial.print(tmps); Serial.println("]");
+        prefs.putString(tmps, cfg->wlanssid[i]);
+        if(cfg->wlanpass[i][0]!=0) {
+          sprintf(tmps, "PASS%01d", i);
+          // Serial.print("Storing key ["); Serial.print(tmps); Serial.println("]");
+          prefs.putString(tmps, cfg->wlanpass[i]);
+        }
+      }
+    }
+    prefs.end();
+    Serial.println("Confguration saved to flash.");
+  }
+}
+
 void readConfiguration(const char *iniFilename, tConfig *cfg) {
   const size_t bufferLen = 80;
   char buffer[bufferLen];
     
   File dstFil;
   IniFile ini(iniFilename); //(uint8_t)"/M5NS.INI"
+  bool iniFileRead = false;
   
   if (!ini.open()) {
     Serial.print("Ini file ");
@@ -51,6 +216,7 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
     Serial.println(" does not exist");
     M5.Lcd.println("No INI file");
     // Cannot do anything else
+    /*
     dstFil = SD.open("/M5NS.INI", FILE_WRITE);
     if(!dstFil) {
       Serial.println("Error opening M5NS.INI for write");
@@ -66,7 +232,10 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
         while (1)
           ;
       }
-    }
+    } */
+    readConfigFromFlash(cfg);
+    // aaa this needs more work
+    return;
   }
   Serial.println("Ini file exists");
 
@@ -623,6 +792,8 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
     cfg->disable_web_server = 0;
   }
 
+  int wlans_defined_count = 0;
+  
   for(int i=0; i<=9; i++) {
     char wlansection[10];
     sprintf(wlansection, "wlan%1d", i);
@@ -630,7 +801,7 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
     if (ini.getValue(wlansection, "ssid", buffer, bufferLen)) {
       Serial.printf("[wlan%1d] ssid = %s\r\n", i, buffer);
       strlcpy(cfg->wlanssid[i], buffer, 32);
-      cfg->wlans_defined_count++;
+      wlans_defined_count++;
     } else {
       Serial.printf("NO [wlan%1d] ssid\r\n", i);
       cfg->wlanssid[i][0] = 0;
@@ -645,7 +816,7 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
     }
   }
 
-  if (cfg->wlans_defined_count < 1) {
+  if (wlans_defined_count < 1) {
     cfg->is_task_bootstrapping = 1;
   }
 

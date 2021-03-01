@@ -61,7 +61,6 @@ struct tConfig {
   int dev_mode = 0; // developer mode, do not use, does strange things and changes often ;-)
   int disable_web_server = 0; // 1 = disable internal web server
   bool is_task_bootstrapping = 0; //  1 = task is to bootstrap
-  bool wlans_defined_count = 0; //  num wlan definitions
   char wlanssid[10][32];
   char wlanpass[10][64];
 } ;
@@ -101,6 +100,8 @@ struct NSinfo {
   float basal_totalbasal = 0;
 } ;
 
+void readConfigFromFlash(tConfig *cfg);
+void saveConfigToFlash(tConfig *cfg);
 void readConfiguration(const char *iniFilename, tConfig *cfg);
 
 #endif

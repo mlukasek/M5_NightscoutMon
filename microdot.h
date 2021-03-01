@@ -13,7 +13,7 @@ public:
   void clear();
   void setBrightness(uint8_t brightness);
   void writeDigit(uint8_t digit, uint8_t ch);
-  void writeString(char* buf);
+  void writeString(const char* buf);
 
 private:
   uint8_t aDig12, aDig34, aDig56;

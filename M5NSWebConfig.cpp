@@ -277,9 +277,10 @@ void handleRoot() {
   message += "Developer mode: <b>"; message += cfg.dev_mode?"Enabled":"Disabled"; message += "</b> <a href=\"switch?param=dev_mode\">[change]</a><br />\r\n";
   message += "Internal Web Server: <b>"; message += cfg.disable_web_server?"Disabled":"Enabled"; message += "</b> <a href=\"switch?param=disable_web_server\">[change]</a><br />\r\n";
   
-
+  int wlans_defined_count = 0;
   for(int i=0; i<10; i++) {
     if(cfg.wlanssid[i][0] != 0) {
+      wlans_defined_count++;
       message += "[wlan"; message += i; message += "] <b>";
       message += "SSID='";
       message += cfg.wlanssid[i];
@@ -293,7 +294,7 @@ void handleRoot() {
       }
     }
   }
-  if (cfg.wlans_defined_count < 1) {
+  if (wlans_defined_count < 1) {
     message += "WiFi Configuration <b>(none)</b> <a href=\"edititem?param=wlans\">[edit]</a><br />\r\n";
   }
 /*
@@ -975,7 +976,7 @@ void handleSaveConfig() {
   if(!dstFil) {
     Serial.println("Error opening M5NS.INI for write");
   } else {
-    Serial.println("Writing configuration to M5NS.INI");
+    Serial.println("Writing configuration to M5NS.INI file on SD card");
     dstFil.print("[config]\r\n");
     dstFil.print("nightscout = "); dstFil.print(cfg.url); dstFil.print("\r\n");
     dstFil.print("token = "); dstFil.print(cfg.token); dstFil.print("\r\n");
@@ -1047,8 +1048,10 @@ void handleSaveConfig() {
     }
     dstFil.flush();
     dstFil.close();
+    Serial.println("New M5NS.INI saved to SD card.");
   }
-  Serial.println("New M5NS.INI should be saved");
+
+  saveConfigToFlash(&cfg);
 
   w3srv.send(200, "text/html", message);
   delay(100);
@@ -1068,6 +1071,18 @@ void handleSaveConfig() {
       pixels.show();
     }
   }
+}
+
+void handleClearConfigFlash() {
+  Preferences prefs;
+  if( !prefs.begin("M5NSconfig", false) ) {
+    Serial.println("Error opening Preferences M5NSconfig");
+  } else {
+    Serial.println("Clearing configuration Preferences M5NSconfig");
+    prefs.clear();
+    prefs.end();
+  }
+  ESP.restart();
 }
 
 void handleNotFound() {

@@ -23,6 +23,7 @@
     Peter Leimbach (Nightscout token)
     Patrick Sonnerat (Dexcom Sugarmate connection)
     Sulka Haro (Nightscout API queries help)
+    Ben West (AP WiFi configuration)
 */
 
 // Official M5Stack Arduino board definitions are required, please add board from following location:
@@ -45,6 +46,7 @@
 #include <WiFiUdp.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
+#include <DNSServer.h>
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
 #include "time.h"
@@ -71,7 +73,7 @@ SHT3X sht30;
 #include "microdot.h"
 MicroDot MD;
 
-String M5NSversion("2021013101");
+String M5NSversion("2021022801");
 
 #ifdef ARDUINO_M5STACK_Core2
   #define CONFIG_I2S_BCK_PIN 12
@@ -117,6 +119,8 @@ Preferences preferences;
 tConfig cfg;
 
 WebServer w3srv(80);
+const byte DNS_PORT = 53;
+DNSServer dnsServer;
 
 const char* ntpServer = "pool.ntp.org"; // "time.nist.gov", "time.google.com"
 struct tm localTimeInfo;
@@ -267,11 +271,13 @@ uint16_t calcCRC(char* str)
 void startupLogo() {
     // static uint8_t brightness, pre_brightness;
     lcdSetBrightness(0);
-    if(cfg.bootPic[0]==0) {
+    if(!SD.exists(cfg.bootPic)) {
       // M5.Lcd.pushImage(0, 0, 320, 240, (uint16_t *)gImage_logoM5);
+      M5.Lcd.clear();
+      M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
       M5.Lcd.drawString("M5 Stack", 120, 60, GFXFF);
       M5.Lcd.drawString("Nightscout monitor", 60, 80, GFXFF);
-      M5.Lcd.drawString("(c) 2019 Martin Lukasek", 20, 120, GFXFF);
+      M5.Lcd.drawString("(c) 2019-21 Martin Lukasek", 0, 120, GFXFF);
     } else {
       M5.Lcd.drawJpgFile(SD, cfg.bootPic);
     }
@@ -279,23 +285,6 @@ void startupLogo() {
     #ifndef ARDUINO_M5STACK_Core2  // no .update() on M5Stack CORE2
       M5.update();
     #endif
-    // M5.Speaker.playMusic(m5stack_startup_music,25000);
-    /*
-    int avg=0;
-    for(uint16_t i=0; i<40000; i++) {
-      avg+=m5stack_startup_music[i];
-      if(i%4 == 3) {
-        music_data[i/4]=avg/4;
-        avg=0;
-      }
-    }
-    play_music_data(10000, 100);
-
-    for(int i=0; i>=100; i++) {
-        lcdSetBrightness(i);
-        delay(2);
-    }
-    */
 }
 
 void printLocalTime() {
@@ -345,7 +334,7 @@ bool InitI2SSpeakOrMic(int mode)
 
 void play_tone(uint16_t frequency, uint32_t duration, uint8_t volume) {
   size_t bytes_written = 0;
-  Serial.print("start fill music data "); Serial.println(millis());
+  // Serial.print("start fill music data "); Serial.println(millis());
   uint32_t data_length = duration * 11;
   if( data_length > 22050 )
     data_length = 22050;
@@ -707,12 +696,19 @@ void wifi_connect() {
     IPAddress ip(192, 168, 0, 1);
     IPAddress gateway(192, 168, 0, 1);
     IPAddress subnet(255, 255, 255, 0);
-		// set random password
+    Serial.print("Setting soft-AP configuration ... ");
+    Serial.println(WiFi.softAPConfig(ip, gateway, subnet) ? "Ready" : "Failed!");
+    // set random password
     generate_ssid_passphrase(ssid_passphrase);
-    WiFi.softAP(cfg.deviceName, ssid_passphrase);
-    WiFi.softAPConfig(ip, gateway, subnet);
+    Serial.print("Setting soft-AP ... ");
+    Serial.println(WiFi.softAP(cfg.deviceName, ssid_passphrase) ? "Ready" : "Failed!");
     delay(250);
-    WiFi.begin( );
+    Serial.print("Soft-AP IP address = ");
+    Serial.println(WiFi.softAPIP());
+    // WiFi.begin( );
+    dnsServer.setTTL(300);
+    dnsServer.setErrorReplyCode(DNSReplyCode::ServerFailure);
+    dnsServer.start(DNS_PORT, "*", ip);    
   } else {
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
@@ -753,15 +749,17 @@ void wifi_connect() {
     M5.Lcd.print("WiFi SSID: "); M5.Lcd.println(cfg.deviceName);
     Serial.print("SSID Passphrase: "); Serial.println(ssid_passphrase);
     M5.Lcd.print("SSID Passphrase: "); M5.Lcd.println(ssid_passphrase);
+    M5.Lcd.println();
     M5.Lcd.print("Join WiFi & Visit URL:\nhttp://");
     M5.Lcd.print(cfg.deviceName);
     M5.Lcd.print(".local\n");
+    M5.Lcd.print("IP address: ");
+    M5.Lcd.println(WiFi.softAPIP());
   } else {
-
     Serial.println(WiFi.SSID());
     M5.Lcd.print("WiFi SSID: "); M5.Lcd.println(WiFi.SSID());
-    Serial.println("IP address: ");
-    M5.Lcd.println("IP address: ");
+    Serial.print("IP address: ");
+    M5.Lcd.print("IP address: ");
     Serial.println(WiFi.localIP());
     M5.Lcd.println(WiFi.localIP());
 
@@ -2244,21 +2242,20 @@ void draw_page() {
   }
 }
 
-
 // the setup routine runs once when M5Stack starts up
 void setup() {
     // initialize the M5Stack object
+    M5.begin(true, true, true, true);
     #ifdef ARDUINO_M5STACK_Core2
-      M5.begin(true, true, true, true);
       M5.Axp.SetSpkEnable(true);
       InitI2SSpeakOrMic(MODE_SPK);
     #else
-      M5.begin();
       M5.Power.begin();
     #endif
 
-    // prevent button A "ghost" random presses
+    // prevent button A "ghost" random presses on older versions
     Wire.begin();
+    
     SD.begin();
     // M5.Speaker.mute();
 
@@ -2281,71 +2278,38 @@ void setup() {
     uint8_t cardType = SD.cardType();
 
     if(cardType == CARD_NONE){
-        Serial.println("No SD card attached");
-        M5.Lcd.println("No SD card attached");
-        while(1);
-    }
-
-    Serial.print("SD Card Type: ");
-    M5.Lcd.print("SD Card Type: ");
-    if(cardType == CARD_MMC){
-        Serial.println("MMC");
-        M5.Lcd.println("MMC");
-    } else if(cardType == CARD_SD){
-        Serial.println("SDSC");
-        M5.Lcd.println("SDSC");
-    } else if(cardType == CARD_SDHC){
-        Serial.println("SDHC");
-        M5.Lcd.println("SDHC");
+      Serial.println("No SD card attached");
+      M5.Lcd.println("No SD card attached");
     } else {
-        Serial.println("UNKNOWN");
-        M5.Lcd.println("UNKNOWN");
+      Serial.print("SD Card Type: ");
+      M5.Lcd.print("SD Card Type: ");
+      if(cardType == CARD_MMC){
+          Serial.println("MMC");
+          M5.Lcd.println("MMC");
+      } else if(cardType == CARD_SD){
+          Serial.println("SDSC");
+          M5.Lcd.println("SDSC");
+      } else if(cardType == CARD_SDHC){
+          Serial.println("SDHC");
+          M5.Lcd.println("SDHC");
+      } else {
+          Serial.println("UNKNOWN");
+          M5.Lcd.println("UNKNOWN");
+      }
+      uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+      Serial.printf("SD Card Size: %llu MB\r\n", cardSize);
+      M5.Lcd.printf("SD Card Size: %llu MB\r\n", cardSize);
     }
-
-    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-    Serial.printf("SD Card Size: %llu MB\r\n", cardSize);
-    M5.Lcd.printf("SD Card Size: %llu MB\r\n", cardSize);
 
     readConfiguration(iniFilename, &cfg);
     // strcpy(cfg.url, "https://sugarmate.io/api/v1/xxxxxx/latest.json");
     // strcpy(cfg.url, "user.herokuapp.com"); 
     // cfg.dev_mode = 0;
-    // cfg.show_mgdl = 1;
-    // cfg.sgv_only = 1;
-    // cfg.default_page = 2;
-    // strcpy(cfg.restart_at_time, "21:59");
-    // cfg.restart_at_logged_errors=3;
-    // cfg.show_COB_IOB = 0;
-    // cfg.snd_warning = 5.5;
-    // cfg.snd_alarm = 4.5;
-    // cfg.snd_warning_high = 9;
-    // cfg.snd_alarm_high = 14;
-    // cfg.alarm_volume = 0;
-    // cfg.warning_volume = 0;
-    // cfg.snd_warning_at_startup = 1;
-    // cfg.snd_alarm_at_startup = 1;
-    // strcpy(cfg.deviceName, "M5D");
-
-    // cfg.alarm_repeat = 1;
-    // cfg.snooze_timeout = 2;
-    // cfg.brightness1 = 0;
-    // cfg.temperature_unit = 3;
-    // cfg.date_format = 1;
-    // cfg.time_format = 1;
-    // cfg.display_rotation = 7;
-    // cfg.invert_display = 1;
-    // cfg.info_line = 2;
-    // cfg.vibration_mode = 1;
-    // cfg.vibration_strength = 256;
-    // cfg.LED_strip_mode = 3;
-    // cfg.LED_strip_pin = 17; // 15 // 21  // 17
-    // cfg.LED_strip_count = 72; // 72
-    // cfg.LED_strip_brightness = 2; // 1
 
     #ifdef ARDUINO_M5STACK_Core2
       cfg.vibration_mode = 0; // no vibration on Core2 for now
       cfg.LED_strip_mode = 0; // no LED strip on Core2 for now
-      cfg.LED_strip_pin = 14; // just for sure
+      cfg.LED_strip_pin = 25; // just for sure
       cfg.LED_strip_count = 10; // just for sure
       cfg.LED_strip_brightness = 2; // just for sure
       cfg.micro_dot_pHAT = 0; // no Micro Dot pHAT on Core2 for now
@@ -2378,11 +2342,34 @@ void setup() {
       Serial.println("No invert_display defined in INI.");
     }
     M5.Lcd.setRotation(cfg.display_rotation);
+    
     lcdBrightness = cfg.brightness1;
     lcdSetBrightness(lcdBrightness);
+
+    bool btnA_pressed = false;
+    #ifdef ARDUINO_M5STACK_Core2
+      M5.Lcd.fillRect(0, 200, 110, 40, TFT_LIGHTGREY);
+      M5.Lcd.setTextColor(TFT_BLACK, TFT_LIGHTGREY);
+      M5.Lcd.drawString("CONFIG", 18, 212);
+      TouchPoint_t pos;
+      int i=0;
+      while((i<20) && !btnA_pressed) {
+        pos = M5.Touch.getPressPoint();
+        // Serial.printf("Touch X=%d, Y=%d\r\n", pos.x, pos.y);
+        btnA_pressed = (pos.x >= 0) && (pos.x <= 110) && (pos.y >= 200); // 240 is bellow display, but we have displayed icons on the last line
+        M5.Lcd.drawLine(12+i*4, 234, 12+i*4+3, 234, TFT_BLACK); 
+        M5.Lcd.drawLine(12+i*4, 235, 12+i*4+3, 235, TFT_BLACK); 
+        i++;
+        delay(100);
+        M5.update();
+      }
+      M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+      M5.Lcd.fillRect(0, 200, 110, 40, TFT_BLACK);
+    #else
+      btnA_pressed = M5.BtnA.isPressed();
+    #endif
     
-    // btnA_wasPressed = M5.BtnA.wasPressed();
-    if (M5.BtnA.isPressed( )) {
+    if (btnA_pressed) {
       cfg.is_task_bootstrapping = 1;
     }
 
@@ -2440,13 +2427,17 @@ void setup() {
       delay(300);
       pixels.clear();
       pixels.show();
-    } else
-      delay(1000);
-      
+    } else {
+      if (!is_task_bootstrapping) {
+        delay(1000);
+      }
+    }
+    
     M5.Lcd.fillScreen(BLACK);
-
     lcdSetBrightness(lcdBrightness);
+
     wifi_connect();
+
     yield();
 
     if (!is_task_bootstrapping) {
@@ -2481,13 +2472,17 @@ void setup() {
       w3srv.on("/switch", handleSwitchConfig);
       w3srv.on("/edititem", handleEditConfigItem);
       w3srv.on("/getedititem", handleGetEditConfigItem);
+      w3srv.on("/clearconfigflash", handleClearConfigFlash);
       w3srv.on("/inline", []() {
         w3srv.send(200, "text/plain", "this is inline and works as well");
       });
       w3srv.onNotFound(handleNotFound);
       w3srv.begin();
     }
-    udp.begin(WiFi.localIP(),udpPort);
+
+    if (!is_task_bootstrapping) {
+      udp.begin(WiFi.localIP(),udpPort);
+    }
     
     // test file with time stamps
     // msCountLog = millis()-6000;
@@ -2504,8 +2499,10 @@ void setup() {
 
 // the loop routine runs over and over again forever
 void loop(){
-  if(!cfg.disable_web_server || is_task_bootstrapping)
+  if(!cfg.disable_web_server || is_task_bootstrapping) {
+    dnsServer.processNextRequest();
     w3srv.handleClient();
+  }
   delay(10);
   if (!is_task_bootstrapping) {
     buttons_test();
@@ -2687,52 +2684,54 @@ void loop(){
   */
 
   // handle UDP task
-  // if there's data available, read a packet
-  int packetSize = udp.parsePacket();
-  if(packetSize)
-  {
-    Serial.print("Received UDP packet of size ");
-    Serial.println(packetSize);
-    // read the packet into packetBufffer
-    udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
-    if(packetSize<UDP_TX_PACKET_MAX_SIZE)
-      packetBuffer[packetSize]=0;
-    /*
-    Serial.println("Contents:");
-    Serial.println(packetBuffer);
-    Serial.print("Remote IP: ");
-    Serial.print(udp.remoteIP());
-    Serial.print(":");
-    Serial.println(udp.remotePort());
-    Serial.print("Local IP: ");
-    Serial.println(WiFi.localIP());
-    */
-   
-    // send a reply, to the IP address and port that sent us the packet we received
-    /*
-    if((udp.remoteIP() != WiFi.localIP()) && (strncmp(packetBuffer, "Hello, M5NS here", 16)!=0)) {
-      Serial.println("Sending hello");
-      udp.beginPacket(udp.remoteIP(), udp.remotePort());
-      udp.print("Hello, M5NS here");
-      udp.endPacket();
-    }
-    */
-    if((WiFi.localIP()!=udp.remoteIP()) && (strncmp(packetBuffer, "M5_Nightscout SNOOZE: USR=", 26)==0)) {
-      Serial.println("Correct UDP packet, lets check CRC and info");
-      int urlCRC = calcCRC(cfg.url);
-      int urlCRC_rcvd;
-      unsigned long snzUntl;
-      int sr = sscanf(packetBuffer, "M5_Nightscout SNOOZE: USR=%d, SnoozeUntil=%lu", &urlCRC_rcvd, &snzUntl);
-      // Serial.printf("scanf res = %d\r\n", sr);
-      // Serial.printf("urlCRC = %d, urlCRC reveived = %d\r\n", urlCRC, urlCRC_rcvd);
-      Serial.printf("We should SNOOZE until %lu\r\n", snzUntl);
-      if((sr=2) && (urlCRC==urlCRC_rcvd)) {
-        snoozeUntil = snzUntl;
-        handleAlarmsInfoLine(&ns);
+  if (!is_task_bootstrapping) {
+    // if there's data available, read a packet
+    int packetSize = udp.parsePacket();
+    if(packetSize)
+    {
+      Serial.print("Received UDP packet of size ");
+      Serial.println(packetSize);
+      // read the packet into packetBufffer
+      udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
+      if(packetSize<UDP_TX_PACKET_MAX_SIZE)
+        packetBuffer[packetSize]=0;
+      /*
+      Serial.println("Contents:");
+      Serial.println(packetBuffer);
+      Serial.print("Remote IP: ");
+      Serial.print(udp.remoteIP());
+      Serial.print(":");
+      Serial.println(udp.remotePort());
+      Serial.print("Local IP: ");
+      Serial.println(WiFi.localIP());
+      */
+     
+      // send a reply, to the IP address and port that sent us the packet we received
+      /*
+      if((udp.remoteIP() != WiFi.localIP()) && (strncmp(packetBuffer, "Hello, M5NS here", 16)!=0)) {
+        Serial.println("Sending hello");
+        udp.beginPacket(udp.remoteIP(), udp.remotePort());
+        udp.print("Hello, M5NS here");
+        udp.endPacket();
+      }
+      */
+      if((WiFi.localIP()!=udp.remoteIP()) && (strncmp(packetBuffer, "M5_Nightscout SNOOZE: USR=", 26)==0)) {
+        Serial.println("Correct UDP packet, lets check CRC and info");
+        int urlCRC = calcCRC(cfg.url);
+        int urlCRC_rcvd;
+        unsigned long snzUntl;
+        int sr = sscanf(packetBuffer, "M5_Nightscout SNOOZE: USR=%d, SnoozeUntil=%lu", &urlCRC_rcvd, &snzUntl);
+        // Serial.printf("scanf res = %d\r\n", sr);
+        // Serial.printf("urlCRC = %d, urlCRC reveived = %d\r\n", urlCRC, urlCRC_rcvd);
+        Serial.printf("We should SNOOZE until %lu\r\n", snzUntl);
+        if((sr=2) && (urlCRC==urlCRC_rcvd)) {
+          snoozeUntil = snzUntl;
+          handleAlarmsInfoLine(&ns);
+        }
       }
     }
   }
-
+  
   // Serial.println("M5.update() and loop again");
   #ifndef ARDUINO_M5STACK_Core2  // no .update() on M5Stack CORE2
     M5.update();

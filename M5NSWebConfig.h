@@ -13,6 +13,7 @@ void handleSwitchConfig();
 void handleEditConfigItem();
 void handleGetEditConfigItem();
 void handleSaveConfig();
+void handleClearConfigFlash();
 void handleNotFound();
 
 #endif
