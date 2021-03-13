@@ -3,6 +3,13 @@
 ## Revisions
 
 
+### 12 March 2021
+
+* SoftAP mode added for configuration possibility on a new WiFi (hold button A and then click reset on M5Stack models with mechanical buttons, touch button A while you see CONFIG progress during boot on M5Stack Core2). 
+* No SD card needed. When you save configuration from the web interface, it is saved to both - SD card and internal flash memory. You can then remove the SD card and reboot. To archive your settings to SD card, insert SD card and save configuration from web interface.  
+* If you start blank M5Stack just programmed with M5 Nightscout Monitor firmware, it will enter the SoftAP mode directly for easy web configuration.  
+* SSID name length extended to 63 characters.  
+
 ### 31 January 2021
 
 * Added SHT30 compatibility, so now temperature and humidity works with newer version of BTC TICKER stand and ENV.II Unit.  
