@@ -716,7 +716,7 @@ void handleEditConfigItem() {
       for(int i=1; i<10; i++) {
         message += "[wlan"; message += i; message += "] ";
         if (cfg.wlanssid[i][0] != 0) {
-          message += "SSID: <input type=\"text\" name=\"wlanssid" + String(i) + "\" value=\"" + String(cfg.wlanssid[i]) + "\" size=\"12\" maxlength=\"32\"> , \r\n";
+          message += "SSID: <input type=\"text\" name=\"wlanssid" + String(i) + "\" value=\"" + String(cfg.wlanssid[i]) + "\" size=\"12\" maxlength=\"63\"> , \r\n";
         } else {
           message += "<select name=\"wlanssid" + String(i) + "\">\n";
           message += "<option selected=\"default\" value=\"\">none</option>";
@@ -726,7 +726,7 @@ void handleEditConfigItem() {
           message += "</select>\n";
 
         }
-        message += "PASS: <input type=\"password\" name=\"wlanpass" + String(i) + "\" value=\"" + String(cfg.wlanpass[i]) + "\" size=\"12\" maxlength=\"64\">\r\n";
+        message += "PASS: <input type=\"password\" name=\"wlanpass" + String(i) + "\" value=\"" + String(cfg.wlanpass[i]) + "\" size=\"12\" maxlength=\"63\">\r\n";
         if(i==0)
           message += " Do not use this [wlan0] row unless necessary, reserved for autoconfig.\r\n";
         message += "<br />\r\n";

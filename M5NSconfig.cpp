@@ -107,7 +107,7 @@ void readConfigFromFlash(tConfig *cfg) {
     int wlans_defined_count = 0;
     for(int i=0; i<10; i++) {
       sprintf(tmps, "SSID%01d", i);
-      if(prefs.getString(tmps, cfg->wlanssid[i], 32) > 0) {
+      if(prefs.getString(tmps, cfg->wlanssid[i], 64) > 0) {
         // Serial.print("Getting key ["); Serial.print(tmps); Serial.println("]");
         sprintf(tmps, "PASS%01d", i);
         wlans_defined_count++;
@@ -800,7 +800,7 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
 
     if (ini.getValue(wlansection, "ssid", buffer, bufferLen)) {
       Serial.printf("[wlan%1d] ssid = %s\r\n", i, buffer);
-      strlcpy(cfg->wlanssid[i], buffer, 32);
+      strlcpy(cfg->wlanssid[i], buffer, 64);
       wlans_defined_count++;
     } else {
       Serial.printf("NO [wlan%1d] ssid\r\n", i);

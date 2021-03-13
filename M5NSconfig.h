@@ -61,7 +61,7 @@ struct tConfig {
   int dev_mode = 0; // developer mode, do not use, does strange things and changes often ;-)
   int disable_web_server = 0; // 1 = disable internal web server
   bool is_task_bootstrapping = 0; //  1 = task is to bootstrap
-  char wlanssid[10][32];
+  char wlanssid[10][64];
   char wlanpass[10][64];
 } ;
 

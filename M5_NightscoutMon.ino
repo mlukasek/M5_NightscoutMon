@@ -1,5 +1,5 @@
 /*  M5Stack Nightscout monitor
-    Copyright (C) 2018, 2019 Martin Lukasek <martin@lukasek.cz>
+    Copyright (C) 2018-2021 Martin Lukasek <martin@lukasek.cz>
     
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ SHT3X sht30;
 #include "microdot.h"
 MicroDot MD;
 
-String M5NSversion("2021022801");
+String M5NSversion("2021031201");
 
 #ifdef ARDUINO_M5STACK_Core2
   #define CONFIG_I2S_BCK_PIN 12
