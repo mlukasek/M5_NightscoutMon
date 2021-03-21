@@ -73,7 +73,7 @@ SHT3X sht30;
 #include "microdot.h"
 MicroDot MD;
 
-String M5NSversion("2021031201");
+String M5NSversion("2021032101");
 
 #ifdef ARDUINO_M5STACK_Core2
   #define CONFIG_I2S_BCK_PIN 12
@@ -1344,16 +1344,16 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
     if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
         sndAlarm();
         lastAlarmTime = mktime(&timeinfo);
-        if(cfg.LED_strip_mode>=2) {
-          pixels.fill(pixels.Color(maxint, 0, 0));
-          pixels.show();
-        }
+    }
+    if(cfg.LED_strip_mode>=2) {
+      pixels.fill(pixels.Color(maxint, 0, 0));
+      pixels.show();
     } else {
-      if(cfg.LED_strip_mode==1 || cfg.LED_strip_mode==2) {
+      if(cfg.LED_strip_mode==1) {
         pixels.clear();
         pixels.show();
-      }     
-    }
+      }
+    }     
   } else {
     if((ns->sensSgv<=cfg.snd_warning) && (ns->sensSgv>=0.1)) {
       // yellow warning state
@@ -1366,16 +1366,16 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
       if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
         sndWarning();
         lastAlarmTime = mktime(&timeinfo);
-        if(cfg.LED_strip_mode>=2) {
-          pixels.fill(pixels.Color(maxint, lessint, 0));
-          pixels.show();
-        }
+      }
+      if(cfg.LED_strip_mode>=2) {
+        pixels.fill(pixels.Color(maxint, lessint, 0));
+        pixels.show();
       } else {
-        if(cfg.LED_strip_mode==1 || cfg.LED_strip_mode==2) {
+        if(cfg.LED_strip_mode==1) {
           pixels.clear();
           pixels.show();
-        }     
-      }
+        }
+      }     
     } else {
       if( ns->sensSgv>=cfg.snd_alarm_high ) {
         // red alarm state
@@ -1388,16 +1388,16 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
         if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
           sndAlarm();
           lastAlarmTime = mktime(&timeinfo);
-          if(cfg.LED_strip_mode>=2) {
-            pixels.fill(pixels.Color(maxint, 0, 0));
-            pixels.show();
-          }
+        }
+        if(cfg.LED_strip_mode>=2) {
+          pixels.fill(pixels.Color(maxint, 0, 0));
+          pixels.show();
         } else {
-          if(cfg.LED_strip_mode==1 || cfg.LED_strip_mode==2) {
+          if(cfg.LED_strip_mode==1) {
             pixels.clear();
             pixels.show();
-          }     
-        }
+          }
+        }     
       } else {
         if( ns->sensSgv>=cfg.snd_warning_high ) {
           // yellow warning state
@@ -1410,16 +1410,16 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
           if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
             sndWarning();
             lastAlarmTime = mktime(&timeinfo);
-            if(cfg.LED_strip_mode>=2) {
-              pixels.fill(pixels.Color(maxint, lessint, 0));
-              pixels.show();
-            }
+          }
+          if(cfg.LED_strip_mode>=2) {
+            pixels.fill(pixels.Color(maxint, lessint, 0));
+            pixels.show();
           } else {
-            if(cfg.LED_strip_mode==1 || cfg.LED_strip_mode==2) {
+            if(cfg.LED_strip_mode==1) {
               pixels.clear();
               pixels.show();
-            }     
-          }
+            }
+          }     
         } else {
           if( sensorDifMin>=cfg.snd_no_readings ) {
             // LONG TIME NO READINGS -> yellow warning state
@@ -1432,16 +1432,16 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
             if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
               sndWarning();
               lastAlarmTime = mktime(&timeinfo);
-              if(cfg.LED_strip_mode>=2) {
-                pixels.fill(pixels.Color(maxint, lessint, 0));
-                pixels.show();
-              }
+            }
+            if(cfg.LED_strip_mode>=2) {
+              pixels.fill(pixels.Color(maxint, lessint, 0));
+              pixels.show();
             } else {
-              if(cfg.LED_strip_mode==1 || cfg.LED_strip_mode==2) {
+              if(cfg.LED_strip_mode==1) {
                 pixels.clear();
                 pixels.show();
-              }     
-            }
+              }
+            }     
           } else {
             if( strstr(ns->loop_display_label,"Err" )>0 ) {
               // LOOP ERROR -> red alarm state
@@ -1456,16 +1456,16 @@ void handleAlarmsInfoLine(struct NSinfo *ns) {
               if( (alarmDifSec>cfg.alarm_repeat*60) && (snoozeRemaining<=0) ) {
                 sndAlarm();
                 lastAlarmTime = mktime(&timeinfo);
-                if(cfg.LED_strip_mode>=2) {
-                  pixels.fill(pixels.Color(maxint, 0, 0));
-                  pixels.show();
-                }
+              }
+              if(cfg.LED_strip_mode>=2) {
+                pixels.fill(pixels.Color(maxint, 0, 0));
+                pixels.show();
               } else {
-                if(cfg.LED_strip_mode==1 || cfg.LED_strip_mode==2) {
+                if(cfg.LED_strip_mode==1) {
                   pixels.clear();
                   pixels.show();
-                }     
-              }
+                }
+              }     
             } else {
               // normal glycemia state
               M5.Lcd.fillRect(0, 220, 320, 20, TFT_BLACK);
@@ -2516,7 +2516,9 @@ void loop(){
       draw_page();
       msCount = millis();  
       // Serial.print("msCount = "); Serial.println(msCount);
+      Serial.print("cfg.LED_strip_mode = "); Serial.println(cfg.LED_strip_mode);
       if(cfg.LED_strip_mode != 0) { 
+        Serial.println("SHOW");
         pixels.show();
       }
     } else {
