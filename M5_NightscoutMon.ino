@@ -73,7 +73,7 @@ SHT3X sht30;
 #include "microdot.h"
 MicroDot MD;
 
-String M5NSversion("2021033001");
+String M5NSversion("2021042001");
 
 #ifdef ARDUINO_M5STACK_Core2
   #define CONFIG_I2S_BCK_PIN 12
@@ -117,6 +117,36 @@ extern const unsigned char plug_icon16x16[];
 
 Preferences preferences;
 tConfig cfg;
+
+// DigiCert High Assurance EV Root CA
+// Valid till Mon, 10 Nov 2031 00:00:00 GMT
+const char* rootCACertificate = \
+"-----BEGIN CERTIFICATE-----\n" \
+"MIIDxTCCAq2gAwIBAgIQAqxcJmoLQJuPC3nyrkYldzANBgkqhkiG9w0BAQUFADBs" \
+"MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3" \
+"d3cuZGlnaWNlcnQuY29tMSswKQYDVQQDEyJEaWdpQ2VydCBIaWdoIEFzc3VyYW5j" \
+"ZSBFViBSb290IENBMB4XDTA2MTExMDAwMDAwMFoXDTMxMTExMDAwMDAwMFowbDEL" \
+"MAkGA1UEBhMCVVMxFTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3" \
+"LmRpZ2ljZXJ0LmNvbTErMCkGA1UEAxMiRGlnaUNlcnQgSGlnaCBBc3N1cmFuY2Ug" \
+"RVYgUm9vdCBDQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMbM5XPm" \
+"+9S75S0tMqbf5YE/yc0lSbZxKsPVlDRnogocsF9ppkCxxLeyj9CYpKlBWTrT3JTW" \
+"PNt0OKRKzE0lgvdKpVMSOO7zSW1xkX5jtqumX8OkhPhPYlG++MXs2ziS4wblCJEM" \
+"xChBVfvLWokVfnHoNb9Ncgk9vjo4UFt3MRuNs8ckRZqnrG0AFFoEt7oT61EKmEFB" \
+"Ik5lYYeBQVCmeVyJ3hlKV9Uu5l0cUyx+mM0aBhakaHPQNAQTXKFx01p8VdteZOE3" \
+"hzBWBOURtCmAEvF5OYiiAhF8J2a3iLd48soKqDirCmTCv2ZdlYTBoSUeh10aUAsg" \
+"EsxBu24LUTi4S8sCAwEAAaNjMGEwDgYDVR0PAQH/BAQDAgGGMA8GA1UdEwEB/wQF" \
+"MAMBAf8wHQYDVR0OBBYEFLE+w2kD+L9HAdSYJhoIAu9jZCvDMB8GA1UdIwQYMBaA" \
+"FLE+w2kD+L9HAdSYJhoIAu9jZCvDMA0GCSqGSIb3DQEBBQUAA4IBAQAcGgaX3Nec" \
+"nzyIZgYIVyHbIUf4KmeqvxgydkAQV8GK83rZEWWONfqe/EW1ntlMMUu4kehDLI6z" \
+"eM7b41N5cdblIZQB2lWHmiRk9opmzN6cN82oNLFpmyPInngiK3BD41VHMWEZ71jF" \
+"hS9OMPagMRYjyOfiZRYzy78aG6A9+MpeizGLYAiJLQwGXFK3xPkKmNEVX58Svnw2" \
+"Yzi9RKR/5CYrCsSXaQ3pjOLAEFe4yHYSkVXySGnYvCoCWw9E1CAx2/S6cCZdkGCe" \
+"vEsXCS+0yx5DaMkHJ8HSXPfqIbloEpw8nL+e/IBcm2PN7EeqJSdnoDfzAIJ9VNep" \
+"+OkuE6N36B9K" \
+"-----END CERTIFICATE-----\n";
+
+HTTPClient http;
+WiFiClientSecure sclient;
 
 WebServer w3srv(80);
 const byte DNS_PORT = 53;
@@ -901,10 +931,18 @@ void drawMiniGraph(struct NSinfo *ns){
 }
 
 int readNightscout(char *url, char *token, struct NSinfo *ns) {
-  HTTPClient http;
+  // HTTPClient http;
+  // WiFiClientSecure *client = new WiFiClientSecure;
   char NSurl[128];
   int err=0;
-  char tmpstr[32];
+  char tmpstr[64];
+  bool is_https_Heroku = false;
+
+  // http.setReuse(false);
+  // if(client) {
+  // sclient.setCACert(rootCACertificate);
+  //  Serial.println("Client OK, setCACert OK");
+  //}
   
   if((WiFiMultiple.run() == WL_CONNECTED)) {
     // configure target server and url
@@ -918,6 +956,8 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     else
     {
       ns->is_Sugarmate = 0;
+      is_https_Heroku = (strstr(NSurl,"https://") != NULL) && (strstr(NSurl,"herokuapp.com") != NULL);
+      Serial.print("is_https_Heroku "); Serial.println(is_https_Heroku);
       if(cfg.sgv_only) {
         strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv");
       } else {
@@ -936,20 +976,41 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     drawIcon(icon_xpos[0], icon_ypos[0], (uint8_t*)wifi2_icon16x16, TFT_BLUE);
     
     Serial.print("JSON query NSurl = \'");Serial.print(NSurl);Serial.print("\'\r\n");
-    http.begin(NSurl); //HTTP
+    // http.begin(NSurl, "94:FC:F6:23:6C:37:D5:E7:92:78:3C:0B:5F:AD:0C:E4:9E:FD:9E:A8"); //HTTP
+    if( is_https_Heroku ) {
+      if(http.begin(sclient, NSurl)) {
+        Serial.println("http.begin HTTPS Heroku OK");
+      } else {
+        Serial.println("http.begin HTTPS Heroku FAILED");
+      }
+    } else {
+      if(http.begin(NSurl)) {
+        Serial.println("http.begin OK");
+      } else {
+        Serial.println("http.begin FAILED");
+      }
+    }
+    // http.connect();
+    // Serial.print("Connected "); Serial.println(http.connected()?"YES":"NO");
+    // http.setConnectTimeout(15000);
+    // http.setTimeout(15000);
     
-    Serial.print("[HTTP] GET...\r\n");
+    // Serial.print("[HTTP] GET...\r\n");
     // start connection and send HTTP header
+    unsigned long timeInGET;
+    timeInGET = millis();
     int httpCode = http.GET();
-  
+    timeInGET = millis()-timeInGET;
+    
     // httpCode will be negative on error
     if(httpCode > 0) {
       // HTTP header has been send and Server response header has been handled
-      Serial.printf("[HTTP] GET... code: %d\r\n", httpCode);
+      Serial.printf("[HTTP] GET... code: %d after %lu ms\r\n", httpCode, timeInGET);
 
       // file found at server
       if(httpCode == HTTP_CODE_OK) {
         String json = http.getString();
+        Serial.printf("GET() response JSON length = %d\r\n", json.length());
         // remove any non text characters (just for sure)
         for(int i=0; i<json.length(); i++) {
           // Serial.print(json.charAt(i), DEC); Serial.print(" = "); Serial.println(json.charAt(i));
@@ -1109,7 +1170,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
           Serial.print(ns->sensTime);
           sprintf(tmpstr, " (JSON %lld)", (long long) ns->rawtime);
           Serial.print(tmpstr);
-          sprintf(tmpstr, " = %s", ctime(&ns->sensTime));
+          sprintf(tmpstr, " = %s\r", ctime(&ns->sensTime)); // The ctime() string is followed by a new-line character ('\n')
           Serial.print(tmpstr);
           Serial.print("sensSgv = ");
           Serial.println(ns->sensSgv);
@@ -1129,7 +1190,8 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     http.end();
 
     if(err!=0) {
-      Serial.printf("Returnining with error %d\r\n",err);
+      Serial.printf("Returning with error %d after %lu ms :-(\r\n", err, timeInGET);
+      Serial.println(http.errorToString(err));
       return err;
     }
       
@@ -1163,14 +1225,30 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     drawIcon(icon_xpos[0], icon_ypos[0], (uint8_t*)wifi1_icon16x16, TFT_BLUE);
 
     Serial.print("Properties query NSurl = \'");Serial.print(NSurl);Serial.print("\'\r\n");
-    http.begin(NSurl); //HTTP
-    Serial.print("[HTTP] GET properties...\r\n");
+    // http.begin(NSurl, "94:FC:F6:23:6C:37:D5:E7:92:78:3C:0B:5F:AD:0C:E4:9E:FD:9E:A8"); //HTTP
+    if( is_https_Heroku ) {
+      if(http.begin(sclient, NSurl)) {
+        Serial.println("http.begin propertires HTTPS Heroku OK");
+      } else {
+        Serial.println("http.begin propertires HTTPS Heroku FAILED");
+      }
+    } else {
+      if(http.begin(NSurl)) {
+        Serial.println("http.begin propertires OK");
+      } else {
+        Serial.println("http.begin propertires FAILED");
+      }
+    }
+    // Serial.print("[HTTP] GET properties...\r\n");
+    timeInGET = millis();
     httpCode = http.GET();
+    timeInGET = millis()-timeInGET;
     if(httpCode > 0) {
-      Serial.printf("[HTTP] GET properties... code: %d\r\n", httpCode);
+      Serial.printf("[HTTP] GET properties... code: %d after %lu ms\r\n", httpCode, timeInGET);
       if(httpCode == HTTP_CODE_OK) {
         // const char* propjson = "{\"iob\":{\"iob\":0,\"activity\":0,\"source\":\"OpenAPS\",\"device\":\"openaps://Spike iPhone 8 Plus\",\"mills\":1557613521000,\"display\":\"0\",\"displayLine\":\"IOB: 0U\"},\"cob\":{\"cob\":0,\"source\":\"OpenAPS\",\"device\":\"openaps://Spike iPhone 8 Plus\",\"mills\":1557613521000,\"treatmentCOB\":{\"decayedBy\":\"2019-05-11T23:05:00.000Z\",\"isDecaying\":0,\"carbs_hr\":20,\"rawCarbImpact\":0,\"cob\":7,\"lastCarbs\":{\"_id\":\"5cd74c26156712edb4b32455\",\"enteredBy\":\"Martin\",\"eventType\":\"Carb Correction\",\"reason\":\"\",\"carbs\":7,\"duration\":0,\"created_at\":\"2019-05-11T22:24:00.000Z\",\"mills\":1557613440000,\"mgdl\":67}},\"display\":0,\"displayLine\":\"COB: 0g\"},\"delta\":{\"absolute\":-4,\"elapsedMins\":4.999483333333333,\"interpolated\":false,\"mean5MinsAgo\":69,\"mgdl\":-4,\"scaled\":-0.2,\"display\":\"-0.2\",\"previous\":{\"mean\":69,\"last\":69,\"mills\":1557613221946,\"sgvs\":[{\"mgdl\":69,\"mills\":1557613221946,\"device\":\"MIAOMIAO\",\"direction\":\"Flat\",\"filtered\":92588,\"unfiltered\":92588,\"noise\":1,\"rssi\":100}]}}}";
         String propjson = http.getString();
+        Serial.printf("GET() properties response JSON length = %d\r\n", propjson.length());
         // remove any non text characters (just for sure)
         for(int i=0; i<propjson.length(); i++) {
           // Serial.print(propjson.charAt(i), DEC); Serial.print(" = "); Serial.println(propjson.charAt(i));
@@ -1250,6 +1328,8 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
         err=httpCode;
       }
     } else {
+      Serial.printf("Returning with error %d after %lu ms :-(\r\n", httpCode, timeInGET);
+      Serial.println(http.errorToString(httpCode));
       addErrorLog(httpCode);
       err=httpCode;
     }
@@ -1652,7 +1732,7 @@ void draw_page() {
             default:
               // sprintf(datetimeStr, "%02d:%02d  %d.%d.  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_mday, timeinfo.tm_mon+1);
               // timeinfo.tm_mday=25;
-              strftime(dateStr, 15, "%e.%m.  ", &timeinfo);
+              strftime(dateStr, 15, "%d.%m.  ", &timeinfo);
           }
           strcpy(datetimeStr, timeStr);
           strcat(datetimeStr, dateStr);
@@ -1661,13 +1741,13 @@ void draw_page() {
           strcpy(datetimeStr, "??:??");
         }
       } else {
-        // sprintf(datetimeStr, "%02d:%02d:%02d  %d.%d.  ", sensTm.tm_hour, sensTm.tm_min, sensTm.tm_sec, sensTm.tm_mday, sensTm.tm_mon+1);
+        // sprintf(datetimeStr, "%02d:%02d:%02d  %02d.%02d.  ", sensTm.tm_hour, sensTm.tm_min, sensTm.tm_sec, sensTm.tm_mday, sensTm.tm_mon+1);
           switch(cfg.date_format) {
             case 1:
-              sprintf(datetimeStr, "%02d:%02d  %d/%d.  ", ns.sensTm.tm_hour, ns.sensTm.tm_min, ns.sensTm.tm_mon+1, ns.sensTm.tm_mday);
+              sprintf(datetimeStr, "%02d:%02d  %02d/%02d.  ", ns.sensTm.tm_hour, ns.sensTm.tm_min, ns.sensTm.tm_mon+1, ns.sensTm.tm_mday);
               break;
             default:
-              sprintf(datetimeStr, "%02d:%02d  %d.%d.  ", ns.sensTm.tm_hour, ns.sensTm.tm_min, ns.sensTm.tm_mday, ns.sensTm.tm_mon+1);
+              sprintf(datetimeStr, "%02d:%02d  %02d.%02d.  ", ns.sensTm.tm_hour, ns.sensTm.tm_min, ns.sensTm.tm_mday, ns.sensTm.tm_mon+1);
           }
       }
       M5.Lcd.drawString(datetimeStr, 0, 0, GFXFF);
@@ -2179,7 +2259,7 @@ void draw_page() {
     case MAX_PAGE: {
       // display error log
       char tmpStr[64];
-      HTTPClient http;
+      // HTTPClient http;
       M5.Lcd.fillScreen(BLACK);
       M5.Lcd.setCursor(0, 18);
       M5.Lcd.setTextDatum(TL_DATUM);
@@ -2194,8 +2274,8 @@ void draw_page() {
         M5.Lcd.drawString("no errors in log", 0, 20, GFXFF);
       } else {
         int maxErrDisp = err_log_ptr;
-        if(maxErrDisp>8)
-          maxErrDisp = 8;
+        if(maxErrDisp>6)
+          maxErrDisp = 6;
         for(int i=0; i<maxErrDisp; i++) {
           M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
           sprintf(tmpStr, "%02d.%02d.%02d:%02d", err_log[i].err_time.tm_mday, err_log[i].err_time.tm_mon+1, err_log[i].err_time.tm_hour, err_log[i].err_time.tm_min);
@@ -2224,8 +2304,20 @@ void draw_page() {
         M5.Lcd.setFreeFont(FMB9);
         M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
         sprintf(tmpStr, "Total errors %d", err_log_count);
-        M5.Lcd.drawString(tmpStr, 0, 20+err_log_ptr*18, GFXFF);
+        M5.Lcd.drawString(tmpStr, 0, 20+maxErrDisp*18, GFXFF);
       }
+      sprintf(tmpStr, "Free Heap = %u", ESP.getFreeHeap());
+      M5.Lcd.drawString(tmpStr, 0, 20+7*18, GFXFF);
+      long n = millis() / 1000;
+      int updays = n / (24 * 3600);
+      int pom = n % (24 * 3600);
+      int uphours = pom / 3600;
+      pom %= 3600;
+      int upminutes = pom / 60 ;
+      pom %= 60;
+      int upseconds = pom;
+      sprintf(tmpStr, "Up time = %02dd %02d:%02d:%02d", updays, uphours, upminutes, upseconds);
+      M5.Lcd.drawString(tmpStr, 0, 20+8*18, GFXFF);
       IPAddress ip = WiFi.localIP();
       if(mDNSactive)
         sprintf(tmpStr, "%u.%u.%u.%u=%s.local", ip[0], ip[1], ip[2], ip[3], cfg.deviceName);
@@ -2440,6 +2532,9 @@ void setup() {
 
     yield();
 
+    sclient.setCACert(rootCACertificate);
+    http.setReuse(false);
+    
     if (!is_task_bootstrapping) {
       lcdSetBrightness(lcdBrightness);
       M5.Lcd.fillScreen(BLACK);
@@ -2498,7 +2593,8 @@ void setup() {
 }
 
 // the loop routine runs over and over again forever
-void loop(){
+int rcnt = 4;
+void loop() {
   if(!cfg.disable_web_server || is_task_bootstrapping) {
     dnsServer.processNextRequest();
     w3srv.handleClient();
@@ -2508,11 +2604,22 @@ void loop(){
     buttons_test();
 
     // update glycemia every 15s, fetch new data and draw page
+    struct tm timeinfo;
+    int sensorDifSec=24*60*60; // too much
+    bool timeOK = getLocalTime(&timeinfo);
+    if(timeOK){
+      sensorDifSec=difftime(mktime(&timeinfo), ns.sensTime);
+    }
+    // Serial.printf("sensorDifSec = %d\r\n", sensorDifSec);
     if(millis()-msCount>15000) {
       /* if(dispPage==2)
         M5.Lcd.drawLine(osx, osy, 160, 111, TFT_BLACK); // erase seconds hand while updating data
       */
-      readNightscout(cfg.url, cfg.token, &ns);
+      if((sensorDifSec>300) && (rcnt>3)) {
+        readNightscout(cfg.url, cfg.token, &ns);
+        rcnt = 0;
+      }
+      rcnt++;
       draw_page();
       msCount = millis();  
       // Serial.print("msCount = "); Serial.println(msCount);

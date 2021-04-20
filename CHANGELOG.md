@@ -2,6 +2,15 @@
 
 ## Revisions
 
+### 20 April 2021
+
+* Stability and server load improvements.  
+* Binary built with older versions of M5Stack board 1.0.6 and M5Stack library 0.3.0 as newer versions did not recover after HTTP error.  
+* Reusing of http connection disabled (keep-alive).  
+* HTTPS GET uses root certificate “DigiCert High Assurance EV Root CA” for herokuapp.com site. It behaves „the old way“ for other servers.  
+* Reduce Nightscout connections (NS is queried for update only once every minute and only if time from the last reading is bigger than 5 minutes).  
+* Free memory and Up time added to the info page for diagnostic purposes.  
+
 
 ### 12 March 2021
 
