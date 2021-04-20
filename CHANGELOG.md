@@ -10,6 +10,7 @@
 * HTTPS GET uses root certificate “DigiCert High Assurance EV Root CA” for herokuapp.com site. It behaves „the old way“ for other servers.  
 * Reduce Nightscout connections (NS is queried for update only once every minute and only if time from the last reading is bigger than 5 minutes).  
 * Free memory and Up time added to the info page for diagnostic purposes.  
+** Date format update (added 0 to days bellow 10).  
 
 
 ### 12 March 2021
