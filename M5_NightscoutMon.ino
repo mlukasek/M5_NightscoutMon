@@ -73,7 +73,7 @@ SHT3X sht30;
 #include "microdot.h"
 MicroDot MD;
 
-String M5NSversion("2021042001");
+String M5NSversion("2021042101");
 
 #ifdef ARDUINO_M5STACK_Core2
   #define CONFIG_I2S_BCK_PIN 12
@@ -2533,7 +2533,7 @@ void setup() {
     yield();
 
     sclient.setCACert(rootCACertificate);
-    http.setReuse(false);
+    // http.setReuse(false);
     
     if (!is_task_bootstrapping) {
       lcdSetBrightness(lcdBrightness);
