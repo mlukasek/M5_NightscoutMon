@@ -2,6 +2,14 @@
 
 ## Revisions
 
+
+### 28 May 2021
+
+* Previous delta (plugins) value display corrected. Nightscount read postponed from 300 to 305 seconds after the last update to allow plugins (delta, iob, cob, ...) to update.  
+* Corrected error when "/" character was at the end of Nightscout URL.  
+* Redirection for HTTP codes 301 and 302.  
+* HTTPClient and WiFiClientSecure returned back to readNightscout() function.  
+
 ### 21 April 2021
 
 * setReuse (keep-alive) returned back (removed) as it was causing crashes in HTTPClient library for Sugarmate.

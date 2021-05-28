@@ -73,7 +73,7 @@ SHT3X sht30;
 #include "microdot.h"
 MicroDot MD;
 
-String M5NSversion("2021042101");
+String M5NSversion("2021052801");
 
 #ifdef ARDUINO_M5STACK_Core2
   #define CONFIG_I2S_BCK_PIN 12
@@ -145,9 +145,6 @@ const char* rootCACertificate = \
 "+OkuE6N36B9K" \
 "-----END CERTIFICATE-----\n";
 
-HTTPClient http;
-WiFiClientSecure sclient;
-
 WebServer w3srv(80);
 const byte DNS_PORT = 53;
 DNSServer dnsServer;
@@ -165,6 +162,7 @@ struct err_log_item {
 } err_log[10];
 int err_log_ptr = 0;
 int err_log_count = 0;
+int rcnt = 4;
 
 int dispPage = 0;
 #define MAX_PAGE 3
@@ -931,8 +929,10 @@ void drawMiniGraph(struct NSinfo *ns){
 }
 
 int readNightscout(char *url, char *token, struct NSinfo *ns) {
-  // HTTPClient http;
-  // WiFiClientSecure *client = new WiFiClientSecure;
+  HTTPClient http;
+  WiFiClientSecure sclient;
+  sclient.setCACert(rootCACertificate);
+
   char NSurl[128];
   int err=0;
   char tmpstr[64];
@@ -951,6 +951,11 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     else
       strcpy(NSurl,"");
     strcat(NSurl,url);
+    if(strlen(NSurl)>0) {
+      if(NSurl[strlen(NSurl)-1]=='/') {
+        NSurl[strlen(NSurl)-1]=0;
+      }
+    }
     if(strstr(NSurl,"sugarmate") != NULL) // Sugarmate JSON URL for Dexcom follower
       ns->is_Sugarmate = 1;
     else
@@ -997,6 +1002,11 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     
     // Serial.print("[HTTP] GET...\r\n");
     // start connection and send HTTP header
+    
+    const char * headerKeys[] = {"date", "server", "location"};
+    const size_t numberOfHeaders = 3;
+    http.collectHeaders(headerKeys, numberOfHeaders);
+
     unsigned long timeInGET;
     timeInGET = millis();
     int httpCode = http.GET();
@@ -1180,10 +1190,23 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
           Serial.print("Sensor time: "); Serial.print(ns->sensTm.tm_hour); Serial.print(":"); Serial.print(ns->sensTm.tm_min); Serial.print(":"); Serial.print(ns->sensTm.tm_sec); Serial.print(" DST "); Serial.println(ns->sensTm.tm_isdst);
         } 
       } else {
+        // httpCode containts http response error
         addErrorLog(httpCode);
         err=httpCode;
+        /*
+        for(int i = 0; i< http.headers(); i++){
+          Serial.print("Header: "); Serial.println(http.header(i));
+        } */
+        if(err==301 || err==302) {
+          if(http.header("location").length()>0) {
+            strncpy(cfg.url, http.header("location").c_str(), 127);
+            Serial.printf("HTTP error %d, redirecting to \"%s\"\r\n", err, cfg.url);
+            rcnt = 4; // retry the get asap
+          }
+        }
       }
     } else {
+      // httpCode < 0 = internal http error
       addErrorLog(httpCode);
       err=httpCode;
     }
@@ -1205,6 +1228,11 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     else
       strcpy(NSurl,"");
     strcat(NSurl,url);
+    if(strlen(NSurl)>0) {
+      if(NSurl[strlen(NSurl)-1]=='/') {
+        NSurl[strlen(NSurl)-1]=0;
+      }
+    }
     switch(cfg.info_line) {
       case 2:
         strcat(NSurl,"/api/v2/properties/iob,cob,delta,loop,basal");
@@ -2259,7 +2287,7 @@ void draw_page() {
     case MAX_PAGE: {
       // display error log
       char tmpStr[64];
-      // HTTPClient http;
+      HTTPClient http;
       M5.Lcd.fillScreen(BLACK);
       M5.Lcd.setCursor(0, 18);
       M5.Lcd.setTextDatum(TL_DATUM);
@@ -2532,7 +2560,7 @@ void setup() {
 
     yield();
 
-    sclient.setCACert(rootCACertificate);
+    // sclient.setCACert(rootCACertificate);
     // http.setReuse(false);
     
     if (!is_task_bootstrapping) {
@@ -2593,13 +2621,12 @@ void setup() {
 }
 
 // the loop routine runs over and over again forever
-int rcnt = 4;
 void loop() {
   if(!cfg.disable_web_server || is_task_bootstrapping) {
     dnsServer.processNextRequest();
     w3srv.handleClient();
   }
-  delay(10);
+  delay(20); // was 10
   if (!is_task_bootstrapping) {
     buttons_test();
 
@@ -2615,9 +2642,21 @@ void loop() {
       /* if(dispPage==2)
         M5.Lcd.drawLine(osx, osy, 160, 111, TFT_BLACK); // erase seconds hand while updating data
       */
-      if((sensorDifSec>300) && (rcnt>3)) {
-        readNightscout(cfg.url, cfg.token, &ns);
+      if((sensorDifSec>305) && (rcnt>3)) {
         rcnt = 0;
+        readNightscout(cfg.url, cfg.token, &ns);
+        if(rcnt==4) {
+          M5.Lcd.fillScreen(BLACK);
+          M5.Lcd.setTextColor(WHITE);
+          M5.Lcd.setCursor(0, 140);
+          M5.Lcd.setTextSize(2);
+          M5.Lcd.println("HTTP 30x Redirect");
+          M5.Lcd.println("Check you URL in config!");
+          M5.Lcd.println("Redirecting...");
+          // delay(500);
+          // M5.Lcd.fillScreen(BLACK);
+          return;
+        }
       }
       rcnt++;
       draw_page();
@@ -2682,7 +2721,7 @@ void loop() {
               default:
                 // localTimeInfo.tm_mday=25;
                 // sprintf(datetimeStr, "%02d:%02d  %d.%d.  ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_mday, timeinfo.tm_mon+1);
-                strftime(dateStr, 15, "%e.%m.  ", &localTimeInfo);
+                strftime(dateStr, 15, "%d.%m.  ", &localTimeInfo);
             }
             strcpy(localTimeStr, timeStr);
             strcat(localTimeStr, dateStr);
@@ -2825,15 +2864,15 @@ void loop() {
       }
       */
       if((WiFi.localIP()!=udp.remoteIP()) && (strncmp(packetBuffer, "M5_Nightscout SNOOZE: USR=", 26)==0)) {
-        Serial.println("Correct UDP packet, lets check CRC and info");
+        //Serial.println("UDP SNOOZE packet, lets check CRC and info");
         int urlCRC = calcCRC(cfg.url);
-        int urlCRC_rcvd;
+        int urlCRC_rcvd = 0;
         unsigned long snzUntl;
         int sr = sscanf(packetBuffer, "M5_Nightscout SNOOZE: USR=%d, SnoozeUntil=%lu", &urlCRC_rcvd, &snzUntl);
-        // Serial.printf("scanf res = %d\r\n", sr);
-        // Serial.printf("urlCRC = %d, urlCRC reveived = %d\r\n", urlCRC, urlCRC_rcvd);
-        Serial.printf("We should SNOOZE until %lu\r\n", snzUntl);
-        if((sr=2) && (urlCRC==urlCRC_rcvd)) {
+        //Serial.printf("scanf res = %d\r\n", sr);
+        //Serial.printf("urlCRC = %d, urlCRC reveived = %d\r\n", urlCRC, urlCRC_rcvd);
+        if((sr==2) && (urlCRC==urlCRC_rcvd)) {
+          Serial.printf("Correct UDP SNOOZE received, we should SNOOZE until %lu\r\n", snzUntl);
           snoozeUntil = snzUntl;
           handleAlarmsInfoLine(&ns);
         }
