@@ -962,7 +962,7 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
     else
     {
       ns->is_Sugarmate = 0;
-      // is_https_Heroku = (strstr(NSurl,"https://") != NULL) && (strstr(NSurl,"herokuapp.com") != NULL);
+      is_https_Heroku = (strstr(NSurl,"https://") != NULL) && (strstr(NSurl,"herokuapp.com") != NULL);
       Serial.print("is_https_Heroku "); Serial.println(is_https_Heroku);
       if(cfg.sgv_only) {
         strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv");
