@@ -49,7 +49,7 @@ void readConfigFromFlash(tConfig *cfg) {
   } else {
     Serial.println("Reading configuration from Preferences M5NSconfig");
     prefs.getString("nightscout", cfg->url, 128);
-    prefs.getString("token", cfg->token, 32);
+    prefs.getString("token", cfg->token, 64);
     prefs.getString("bootpic", cfg->bootPic, 64);
     prefs.getString("user_name", cfg->userName, 32);
     if(strlen(cfg->userName)==0)
@@ -275,7 +275,7 @@ void readConfiguration(const char *iniFilename, tConfig *cfg) {
   if (ini.getValue("config", "token", buffer, bufferLen)) {
     Serial.print("section 'config' has an entry 'token' with value ");
     Serial.println(buffer);
-    strlcpy(cfg->token, buffer, 32);
+    strlcpy(cfg->token, buffer, 64);
   }
   else {
     // no token parameter set in INI file - no error just set cfg->token[0] to 0

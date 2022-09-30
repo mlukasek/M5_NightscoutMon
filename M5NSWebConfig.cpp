@@ -620,7 +620,7 @@ void handleEditConfigItem() {
       message += "<input type=\"text\" name=\"url\" value=\"" + String(cfg.url) + "\" size=\"32\" maxlength=\"128\"> \r\n";
       message += " (for example <i>sitename.herokuapp.com</i>)<br>\r\n";
       message += "Security token: \r\n";
-      message += "<input type=\"text\" name=\"token\" value=\"" + String(cfg.token) + "\" size=\"32\" maxlength=\"32\"> \r\n";
+      message += "<input type=\"text\" name=\"token\" value=\"" + String(cfg.token) + "\" size=\"64\" maxlength=\"64\"> \r\n";
       message += " (empty, if not used)<br>\r\n";
     }
     if(String(w3srv.arg(0)).equals("deviceName")) {
@@ -773,7 +773,7 @@ void handleGetEditConfigItem() {
       strncpy(cfg.url, String(w3srv.arg(i)).c_str(), 128);
     }
     if(String(w3srv.argName(i)).equals("token")) {
-      strncpy(cfg.token, String(w3srv.arg(i)).c_str(), 32);
+      strncpy(cfg.token, String(w3srv.arg(i)).c_str(), 64);
     }
     if(String(w3srv.argName(i)).equals("deviceName")) {
       strncpy(cfg.deviceName, String(w3srv.arg(i)).c_str(), 32);
