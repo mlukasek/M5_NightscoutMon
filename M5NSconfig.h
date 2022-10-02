@@ -11,7 +11,7 @@
 
 struct tConfig {
   char url[128];
-  char token[32]; // security token
+  char token[64]; // security token
   char bootPic[64];
   char userName[32];
   char deviceName[32];

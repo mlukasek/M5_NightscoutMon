@@ -73,7 +73,7 @@ SHT3X sht30;
 #include "microdot.h"
 MicroDot MD;
 
-String M5NSversion("2021060101");
+String M5NSversion("2022100201");
 
 #ifdef ARDUINO_M5STACK_Core2
   #define CONFIG_I2S_BCK_PIN 12
@@ -965,15 +965,12 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
       is_https_Heroku = (strstr(NSurl,"https://") != NULL) && (strstr(NSurl,"herokuapp.com") != NULL);
       Serial.print("is_https_Heroku "); Serial.println(is_https_Heroku);
       if(cfg.sgv_only) {
-        strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv");
+        strcat(NSurl,"/api/v1/entries.json?find[type][$eq]=sgv&count=10");
       } else {
-        strcat(NSurl,"/api/v1/entries.json");
+        strcat(NSurl,"/api/v1/entries.json?count=10");
       }
       if ((token!=NULL) && (strlen(token)>0)) {
-        if(strchr(NSurl,'?'))
-          strcat(NSurl,"&token=");
-        else
-          strcat(NSurl,"?token=");
+        strcat(NSurl,"&token=");
         strcat(NSurl,token);
       }
     }
@@ -1103,6 +1100,9 @@ int readNightscout(char *url, char *token, struct NSinfo *ns) {
             ns->rawtime = JSONdoc[sgvindex]["date"].as<long long>(); // sensTime is time in milliseconds since 1970, something like 1555229938118
             ns->sensTime = ns->rawtime / 1000; // no milliseconds, since 2000 would be - 946684800, but ok
             strlcpy(ns->sensDir, JSONdoc[sgvindex]["direction"] | "N/A", 32);
+            if(strcmp(ns->sensDir, "N/A")==0) { // Railway uses "trend" instead of "direction"
+              strlcpy(ns->sensDir, JSONdoc[sgvindex]["trend"] | "N/A", 32);
+            }
             ns->sensSgv = JSONdoc[sgvindex]["sgv"]; // get value of sensor measurement
             for(int i=0; i<=9; i++) {
               ns->last10sgv[i]=JSONdoc[i]["sgv"];
