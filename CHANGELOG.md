@@ -3,6 +3,10 @@
 ## Revisions
 
 
+### 2 October 2022
+
+* Updates for Railway (longer token, accept "trend" in addition to "direction", response count limited to 10).  
+
 ### 28 May 2021
 
 * Previous delta (plugins) value display corrected. Nightscount read postponed from 300 to 305 seconds after the last update to allow plugins (delta, iob, cob, ...) to update.  
