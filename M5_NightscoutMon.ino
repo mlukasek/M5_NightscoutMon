@@ -54,6 +54,7 @@
 // #include <util/eu_dst.h>
 #define ARDUINOJSON_USE_LONG_LONG 1
 #include <ArduinoJson.h>
+#include "soc/rtc_io_reg.h"
 
 #include <Adafruit_NeoPixel.h>
 Adafruit_NeoPixel pixels(10, 15, NEO_GRB + NEO_KHZ800);
